@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1, minimum-scale=1" />
+	<title>Okeebo</title>
+	<link rel="stylesheet" href="okeebo.css" />
+	<link rel="stylesheet" href="test.css" />
+	<link rel="stylesheet" href="d3.css" />
+	<script type="text/javascript" src="jquery-1.7.js"></script>
+	<script type="text/javascript" src="okeebo.js"></script>
+	<script type="text/javascript" src="hammer.js"></script>
+	<script type="text/javascript" src="jquery.specialevent.hammer.js"></script>
+	<script type="text/javascript" src="test.js"></script>
+	<!--[if gt IE 8]><!-->
+	<script type="text/javascript" src="d3.v3.min.js"></script>
+	<!--<![endif]--> 
+	<script type="text/javascript" src="okeebo.d3.js"></script>
+</head>
+
+<body>
+
+	<button id="menu" type="button"></button>
+    
+	<form class="save" action="http://okeebo.com/test/publish/publish.php" method="post">
+	<input type="hidden" id="_save" name="text" value="">
+	<input type="hidden" id="_title" name="title" value="">
+		<input type="hidden" id="_publish" name="publish" value="false">
+	</form>
+    
+	<div id="map"></div>
+      
+	
