@@ -1,1 +1,5 @@
-Another test
+okeebo.js is the main rendering engine.
+
+test.js allows for editting capabilities.
+
+okeebo.d3.js enables the graph.
