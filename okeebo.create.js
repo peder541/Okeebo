@@ -1,4 +1,9 @@
-// Javascript Document
+/* 
+ * Okeebo Content Creation JavaScript
+ * author: Ben Pedersen
+ *
+ */
+
 var scroll_timer;
 var _drag = 0;
 var _edit = 0;
@@ -6,7 +11,7 @@ var arrange_timer;
 var _delete = new Array();
 
 function resize_writing_items() {
-  $('button').not('.in,.out,.tangent,.preview_main,.preview_exit').css('margin-left',$('.inner').css('margin-left'));
+	$('button').not('.in,.out,.tangent,.preview_main,.preview_exit').css('margin-left',$('.inner').css('margin-left'));
 	$('#bold,#italic,#underline,#ul,#ol').css('left',$('.inner,.outer').outerWidth()-29);
 	//modify_arrange_buttons();
 }
@@ -307,6 +312,7 @@ function improve_formatting() {
 }
 
 function toggle_edit() {
+	$('.preview_window').remove();
 	improve_formatting();
 	$('.inner,.outer').each(function() {
 		toggle_edit_one($(this));
@@ -512,6 +518,8 @@ function arrange_links(filter,letter,first_number) {
 			var new_id = '_' + child_letter + new_number + '_';
 			if (page.attr('id')) new_id = page.attr('id') + '_' + child_letter + new_number + '_';
 			page.removeClass(child_letter+old_number).attr('id',new_id);
+			var tangents = $('._' + child_letter + old_number);
+			if (tangents.html()) tangents.removeClass('_' + child_letter + old_number).addClass('-' + child_letter + new_number);
 		}
 	});
 	
@@ -536,6 +544,8 @@ function repair_links(filter,letter,first_number) {
 			$(this).addClass(letter+number).attr('id','');
 			var page = $('[id*="_' + child_letter + number + '_"]');
 			page.addClass(child_letter+number).attr('id',page.attr('id').replace('_' + child_letter + number + '_',''));
+			var tangents = $('.-' + child_letter + number);
+			if (tangents.html()) tangents.addClass('_'+child_letter+number).removeClass('-' + child_letter + number);
 		}
 	});
 }
@@ -612,6 +622,9 @@ function insert_page(summary,page,exists) {
 	var div_letter = String.fromCharCode(letter.charCodeAt(0) + 1);
 	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
 	if (summary) summary.attr('id',letter + '0');
+	else if (exists) {
+		summary = '<p id="' + letter + '0"><span class="italic">' + page.children('h3').html() + '</span><br /><span>Summary</span></p>';
+	}
 	else summary = '<p id="' + letter + '0"><span class="italic">Title</span><br /><span>Summary</span></p>';
 	if (_drag) {
 		toggle_drag();	// Turns off drag so new page summary will be in sync$('#' + letter + '0').html('');
@@ -766,7 +779,7 @@ function unlink_page() {
 	else return false;
 }
 
-//// Needs to be rewritten to handle pages with multiple keys
+/// Handles pages with multiple keys
 function delete_page() {
 	var current_page = $('.inner,.outer').filter(':visible');
 	if (!current_page.hasClass('outer')) {
@@ -788,6 +801,13 @@ function delete_page() {
 			var parent_page_first_id = parent_page.children('p[id]').first().attr('id');
 			var arrange_letter = parent_page_first_id.charAt(0);
 			var arrange_first_number = parseInt(parent_page_first_id.substring(1,parent_page_first_id.length),10);
+			
+			/// Might want to record these tangents in the undo delete stack.
+			var tangent = $('.tangent._' + current_keys[j]);
+			tangent.each(function(index) {
+				var _this = $(this);
+				_this.before(_this.html()).remove();
+			});
 	
 			if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 			parent_page.show();
@@ -839,6 +859,29 @@ function undo_page_delete() {
 		var restore_parent_id = restore.parent[i].attr('class').split(' ').pop();
 		if (!current_page.hasClass(restore_parent_id)) go_to(0,current_page.attr('id'),restore_parent_id);
 		insert_page(restore.summary[i],restore.page,i);
+	}
+}
+
+function delete_edge(edge) {
+	var page = $('.' + edge);
+	var prefix = 1;
+	if (page.hasClass('outer')) ++prefix;
+	var classes = page.attr('class').split(' ');
+	// Multiply Keys
+	if (classes.length > prefix + 1) {
+		var link_letter = String.fromCharCode(edge.charCodeAt(0) - 1);
+		var link_number = edge.substring(1,edge.length);
+		$('#' + link_letter + link_number).remove();
+		$('.in.' + link_letter + link_number).remove();
+		page.removeClass(edge);
+		arrange_links($('.Z1').children(),'a',1);
+		repair_links($('.Z1').children(),'a',1);
+		update_all_affected_links('a1');
+	}
+	// Single Key
+	else {
+		go_to(0,$('.inner,.outer').filter(':visible').attr('id'),edge);
+		delete_page();
 	}
 }
 
