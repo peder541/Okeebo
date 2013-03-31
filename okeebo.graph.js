@@ -1,13 +1,19 @@
-// JavaScript Document
+/*
+ * Okeebo Graph JavaScript
+ * author: Ben Pedersen
+ * 
+ */
+
 var padding = 20;
 var radius = padding/4;
 var w = 1280;
 var h = 800;
 var s = 0;
-var info_timer;  	// Redundant with okeebo.js
+var info_timer;		// Redundant with okeebo.js
 var noSVG = false;
 var return_page_id = 'Z1';
 var _hover = null;
+var edge = null;
 
 $(document).ready(function(event) {
 	
@@ -42,9 +48,13 @@ $(document).ready(function(event) {
 					go_to(0,return_page_id,d3.select(_hover[0]).data()[0][0]);
 					delete_page();
 				}
+				if (edge) {
+					toggle_graph();
+					delete_edge(edge);
+				}
 			}
 			if (event.which == 27) {
-				toggle_graph();	
+				toggle_graph();
 			}
 		}
 	});
@@ -58,7 +68,7 @@ function toggle_graph() {
 		$('svg').remove();
 		$('body').css('background-color','');
 		$('#menu,#map,#bold,#italic,#underline,#ol,#ul,.left,.right').show();
-		$('#info').css({'color':'','text-shadow':'','font-size':'','margin-right':''});
+		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
 		$('#status').hide().css({'top':'','bottom':''});
 		if (status_timer) clearTimeout(status_timer);
 		go_to(0,null,return_page_id);
@@ -81,6 +91,7 @@ function toggle_graph() {
 			.css({'left':w*0.5-$('#status').outerWidth()*0.5,'top':h*0.5-$('#status').outerHeight()*0.5,'bottom':'auto'})
 			.fadeIn();
 		status_timer = setTimeout("$('#status').fadeOut();",2400);
+		_hover = null, edge = null;
 	}
 }
 
@@ -131,7 +142,7 @@ function draw_graph() {
 		})
 		.attr('r',radius);
 		
-	$('svg').on('click', function(event) {
+	/*$('svg').on('click', function(event) {
 		var _this = $('circle').filter(function(index) {
 			return ( (Math.abs($(this).attr('cx') - event.pageX) < 15) && (Math.abs($(this).attr('cy') - event.pageY) < 15) );
 		});
@@ -144,7 +155,7 @@ function draw_graph() {
 			$('#info').fadeIn(200);
 			info_timer = setTimeout("$('#info').fadeOut(200);",2000);
 		}
-	});
+	});*/
 	
 	$('circle').on('mouseover',function(event) {
 		var _this = $(this);
@@ -196,21 +207,21 @@ function update_graph() {
 }
 
 function draw_lines() {
-	 
-	 //d3.selectAll('line').remove();
-	 d3.selectAll('path').remove();
-	 
-	 var circle = d3.selectAll('circle');
-	 
-	 circle.each(function(d,i) {
-		 for (var j=0; j < d.length; ++j) {
-			 var parent_id = d3_get_parent_tag(d[j]);
-			 if (parent_id) {
-				 var parent = circle.filter(function(data,index) {
-					 for (var k=0; k < data.length; ++k) {
-						 if (data[k] == parent_id || (parent_id == 'Z1' && data[k] == '`1')) return true;
-					 }
-			 	});
+	
+	//d3.selectAll('line').remove();
+	d3.selectAll('path').remove();
+	
+	var circle = d3.selectAll('circle');
+	
+	circle.each(function(d,i) {
+		for (var j=0; j < d.length; ++j) {
+			var parent_id = d3_get_parent_tag(d[j]);
+			if (parent_id) {
+				var parent = circle.filter(function(data,index) {
+					for (var k=0; k < data.length; ++k) {
+						if (data[k] == parent_id || (parent_id == 'Z1' && data[k] == '`1')) return true;
+					}
+				});
 			 	if (parent) {
 					var _this = d3.select(this);
 					/*
@@ -244,11 +255,18 @@ function draw_lines() {
 						.attr('d',path_data)
 						.attr('stroke','black')
 						.attr('stroke-width','1')
-						.attr('fill','none');
+						.attr('fill','none')
+						.data([d[j]]);
 				}
-			 }
-		 }
-	 });
+			}
+		}
+	});
+	 
+	$('path').on('mouseover',function(event) {
+		edge = d3.select($(this)[0]).data()[0];
+	}).on('mouseout',function(event) {
+		edge = null;
+	});
 	 
 }
 
