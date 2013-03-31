@@ -1,4 +1,8 @@
-// JavaScript Document
+/*
+ * Okeebo JavaScript Engine
+ * author: Ben Pedersen
+ * 
+ */
 
 var ctrl_down=0;
 var mouse=0;
@@ -14,7 +18,7 @@ var _adjust = 0;
 var badIE = false;
 
 function resize_windows(){
-  if (!$('#screen2').html()) {
+	if (!$('#screen2').html()) {
 		var w1 = $(window).width();
 		var main = $('.inner,.outer').filter(':visible');
 		if ($(document).height() > $(window).height()) w1 += scrollbar_width;
