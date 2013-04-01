@@ -1,5 +1,5 @@
 okeebo.js is the main rendering engine.
 
-test.js allows editing.
+okeebo.create.js allows editing.
 
-okeebo.d3.js enables the graph.
+okeebo.graph.js enables the graph.
