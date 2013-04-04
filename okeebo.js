@@ -1093,9 +1093,9 @@ function clean_transition(new_obj,old_obj) {
 }
 
 function go_to(mode,old_id,new_id) {
-	old_obj = $('.'+old_id)
-	new_obj = $('.'+new_id)
-	if (new_obj.html()) {
+	old_obj = $('.'+old_id);
+	new_obj = $('.'+new_id);
+	if (new_obj.html() && !new_obj.hasClass(old_id)) {
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		if (mode == 0) $(window).scrollTop(0);
