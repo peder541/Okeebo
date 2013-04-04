@@ -176,6 +176,7 @@ function draw_graph() {
 		var _this = $(this);
 		var _this_id = d3.select(_this[0]).data()[0];
 		return_page_id = _this_id[0];
+		if (return_page_id == '`1') return_page_id = 'Z1';
 		toggle_graph();
 	});
 	
