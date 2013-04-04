@@ -172,6 +172,11 @@ function draw_graph() {
 		if (info_timer) clearTimeout(info_timer);
 		$('#info').fadeOut(200);
 		_hover = null;
+	}).on('dblclick',function(event) {
+		var _this = $(this);
+		var _this_id = d3.select(_this[0]).data()[0];
+		return_page_id = _this_id[0];
+		toggle_graph();
 	});
 	
 }
