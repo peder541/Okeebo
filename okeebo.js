@@ -1,5 +1,5 @@
 /*
- * Okeebo JavaScript Engine
+ * Okeebo Engine JavaScript
  * author: Ben Pedersen
  * 
  */
