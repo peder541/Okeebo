@@ -6,14 +6,12 @@
 
 var padding = 20;
 var radius = padding/4;
-var w = 1280;
-var h = 800;
+var w = 1280, h = 800;
 var s = 0;
 var info_timer;		// Redundant with okeebo.js
 var noSVG = false;
 var return_page_id = 'Z1';
-var _hover = null;
-var edge = null;
+var _hover = null, edge = null;
 
 $(document).ready(function(event) {
 	
@@ -45,7 +43,7 @@ $(document).ready(function(event) {
 			if (event.which == 46) {
 				if (_hover) {
 					toggle_graph();
-					go_to(0,return_page_id,d3.select(_hover[0]).data()[0][0]);
+					go_to(return_page_id,d3.select(_hover[0]).data()[0][0]);
 					delete_page();
 				}
 				if (edge) {
@@ -69,9 +67,10 @@ function toggle_graph() {
 		$('body').css('background-color','');
 		$('#menu,#map,#bold,#italic,#underline,#ol,#ul,.left,.right').show();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
+		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
 		if (status_timer) clearTimeout(status_timer);
-		go_to(0,null,return_page_id);
+		go_to(null,return_page_id);
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
@@ -123,15 +122,7 @@ function draw_graph() {
 		.attr('cx',function(d,i) {
 			var _this = $('circle').eq(i);
 			var same_row = $('[cy="' + _this.attr('cy') + '"]');
-			
-			/*		// Uses Page Location in DOM. Better to infer index placement from key value.
-			var xScale = d3.scale.linear()
-							.domain([-0.5, same_row.index(same_row.last()) + 0.5])
-							.range([padding, $(window).width() - padding]);
-							
-			return xScale(same_row.index(_this));
-			*/
-			/**/			
+					
 			var xScale = d3.scale.linear()
 							.domain([0.5, d3.max(d3.selectAll(same_row).data(), function(array) {
 								return parseInt(array[0].substring(1,array[0].length),10);
@@ -141,21 +132,6 @@ function draw_graph() {
 			return xScale(parseInt(d[0].substring(1,d[0].length),10));			/**/
 		})
 		.attr('r',radius);
-		
-	/*$('svg').on('click', function(event) {
-		var _this = $('circle').filter(function(index) {
-			return ( (Math.abs($(this).attr('cx') - event.pageX) < 15) && (Math.abs($(this).attr('cy') - event.pageY) < 15) );
-		});
-		var _this_id = d3.select(_this[0]).data()[0];
-		if (_this_id) {
-			if (_this_id == '`1') _this_id = 'Z1';
-			if (info_timer) clearTimeout(info_timer);
-			$('#info').html($('.' + _this_id).children('h3').html());
-			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20});
-			$('#info').fadeIn(200);
-			info_timer = setTimeout("$('#info').fadeOut(200);",2000);
-		}
-	});*/
 	
 	$('circle').on('mouseover',function(event) {
 		var _this = $(this);
@@ -172,7 +148,7 @@ function draw_graph() {
 		if (info_timer) clearTimeout(info_timer);
 		$('#info').fadeOut(200);
 		_hover = null;
-	}).on('dblclick',function(event) {
+	}).on('dblclick doubletap',function(event) {
 		var _this = $(this);
 		var _this_id = d3.select(_this[0]).data()[0];
 		return_page_id = _this_id[0];
