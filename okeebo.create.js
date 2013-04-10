@@ -4,10 +4,8 @@
  *
  */
 
-var scroll_timer;
-var _drag = 0;
-var _edit = 0;
-var arrange_timer;
+var _drag = 0, _edit = 0;
+var arrange_timer, scroll_timer;
 var _delete = new Array();
 
 function resize_writing_items() {
@@ -52,15 +50,18 @@ $(document).ready(function(event) {
 			update_all_affected_links(first_id);
 		});
 	});
+	
+	toggle_edit();
 		
+	
+	/// Document Events
 	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
 		if (event.which == 13) {
 			$(this).blur();
 			return false;
 		}
-	});
-	
-	$(document).on('keydown','div[contenteditable]',function(event) {
+	})
+	.on('keydown','div[contenteditable]',function(event) {
 		if (event.which == 8 || event.which == 46) {
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
 			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
@@ -91,10 +92,8 @@ $(document).ready(function(event) {
 			document.execCommand('insertText',false,'\t');
 			return false;
 		}
-	});
-	
-	
-	$(document).on('keyup','[contenteditable="true"]',function(event) {
+	})
+	.on('keyup','[contenteditable="true"]',function(event) {
 		if ($(this).is('h3')) {
 			// Title (page)
 			if ($(this).parent().hasClass('inner')) {
@@ -149,15 +148,27 @@ $(document).ready(function(event) {
 		_clip = document.getSelection().toString();		/// Necessary for fix to 'paste into span' glitch in Firefox.
 	});
 	
-	$(window).resize(function(event) {
-		resize_writing_items();
-	});
 	
-	$(window).scroll(function(event) {
+	/// Window Events
+	$(window).on('resize',function(event) {
+		resize_writing_items();
+	})
+	.on('scroll',function(event) {
 		var sidebar = $('#sidebar');
 		if (sidebar.is(':visible')) {
 			sidebar.css('left',-$(window).scrollLeft());
 			if (sidebar.offset().left != 0 && !badIE) sidebar.css({'left':0,'top':$(window).scrollTop()});
+			
+			/// Idea for when Sidebar is too long for window
+			/*
+			if ($('#close').offset().top - $('#sidebar').offset().top + $('#close').outerHeight() > $(window).height()) {
+				sidebar.css('top','');
+				var to_bottom = ($(window).height() + $(window).scrollTop()) - ($('#close').offset().top + $('#close').outerHeight());
+				sidebar.css({'top':Math.max(-$(window).scrollTop(),to_bottom)});
+			}
+			else sidebar.css('top','');
+			*/
+			
 		}
 		if ($(window).scrollTop() < 80) {
 			$('#bold,#italic,#underline,#ul,#ol').css('position','absolute');
@@ -177,45 +188,12 @@ $(document).ready(function(event) {
 		}
 	});
 	
-	/*
-	$('#edit').on('click',function(event) {
-		toggle_edit();
-		if ($('#hud span').eq(1).html() == 'Off') {
-			$('#hud span').eq(1).html('On');
-			$('#bold,#italic,#underline,#font,#ul,#ol').show();
-		}
-		else {
-			$('#hud span').eq(1).html('Off');
-			$('#bold,#italic,#underline,#font,#ul,#ol').hide();
-		}
-	});
 	
-	$('#drag').on('click',function(event) {
-		toggle_drag();
-	});
-	*/
-	
+	/// Button Events
 	$('#menu').on('click',function(event) {
 		if ($('#sidebar').outerWidth()) delete_sidebar();
 		else create_sidebar();
 	});
-	
-	/*
-	$('#save').on('click',function(event) {
-		if (_drag) toggle_drag();
-		if ($('#bold').is(':visible')) toggle_edit();
-		var text = '';
-		$('.inner,.outer').each(function(index) {
-			$(this).children('form.linear').remove(); 
-			if ($(this).hasClass('inner')) text += '<div class="' + $(this).attr('class') + '">' + $(this).html() + '</div>';
-			else text += '<div class="' + $(this).attr('class') + '" id="Z1">' + $(this).html() + '</div>';
-		});
-		$('#_save').val(text);
-		$('#_title').val($('.Z1 h3').html());
-		$('form.save').submit();
-	});
-	*/
-	
 	$('#bold').on('click',function(event) {
     	document.execCommand('bold', false, null);
 		size_buttons($('.inner,.outer').filter(':visible'));
@@ -233,63 +211,6 @@ $(document).ready(function(event) {
 	$('#ol').on('click',function(event) {
 		document.execCommand('insertOrderedList', false, null);
 	});
-	
-	/// Drag and Drop Polyfill For Touch Devices
-	/*
-	$('body').on('hold','[draggable]',function(event) {
-		if (event.originalEvent.type=='touchstart') {
-			var touch = event.originalEvent.touches[0];
-			_data = $(event.target).parent().attr('id');
-			$('#dragdrop').remove();
-			$('body').append('<div id="dragdrop"></div>');
-			$('#dragdrop').css({'border-radius':'30px','width':'60px','height':'60px','background':'url(hand1.png) center no-repeat #1C6DDB'});
-			$('#dragdrop').css({'position':'absolute','left':touch.screenX-30,'top':touch.screenY+$(window).scrollTop()-30});
-			$('#dragdrop').on('touchstart',function(event) { 
-				event.preventDefault();
-				$('body').on('touchmove',function(event) {
-					var window_height;
-					if (window.innerHeight) window_height = window.innerHeight;
-					else window_height = $(window).height();
-					var screenY = event.originalEvent.touches[0].screenY;
-					var udd = "$('#dragdrop').css({'top':" + screenY + "+$(window).scrollTop()-30});"
-					if (scroll_timer) clearInterval(scroll_timer);
-					if (screenY < 25) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()-4);"+udd,10);
-					else if (screenY < 50) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()-3);"+udd,10);
-					else if (screenY < 100) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()-2);"+udd,10);
-					else if (screenY < 150) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()-1);"+udd,10);
-					else if (screenY > window_height - 25) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()+4);"+udd,10);
-					else if (screenY > window_height - 50) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()+3);"+udd,10);
-					else if (screenY > window_height - 100) scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()+2);"+udd,10);
-					else if (screenY > window_height - 150)	scroll_timer = setInterval("$(window).scrollTop($(window).scrollTop()+1);"+udd,10);
-					$('#dragdrop').css({'top':screenY+$(window).scrollTop()-30,'left':event.originalEvent.touches[0].screenX-30});
-				});
-				$('body').one('touchend',function(event) {
-					if (scroll_timer) clearInterval(scroll_timer);
-					drop(event);
-					_data = null;
-					$('body').off('touchmove');
-					$('#dragdrop').remove();
-				});
-			});
-		}
-	});
-	*/
-	
-	toggle_edit();
-	
-	/*
-	modify_arrange_buttons(1);
-	$('.in,.out').on('click',function(event) { 
-		if (arrange_timer) clearTimeout(arrange_timer);
-		$('.switch').remove();
-		arrange_timer = setTimeout("modify_arrange_buttons(1);",800);
-	});
-	$('.left,.right').on('click',function(event) {
-		if (arrange_timer) clearTimeout(arrange_timer);
-		$('.switch').remove();
-		arrange_timer = setTimeout("modify_arrange_buttons(1);",200);
-	});
-	*/
 	
 });
 
@@ -328,75 +249,55 @@ function toggle_edit() {
 }
 
 function toggle_edit_one(obj) {
-	//if (obj.hasClass('outer')) {
-		if (obj.children('h3').attr('contenteditable') == 'true') {
-			obj.children('h3').removeAttr('contenteditable');
-			obj.children('h4').children('p[id]').children('span').removeAttr('contenteditable');	// Placeholder for Unlinked Page Summary 
-			obj.children('p[id]').children('span').removeAttr('contenteditable');
-			
-			var h3 = obj.children('h3');
-			var div = h3.next('div[contenteditable]');
+	if (obj.children('h3').attr('contenteditable') == 'true') {
+		obj.children('h3').removeAttr('contenteditable');
+		obj.children('h4').children('p[id]').children('span').removeAttr('contenteditable');	// Placeholder for Unlinked Page Summary 
+		obj.children('p[id]').children('span').removeAttr('contenteditable');
+		
+		var h3 = obj.children('h3');
+		var div = h3.next('div[contenteditable]');
+		if (div.html()) {
+			var data = div.children();
+			if (!data.html()) data = '<p>' + div.html() + '</p>';
+			h3.after(data);
+		}
+		else if (!obj.hasClass('outer')) {
+			var data = '<p>Content</p>';
+			h3.after(data);
+		}
+		div.remove();
+		h3.removeAttr('contenteditable');
+		obj.children('p[id]').each(function(index) {
+			var p = obj.children('p[id]').eq(index);
+			div = p.next('div[contenteditable]');
 			if (div.html()) {
 				var data = div.children();
 				if (!data.html()) data = '<p>' + div.html() + '</p>';
-				h3.after(data);
-			}
-			else if (!obj.hasClass('outer')) {
-				var data = '<p>Content</p>';
-				h3.after(data);
+				p.after(data);
 			}
 			div.remove();
-			h3.removeAttr('contenteditable');
-			obj.children('p[id]').each(function(index) {
-				var p = obj.children('p[id]').eq(index);
-				div = p.next('div[contenteditable]');
-				if (div.html()) {
-					var data = div.children();
-					if (!data.html()) data = '<p>' + div.html() + '</p>';
-					p.after(data);
-				}
-				div.remove();
-				p.removeAttr('contenteditable');
-			});
-		}
-		else {
-			obj.children('h3').attr('contenteditable','true');
-			obj.children('h4').children('p[id]').children('span').attr('contenteditable','true');	// Placeholder for Unlinked Page Summary
-			obj.children('p[id]').children('span').attr('contenteditable','true');
-			
-			var data = obj.children('h3').nextUntil('.in').not('form.linear');
-			if (data.html()) {
-				obj.children('h3').after('<div contenteditable="true"></div>');
-				obj.children('div[contenteditable]').html(data);
-			}
-			obj.children('p[id]').each(function(index) {
-				var p = obj.children('p[id]').eq(index);
-				data = p.nextUntil('.in').not('form.linear');
-				if (data.html()) {
-					p.after('<div contenteditable="true"></div>');
-					p.next('div[contenteditable]').html(data);
-				}
-			});
-		}
-	//}
-	/*
-	else {
-		if (obj.children('[contenteditable]').html()) {
-			var data;
-			if (obj.children('div[contenteditable]').children().html()) data = obj.children('div[contenteditable]').children();
-			else data = '<p>' + obj.children('div[contenteditable]').html() + '</p>';
-			obj.children('h3').removeAttr('contenteditable').after(data);
-			obj.children('div[contenteditable]').remove();
-		}
-		else {
-			var html = obj.html();
-			obj.children('h3').attr('contenteditable','true');
-			obj.children('h3').after('<div contenteditable="true"></div>');
-			obj.children('div[contenteditable]').html(obj.children().not('.out,[contenteditable]'));
-			if (!obj.children('div[contenteditable]').html()) obj.children('div[contenteditable]').html('<p>Content</p>');
-		}
+			p.removeAttr('contenteditable');
+		});
 	}
-	*/
+	else {
+		obj.children('h3').attr('contenteditable','true');
+		obj.children('h4').children('p[id]').children('span').attr('contenteditable','true');	// Placeholder for Unlinked Page Summary
+		obj.children('p[id]').children('span').attr('contenteditable','true');
+		
+		var data = obj.children('h3').nextUntil('.in').not('form.linear');
+		if (data.html()) {
+			obj.children('h3').after('<div contenteditable="true"></div>');
+			obj.children('div[contenteditable]').html(data);
+		}
+		obj.children('p[id]').each(function(index) {
+			var p = obj.children('p[id]').eq(index);
+			data = p.nextUntil('.in').not('form.linear');
+			if (data.html()) {
+				p.after('<div contenteditable="true"></div>');
+				p.next('div[contenteditable]').html(data);
+			}
+		});
+	}
 }
 
 /// Turns off edit for outer pages but leaves edit on for inner pages. Unsure if this would be expected behavior or if edit should be entirely off.
@@ -653,130 +554,13 @@ function insert_page(summary,page,exists) {
 	}	
 	// Could possibly be improved with more specific first_id
 	if (letter.charCodeAt(0) >= 97) update_all_affected_links('a1');
-	else {
-		/*
-		var first_number = 1;
-		var A_class_set = $('[class*="A"]');
-		A_class_set.each(function(index) {
-			arrange_links($(this).children(),'B',first_number);
-			repair_links($(this).children(),'B',first_number);
-			first_number += count_children($(this));
-			var allow_linear_checked = $(this).children('form.linear').children('input').prop('checked');
-			if ((typeof(allow_linear_checked) !== 'undefined') && !allow_linear_checked) {
-				++first_number;
-			}
-		});
-		*/
-		update_all_affected_links('B1');
-	}
 	$('body').css('overflow','auto');
 	resize_windows();
 	resize_writing_items();
 	current_div.attr('id',current_div_id);
-	redraw_node_map(0,current_div_id,0);
+	redraw_node_map(current_div_id);
 	
 	$(window).scrollTop($(document).height());
-}
-
-function new_page() {
-	var new_number = 1;
-	var A_class_set = $('[class*="A"]');
-	A_class_set.each(function(index) {
-		++new_number;
-	});
-	//if ($('#bold').is(':visible')) toggle_edit();		// Turns edit off so new page is in sync
-	$('.inner,.outer').last().after('<div class="inner A' + new_number + '" style="display:none"><h3>Title</h3><p>Content</p></div>');
-	//if (!$('#bold').is(':visible')) toggle_edit();		// Turn edit back on
-	toggle_edit_one($('.A' + new_number));
-	resize_windows();
-	go_to(0,$('.inner,.outer').filter(':visible').attr('id'),'A' + new_number);
-}
-
-function unlink_page() {
-	var current_page = $('.inner,.outer').filter(':visible');
-	if (current_page.is('.inner')) {
-		
-		var number = 1;
-		/// Need to extrapolate to multiple layers. Currently only handles one layer, direct children.
-		/// Allowing only pages without children to be unlinked until good extrapolation method is devised.
-		//var child_number = 1;
-		var A_class_set = $('[class*="A"]');
-		A_class_set.each(function(index) {
-			++number;
-			//child_number += count_children($(this));
-			//var allow_linear_checked = $(this).children('form.linear').children('input').prop('checked');
-			//if ((typeof(allow_linear_checked) !== 'undefined') && !allow_linear_checked) {
-			//	++child_number;
-			//}
-		});
-		
-		var current_id = current_page.attr('id');
-		var current_letter = current_id.charAt(0);
-		var link_letter = String.fromCharCode(current_id.charCodeAt(0)-1);
-		var current_number = current_id.substr(1,current_id.length);
-		var parent_id = get_parent_tag(current_id);
-		var parent_page = $('.' + parent_id);
-		var parent_page_first_id = parent_page.children('p[id]').first().attr('id');
-		var arrange_letter = parent_page_first_id.charAt(0);
-		var arrange_first_number = parseInt(parent_page_first_id.substring(1,parent_page_first_id.length),10);
-		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
-		parent_page.show();
-		current_page.hide();
-		
-		/// Turns off edit to handle content split by a page summary
-		if (!_drag) toggle_edit_one(parent_page);
-		
-		//// Need to decide how unlinking works when there are multiple parents. Either unlink all (probably not) or unlink only "active" parent.
-		//// Either way code needs to be refined. This section at least tests if the current page has multiple parents or not.
-		var current_class = current_page.attr('class').split(' ');
-		var multiple_parents = (current_class.length == 3 && !current_page.hasClass('outer') || current_class.length == 4);
-		////
-		
-		current_page.removeClass(current_id).addClass('A' + number).removeAttr('id').children('h3').before('<h4 style="display: none"></h4>');
-		current_page.children('h4').html($('#' + link_letter + current_number).attr('id',''));
-		current_page.children('.out').remove();
-		//current_page.children('.in + p[id]').each(function(index) {
-		//	var in_id = this.id;
-		//	var in_number = in_id.substring(1,in_id.length);
-		//	var child_letter = String.fromCharCode(in_id.charCodeAt(0) + 1);
-		//	$(this).attr('id','B' + (index + child_number));
-		//	$('.in.' + in_id).removeClass(in_id).addClass('B' + (index + child_number));
-		//	$('.' + child_letter + in_number).removeClass(child_letter + in_number).addClass('C' + (index + child_number));
-		//});
-		$('.' + link_letter + current_number).remove();
-		
-		/// Turns edit back on after "merging" content once separated by a page summary
-		if (!_drag) toggle_edit_one(parent_page);
-		
-		if (parent_page.has('p[id]').is(':visible')) {
-			arrange_links(parent_page.children(),arrange_letter,arrange_first_number);
-			repair_links(parent_page.children(),arrange_letter,arrange_first_number);
-		}
-		else {
-			if (_drag) toggle_edit_one(parent_page);
-			if (parent_page.hasClass('inner')) {
-				parent_page.removeClass('outer');
-				parent_page.children('form.linear').remove();
-			}
-			if (arrange_first_number == 1) {
-				var uncle_letter = parent_id.charAt(0);
-				var uncle_number = parseInt(parent_id.substring(1,parent_id.length),10);
-				var uncle = $('.' + uncle_letter + uncle_number);
-				while (!uncle.hasClass('outer') && uncle.html()) {
-					++uncle_number;
-					uncle = $('.' + uncle_letter + uncle_number);
-				}
-				arrange_links(uncle.children(),arrange_letter,1);
-				repair_links(uncle.children(),arrange_letter,1);
-			}
-		}
-		update_all_affected_links('a1');
-		parent_page.attr('id',parent_id);
-		size_buttons(parent_page);
-		redraw_node_map(0,parent_id,0);
-		return true;
-	}		
-	else return false;
 }
 
 /// Handles pages with multiple keys
@@ -845,7 +629,7 @@ function delete_page() {
 		update_all_affected_links('a1');
 		active_parent.attr('id',active_parent_id);
 		size_buttons(active_parent);
-		redraw_node_map(0,active_parent_id,0);
+		redraw_node_map(active_parent_id);
 		return true;
 	}
 	else return false;
@@ -857,7 +641,7 @@ function undo_page_delete() {
 	for (var i=0; i < restore.parent.length; ++i) {
 		var current_page = $('.inner,.outer').filter(':visible');
 		var restore_parent_id = restore.parent[i].attr('class').split(' ').pop();
-		if (!current_page.hasClass(restore_parent_id)) go_to(0,current_page.attr('id'),restore_parent_id);
+		if (!current_page.hasClass(restore_parent_id)) go_to(current_page.attr('id'),restore_parent_id);
 		insert_page(restore.summary[i],restore.page,i);
 	}
 }
@@ -880,7 +664,7 @@ function delete_edge(edge) {
 	}
 	// Single Key
 	else {
-		go_to(0,$('.inner,.outer').filter(':visible').attr('id'),edge);
+		go_to($('.inner,.outer').filter(':visible').attr('id'),edge);
 		delete_page();
 	}
 }
@@ -912,17 +696,6 @@ function modify_arrange_buttons(create,not) {
 		var _inNext = visible_div.children('.in').eq(index+1);
 		var _inTop = _in.offset().top;
 		var _inNextTop = _inNext.offset().top;
-		
-		/*
-		up.css({	'background-color' : 'rgb(144, 89, 233)',
-					'border-color' : 'rgb(144, 89, 233)',
-					'width' : 24,
-					'height' : 24,
-					'position' : 'absolute'
-		}).css({	'top' : inTop - 5,
-					'left' : _thisLeft + _thisWidth - up.outerWidth()
-		});
-		*/
 		
 		_switch.css({	'background-color' : 'rgb(144, 89, 233)',
 						'border-color' : 'rgb(144, 89, 233)',
@@ -977,10 +750,7 @@ function create_sidebar() {
 		.append('<p id="insert_new_page">Insert New Page</p>')
 		.append('<p id="add_intro_text">Add Introductory Text</p>')
 		.append('<p id="view_graph">View Graph of All Pages</p>')
-		//.append('<p id="new_page">Create New Unlinked Page</p>')
 		//.append('<p id="insert_existing_page">Insert Existing Page</p>')
-		//.append('<p id="unlink">Unlink Current Page</p>')
-		//.append('<p id="toggle_view">View Unlinked Pages</p>')
 		.append('<p id="delete_page">Delete Current Page</p>')
 		.append('<p id="undo_page_delete">Undo Page Delete</p>')
 		.append('<hr />')
@@ -991,7 +761,7 @@ function create_sidebar() {
 	;
 	
 	var current_page = $('.inner,.outer').filter(':visible');
-	if (typeof(d3) === 'undefined') disable_sidebar_option($('#view_graph'));
+	if (typeof(d3) === 'undefined' || !Modernizr.svg) disable_sidebar_option($('#view_graph'));
 	if (!$('[class*="A"]').html()) disable_sidebar_option($('#toggle_view'));
 	if (current_page.is('[class*="A"]')) {
 		disable_sidebar_option($('#insert_new_page,#insert_existing_page,#unlink'));
@@ -1041,32 +811,8 @@ function create_sidebar() {
 		if ($(this).hasClass('disabled')) return false;
 		toggle_graph();
 	});
-	$('#new_page').on('click',function(event) {
-		new_page();
-		enable_sidebar_option($('#toggle_view'));
-		$('#toggle_view').html('View Linked Pages');
-		disable_sidebar_option($('#unlink'));
-	});
 	$('#insert_existing_page').on('click',function(event) {
 		if ($(this).hasClass('disabled')) return false;
-	});
-	$('#unlink').on('click',function(event) {
-		if ($(this).hasClass('disabled')) return false;
-		if (unlink_page()) enable_sidebar_option($('#toggle_view'));
-	});
-	$('#toggle_view').on('click',function(event) {
-		if ($(this).hasClass('disabled')) return false;
-		var current_id = $('.inner,.outer').filter(':visible').attr('id');
-		if (current_id.charCodeAt(0) > 97 || current_id.charCodeAt(0) == 90) {
-			go_to(0,current_id,'A1');
-			$(this).html('View Linked Pages');
-			disable_sidebar_option($('#unlink,#insert_new_page,#insert_existing_page'));
-		}
-		else {
-			go_to(0,current_id,'Z1');
-			$(this).html('View Unlinked Pages');
-			enable_sidebar_option($('#insert_new_page,#insert_existing_page'));
-		}
 	});
 	$('#delete_page').on('click',function(event) {
 		if ($(this).hasClass('disabled')) return false;
