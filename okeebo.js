@@ -1412,11 +1412,11 @@ function size_preview_buttons() {
 function size_linear_buttons(mode,obj) {
 	if (mode == 0) {
 		$('.left,.right').height(obj.height());
-		var _width = parseInt(obj.css('margin-left'),10)+24;
+		var _width = parseInt(obj.css('margin-left'),10)+12;
 		var sidebar_width = $('#sidebar').outerWidth();
 		if (sidebar_width) _width -= sidebar_width;
 		$('.left,.right').width(_width);
-		$('.right').css('left',obj.outerWidth()+obj.offset().left-24);
+		$('.right').css('left',obj.outerWidth()+obj.offset().left-12);
 		var l = obj.attr('id').charAt(0);
 		var n = parseInt(obj.attr('id').substr(1,obj.attr('id').length-1),10);
 		if (!$('.'+l+(n-1)).html()) $('.left').css('cursor','default');
