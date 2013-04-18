@@ -114,12 +114,14 @@ $(document).ready(function() {
 		var n0 = old.substr(3,old.length-3);
 		
 		if (event.type == 'mouseenter') {
-			if (l1>l0) $('#info').html($('.outer').filter(':visible').children('.in + p').eq(n1-1).children('span').html());
+			var visible_page = $('.inner,.outer').filter(':visible');
+			if (l1>l0) $('#info').html(visible_page.children('.in + p').eq(n1-1).children('span').html());
 			else {
-				var s, t = $('.inner,.outer').filter(':visible').attr('id');
-				for (i=0; i<l0-l1; ++i) t = get_parent_tag(t);
-				if (s = get_parent_tag(t)) $('#info').html($('.'+s+' p').eq(n1-1).children('span').html());
-				else $('#info').html($('.'+t+' h3').html());
+				var target = visible_page.attr('id');
+				for (i=0; i<l0-l1; ++i) target = get_parent_tag(target);
+				var _target = get_parent_tag(target);
+				if (_target) $('#info').html($('.' + _target + ' > .in + p').eq(n1-1).children('span').html());
+				else if (target) $('#info').html($('.' + target + ' > h3').html());
 			}
 			$('#info').css({'top':7,'left':'auto','right':10});
 			info_timer = setTimeout("$('#info').show()",500);
@@ -178,7 +180,7 @@ $(document).ready(function() {
 	$(document).keyup(function(event) {	
 		//	Linear Move.  37 is Left.  39 is Right.
 		if (event.which==37 || event.which==39) {
-			if ($('.edit').is(':focus') || $('[contenteditable]').is(':focus')) return false;
+			if ($('.edit').is(':focus') || $(event.target).is('[contenteditable]')) return false;
 			if (event.ctrlKey || event.altKey || event.shiftKey) {		// Which key should it be?
 				var next_node = $('#meta-map div').index($('.meta-node'))-(38-event.which);
 				if (next_node >= 0) switch_tab(next_node);
@@ -211,7 +213,7 @@ $(document).ready(function() {
 			if (!$('.preview_window').html()) {
 				$(this).parent().after(content);
 				size_preview_buttons();
-				size_linear_buttons($(this).parent().parent());
+				size_linear_buttons($(this).closest('.inner,.outer'));
 			}
 			
 			var button_top = $(this).offset().top;
@@ -235,7 +237,7 @@ $(document).ready(function() {
 		if (type == 'preview_exit') {
 			var preview_offset = $(this).parent().offset().top;
 			if (preview_offset < $(window).scrollTop()) $(window).scrollTop(preview_offset);
-			var obj = $(this).parent().parent();
+			var obj = $(this).closest('.inner,.outer');
 			$(this).parent().remove();
 			size_linear_buttons(obj);
 		}
