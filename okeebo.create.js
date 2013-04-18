@@ -52,7 +52,7 @@ $(document).ready(function(event) {
 	});
 	
 	toggle_edit();
-		
+	
 	
 	/// Document Events
 	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
@@ -72,7 +72,6 @@ $(document).ready(function(event) {
 			if ($(this).parent().is('.outer')) {
 				var p = $(this).children('p');
 				if (((p.html() == '') || (p.html() == '<br>')) && (!p.eq(1).html())) {
-					var index = $('.inner,.outer').index($(this).parent());
 					$(this).remove();
 					if ($('#sidebar').is(':visible')) {
 						var current_page = $('.inner,.outer').filter(':visible');
@@ -81,7 +80,7 @@ $(document).ready(function(event) {
 						}
 						else enable_sidebar_option($('#add_intro_text'));
 					}
-					setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
+					setTimeout(size_buttons,10,$(this).parent());
 					event.preventDefault();
 					return false;
 				}
@@ -120,7 +119,7 @@ $(document).ready(function(event) {
 		size_buttons($('.inner,.outer').filter(':visible'));
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
-		if (event.type == 'cut') _clip = document.getSelection().toString();
+		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
 		if ($(this).is('h3')) {
 			var index = $('h3').index($(this));
 			setTimeout("$('h3').eq(" + index + ").keyup();",10);
@@ -128,24 +127,19 @@ $(document).ready(function(event) {
 		else if ($(this).is('p[id] span:first-child')) {
 			var index = $('p[id] span').index($(this));
 			setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
-			/// Handles 'paste into span' glitch in Firefox. Would prefer a better detection method.
-			if (event.type == 'paste' && $.browser.mozilla) {
-				if (typeof(_clip) !== 'undefined' && _clip) document.execCommand('insertText',false,_clip);
-				return false;
-			}
+			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
 		}
 		else if ($(this).is('p[id] span')) {
 			var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
 			setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
-			/// Handles 'paste into span' glitch in Firefox. Would prefer a better detection method.
-			if (event.type == 'paste' && $.browser.mozilla) {
-				if (typeof(_clip) !== 'undefined' && _clip) document.execCommand('insertText',false,_clip);
-				return false;
-			}
+			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
 		}
 	})
 	.on('copy',function(event) {
-		_clip = document.getSelection().toString();		/// Necessary for fix to 'paste into span' glitch in Firefox.
+		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
+	})
+	.on('input','[contenteditable="true"]',function(event) {
+		setTimeout(keyup,10,$(this));
 	});
 	
 	
@@ -213,6 +207,18 @@ $(document).ready(function(event) {
 	});
 	
 });
+
+function keyup(obj) {
+	obj.keyup();
+}
+
+// Handles 'paste into span' glitch in Firefox.
+function handle_paste_glitch(obj) {
+	if (obj.children('span').eq(2).is(':visible')) {
+		document.execCommand('undo',false,null);
+		if (typeof(_clip) !== 'undefined') document.execCommand('insertText',false,_clip);
+	}
+}
 
 /// Fixes most of the execCommand discrepancies. Applied during toggle_edit() to maintain the undo stack as much as possible.
 function improve_formatting() {
@@ -468,8 +474,14 @@ function update_all_affected_links(first_id) {
 			if (!$('.' + parent_container_letter + (i+1)).html()) ++i;
 		}
 		var first_number = 1;
+		var list = [];
 		for (var index = 1; index <= stop_index; ++index) {
 			var obj = $('.' + container_letter + index);
+			var skip = 0;
+			// Prevents double counting a page summary
+			for (var i = 0; i < list.length; ++i) if (obj.is(list[i])) { skip = 1; break; }
+			if (skip) continue;
+			list.push(obj);
 			arrange_links(obj.children(),letter,first_number);
 			first_number += count_children(obj);
 			var allow_linear_checked = obj.children('form.linear').children('input').prop('checked');
@@ -477,8 +489,14 @@ function update_all_affected_links(first_id) {
 				++first_number;
 			}
 		}
+		var list = [];
 		for (var index = 1; index <= stop_index; ++index) {
 			var obj = $('.' + container_letter + index);
+			var skip = 0;
+			// Prevents double counting a page summary
+			for (var i = 0; i < list.length; ++i) if (obj.is(list[i])) { skip = 1; break; }
+			if (skip) continue;
+			list.push(obj);
 			repair_links(obj.children(),letter,first_number);
 		}
 	}
@@ -655,12 +673,78 @@ function delete_edge(edge) {
 	if (classes.length > prefix + 1) {
 		var link_letter = String.fromCharCode(edge.charCodeAt(0) - 1);
 		var link_number = edge.substring(1,edge.length);
-		$('#' + link_letter + link_number).remove();
+		var link_paragraph = $('#' + link_letter + link_number);
+		var parent_page = link_paragraph.parent();
+		link_paragraph.remove();
 		$('.in.' + link_letter + link_number).remove();
 		page.removeClass(edge);
+		
+		if (!parent_page.has('.in + p[id]').html()) {	
+			if (parent_page.hasClass('inner')) {
+				parent_page.removeClass('outer');
+				parent_page.children('form.linear').remove();
+			}
+		}
+		if (page.hasClass('outer')) {
+			var test = !page.filter('[class*="' + String.fromCharCode(page.children('.in + p[id]').attr('id').charCodeAt(0) - 1) + '"]').html();
+			
+			function slinky(page,recursion) {
+				var classes = page.attr('class').split(' ');
+				var id = classes.shift();
+				if (id == 'outer') id = classes.shift();
+				if (id == 'inner') id = classes.shift();
+				var new_link_letter = String.fromCharCode(id.charCodeAt(0) + 1);
+				var new_child_letter = String.fromCharCode(id.charCodeAt(0) + 2);
+				/**/
+				// Original Idea: Put at the end of layer
+				var last_id = $('.in + p[id*="' + new_link_letter + '"]').last().attr('id');
+				var new_number = 0;
+				if (last_id) new_number = parseInt(last_id.substring(1,last_id.length),10);
+				/**/
+				/*
+				// Alternate Idea: Make sure they're after EVERYTHING
+				// Account for recursion as well.
+				var new_number = $('.inner,.outer').index($('.inner,.outer').last());
+				if (recursion) new_number = recursion;
+				*/
+				page.children('.in + p[id]').each(function(index) {
+					var _this = $(this);
+					var old_child_letter = String.fromCharCode(this.id.charCodeAt(0) + 1);
+					var old_number = parseInt(this.id.substring(1,this.id.length));
+					++new_number;
+					// Avoid identity crises
+					while ($('.' + new_child_letter + new_number).html()) ++new_number;
+					_this.prev('.in').removeClass(this.id).addClass(new_link_letter + new_number);
+					_this.attr('id',new_link_letter + new_number);
+					var child_page = $('.' + old_child_letter + old_number);
+					child_page.removeClass(old_child_letter + old_number).addClass(new_child_letter + new_number);
+					if (child_page.hasClass('outer')) slinky(child_page,new_number);
+				});
+			};
+			if (test) {
+				slinky(page);
+			}
+			//$('.in + p[id*="c"]').last().attr('id')
+		}
+		
 		arrange_links($('.Z1').children(),'a',1);
 		repair_links($('.Z1').children(),'a',1);
 		update_all_affected_links('a1');
+		
+		var visible_page = $('.inner,.outer').filter(':visible');
+		var old_id = visible_page.attr('id');
+		if (!visible_page.hasClass(old_id)) {
+			var classes = visible_page.attr('class').split(' ');
+			var new_id;
+			for (var i = 0; i < classes.length; ++i) {
+				new_id = classes[i];
+				if (new_id != 'inner' && new_id != 'outer' && new_id.charAt(0) == old_id.charAt(0)) break;
+			}
+			visible_page.attr('id',new_id);
+		}
+		
+		size_buttons(parent_page);
+		redraw_node_map(visible_page.attr('id'));
 	}
 	// Single Key
 	else {
