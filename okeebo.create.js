@@ -506,6 +506,18 @@ function update_all_affected_links(first_id) {
 function insert_page(summary,page,exists) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
+	if (typeof(page) !== 'undefined' && current_div.is(page)) {
+		console.log('self');
+		return 'self';
+	}
+	if (typeof(page) !== 'undefined' && current_div.hasClass(get_parent_tag(page.attr('class').split(' ').pop()))) {
+		console.log('redundant');
+		return 'redundant';
+	}
+	if (typeof(page) !== 'undefined' && page.hasClass(get_parent_tag(current_div.attr('class').split(' ').pop()))) {
+		console.log('cyclical');
+		return 'cyclical';
+	}
 	var current_div_id = current_div.attr('id');
 	if (!current_div.hasClass('outer')) {
 		current_div.attr('class','outer ' + current_div.attr('class'));
@@ -845,7 +857,7 @@ function create_sidebar() {
 	;
 	
 	var current_page = $('.inner,.outer').filter(':visible');
-	if (typeof(d3) === 'undefined' || !Modernizr.svg) disable_sidebar_option($('#view_graph'));
+	if (typeof(d3) === 'undefined' || typeof(Modernizr) === 'undefined' || !Modernizr.svg) disable_sidebar_option($('#view_graph'));
 	if (!$('[class*="A"]').html()) disable_sidebar_option($('#toggle_view'));
 	if (current_page.is('[class*="A"]')) {
 		disable_sidebar_option($('#insert_new_page,#insert_existing_page,#unlink'));
