@@ -9,9 +9,12 @@ var radius = padding/4;
 var w = 1280, h = 800;
 var s = 0;
 var info_timer;		// Redundant with okeebo.js
+var graph_timer;
 var noSVG = false;
 var return_page_id = 'Z1';
 var _hover = null, edge = null;
+var darkColor = ['rgb(44,67,116)','#2c4374'];
+var liteColor = ['rgb(89,144,233)','#5990e9'];
 
 $(document).ready(function(event) {
 	
@@ -28,7 +31,7 @@ $(document).ready(function(event) {
 			w = $(window).width();
 			h = $(window).height();
 			update_graph();
-			draw_lines()
+			draw_lines();
 		}
 	});
 	
@@ -129,9 +132,15 @@ function draw_graph() {
 							}) + 0.5 ])
 							.range([s + padding, w - padding]);
 							
-			return xScale(parseInt(d[0].substring(1,d[0].length),10));			/**/
+			return xScale(parseInt(d[0].substring(1,d[0].length),10));
 		})
-		.attr('r',radius);
+		.attr('r',radius)
+		.sort(function(a,b) {
+			var chr_sort = a[0].charCodeAt(0) - b[0].charCodeAt(0);
+			if (chr_sort != 0) return chr_sort;
+			var int_sort = a[0].substring(1) - b[0].substring(1);
+			return int_sort;
+		});
 	
 	$('circle').on('mouseover',function(event) {
 		var _this = $(this);
@@ -148,21 +157,78 @@ function draw_graph() {
 		if (info_timer) clearTimeout(info_timer);
 		$('#info').fadeOut(200);
 		_hover = null;
-	}).on('dblclick doubletap',function(event) {
+	}).on('click',function(event) {
 		var _this = $(this);
-		var _this_id = d3.select(_this[0]).data()[0];
-		return_page_id = _this_id[0];
-		if (return_page_id == '`1') return_page_id = 'Z1';
-		toggle_graph();
+		if (event.shiftKey) {
+			var _this_id = d3.select(_this[0]).data()[0];
+			return_page_id = _this_id[0];
+			if (return_page_id == '`1') return_page_id = 'Z1';
+			toggle_graph();
+			return;
+		}
+		//var path = $('path[d$=" ' + _this.attr('cx') + ' ' + _this.attr('cy') + '"]');
+		var parent = d3.select(_this[0]).data()[0][0];
+		var path = $('path').filter(function() {
+			var _child = d3.select(this).data()[0];
+			var _parent = d3_get_parent_tag(_child);
+			if (parent == _parent || (parent == '`1' && _parent == 'Z1')) return true;
+			else return false;
+		});
+		if (path.index() == -1) return false;
+		var compare = d3.selectAll(path).data();
+		var circles = d3.selectAll('circle').filter(function(d,i) {
+			// Handles proper collapsing of sub-branches
+			var _this = $(this);
+			var color = _this.css('fill').replace(/\s/g,'').toLowerCase();
+			var _return = 0;
+			if (d.length > 1) for (var i=0; i<d.length; ++i) {
+				var route = $('path').filter(function() {
+					return d3.select(this).data()[0] == d[i];
+				});
+				if (route.css('display') == 'inline' && path.index(route) == -1) return false;
+			}
+			for (var i=0; i<d.length; ++i) {
+				if (-1 != compare.indexOf(d[i])) {
+					if (liteColor.indexOf(color) != -1 || _this.css('display') == 'none') {
+						if (!(liteColor.indexOf(color) != -1 && _this.css('display') == 'none')) _this.click();
+						else {
+							var _path = $('path[d$="' + _this.attr('cx') + ' ' + _this.attr('cy') + '"]');
+							if (_path.index() != -1) _this.css('fill',darkColor[0]);
+						}
+					}
+					else _this.css('fill',liteColor[0]);
+					return true;
+				}
+			}
+			return false;
+		});
+		
+		if (path.css('display') == 'none') {
+			//var graph = function() {
+				path.show();
+				circles.style('display','inline');
+				_this.css('fill',liteColor[0]);
+			//}
+			//$(document).one('graph',graph);
+		}
+		else {
+			//var graph = function() {
+				path.hide();
+				circles.style('display','none');
+				_this.css('fill',darkColor[0]);
+			//}
+			//$(document).one('graph',graph);
+		}
+		if (graph_timer) clearTimeout(graph_timer);
+		graph_timer = setTimeout("$(document).trigger('graph'); update_graph(); draw_lines();",0);
 	});
-	
 }
 
 function update_graph() {
 	
 	var svg = d3.select('svg').attr('width',w-17).attr('height',h-17);
 	
-	var circle = svg.selectAll('circle');
+	var circle = d3.selectAll('circle');
 	
 	var yScale = d3.scale.linear()
 				.domain([96,d3.max(circle.data(),function(array) { 
@@ -170,20 +236,36 @@ function update_graph() {
 				}) ])
 				.range([padding,h-2*padding]);
 	
+	var xScale = {};
+	var xScale_visible = {};
+	
 	circle.attr('cy',function(d,i) {
 			return yScale(d[0].charCodeAt(0));
 		})
 		.attr('cx',function(d,i) {
-			var _this = $('circle').eq(i);
-			var same_row = $('[cy="' + _this.attr('cy') + '"]');
-							
-			var xScale = d3.scale.linear()
+			var _this = $(this);
+			var cy = _this.attr('cy');
+			var same_row = $('[cy="' + cy + '"]');
+			var same_row_visible = $('[cy="' + cy + '"]').filter(function() { return $(this).css('display') != 'none' });
+			// original xScale
+			if (!xScale[cy]) 
+				xScale[cy] = d3.scale.linear()
 							.domain([0.5, d3.max(d3.selectAll(same_row).data(), function(array) {
 								return parseInt(array[0].substring(1,array[0].length),10);
 							}) + 0.5 ])
 							.range([s + padding, w - padding]);
+			
+			// new xScale to account for hiding nodes
+			if (!xScale_visible[cy])
+				xScale_visible[cy] = d3.scale.linear()
+							.domain([-0.5+same_row_visible.index(same_row_visible.first()), same_row_visible.index(same_row_visible.last())+0.5])
+							.range([s + padding, w - padding]);
 							
-			return xScale(parseInt(d[0].substring(1,d[0].length),10));
+			if (same_row.length == same_row_visible.length || _this.css('display') == 'none')
+				return xScale[cy](parseInt(d[0].substring(1,d[0].length),10));
+			else
+				return (xScale[cy](parseInt(d[0].substring(1,d[0].length),10)) + xScale_visible[cy](same_row_visible.index(_this)))/2;
+			
 		})
 		.attr('r',radius);
 }
@@ -232,13 +314,16 @@ function draw_lines() {
 						path_data += 'Q ' + _this.attr('cx') + ' ' + q1_y + ' ' + mid_x + ' ' + mid_y + ' ';
 						path_data += 'Q ' + parent.attr('cx') + ' ' + q3_y + ' ' + parent.attr('cx') + ' ' + parent.attr('cy');
 					}
+					
+					var color = parent.style('fill').replace(/\s/g,'').toLowerCase();
 						
 					d3.select('svg').append('path')
 						.attr('d',path_data)
 						.attr('stroke','black')
 						.attr('stroke-width','1')
 						.attr('fill','none')
-						.data([d[j]]);
+						.data([d[j]])
+						.style('display',(darkColor.indexOf(color) != -1 || $(this).css('display') == 'none') ? 'none' : 'inline');
 				}
 			}
 		}
