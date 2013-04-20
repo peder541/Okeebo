@@ -228,7 +228,7 @@ function update_graph() {
 	
 	var svg = d3.select('svg').attr('width',w-17).attr('height',h-17);
 	
-	var circle = d3.selectAll('circle');
+	var circle = svg.selectAll('circle');
 	
 	var yScale = d3.scale.linear()
 				.domain([96,d3.max(circle.data(),function(array) { 
