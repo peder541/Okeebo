@@ -928,6 +928,7 @@ function create_sidebar() {
 		var text = '';
 		$('.inner,.outer').each(function(index) {
 			$(this).children('form.linear').remove(); 
+			$(this).children('.in,.out').remove(); 
 			if ($(this).hasClass('inner')) text += '<div class="' + $(this).attr('class') + '">' + $(this).html() + '</div>';
 			else text += '<div class="' + $(this).attr('class') + '" id="Z1">' + $(this).html() + '</div>';
 		});
