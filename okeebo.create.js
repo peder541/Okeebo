@@ -931,12 +931,19 @@ function create_sidebar() {
 			
 			// To work with htmlPurifier
 			$(this).children('.in,.out').empty();
-			$('.tangent').replaceWith(function() { 
+			$(this).children('.tangent').replaceWith(function() { 
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
 			
 			if ($(this).hasClass('inner')) text += '<div class="' + $(this).attr('class') + '">' + $(this).html() + '</div>';
 			else text += '<div class="' + $(this).attr('class') + '" id="Z1">' + $(this).html() + '</div>';
+			
+			// Illusion
+			$(this).children('.in').html('+');
+			$(this).children('.out').html('-');
+			$(this).children('a.tangent').replaceWith(function() { 
+				return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
+			});
 		});
 		$('#_save').val(text);
 		$('#_title').val($('.Z1 h3').html());
