@@ -52,6 +52,9 @@ $(document).ready(function() {
 	$('.outer').children('p[id]').not('.in + p[id]').before(function(index) { 
 		return '<button class="in ' + this.id + '" type="button">+</button>';
 	});
+	$('a.tangent').replaceWith(function() {
+		return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
+	});
 	
 	scrollbar_width = get_scrollbar_width();
 
