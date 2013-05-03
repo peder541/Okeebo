@@ -930,7 +930,7 @@ function create_sidebar() {
 			$(this).children('form.linear').remove(); 
 			
 			// To work with htmlPurifier
-			$(this).children('.in,.out').remove();
+			$(this).children('.in,.out').empty();
 			$('.tangent').replaceWith(function() { 
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
