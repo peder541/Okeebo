@@ -541,12 +541,18 @@ function size_linear_buttons(obj) {
 	if (sidebar_width) _width -= sidebar_width;
 	$('.left,.right').width(_width);
 	$('.right').css('left',obj.outerWidth()+obj.offset().left-12);
+	$('.left').css('background-position',_width/2-6);
+	$('.right').css('background-position',$('.right').offset().left+_width/2-6);
 	var l = obj.attr('id').charAt(0);
 	var n = parseInt(obj.attr('id').substr(1,obj.attr('id').length-1),10);
-	if (!$('.'+l+(n-1)).html()) $('.left').css('cursor','default');
-	else $('.left').css('cursor','pointer');
-	if (!$('.'+l+(n+1)).html()) $('.right').css('cursor','default');
-	else $('.right').css('cursor','pointer');
+	if (!$('.'+l+(n-1)).html()) $('.left').css({'cursor':'default','background-image':'none'});
+	else $('.left').css({'cursor':'pointer','background-image':''});
+	if (!$('.'+l+(n+1)).html()) $('.right').css({'cursor':'default','background-image':'none'});
+	else $('.right').css({'cursor':'pointer','background-image':''});
+	if (mobile == 1) {
+		linear_buttons = $('.left,.right').css('background-image','none').detach();
+		setTimeout("$('body').append(linear_buttons.css('background-image','')); delete window.linear_buttons;",10);
+	}
 }
 
 function size_buttons(obj) {
