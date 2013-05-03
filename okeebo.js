@@ -48,13 +48,15 @@ function get_scrollbar_width() {
 $(document).ready(function() {
 	
 	// To work with htmlPurifier
-	$('.inner').children('h3').not('.out + h3').before('<button class="out" type="button">-</button>');
+	$('.inner').children('h3').not('.out + h3').before('<button class="out" type="button"></button>');
 	$('.outer').children('p[id]').not('.in + p[id]').before(function(index) { 
-		return '<button class="in ' + this.id + '" type="button">+</button>';
+		return '<button class="in ' + this.id + '" type="button"></button>';
 	});
 	$('a.tangent').replaceWith(function() {
 		return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
 	});
+	$('.in').html('+');
+	$('.out').html('-');
 	
 	scrollbar_width = get_scrollbar_width();
 
