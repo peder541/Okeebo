@@ -39,8 +39,14 @@ $(document).ready(function(event) {
 		if ($('svg').is(':visible')) {
 			if (event.which == 13) {
 				if (_hover) {
-					toggle_graph();
-					insert_page(null,$('.' + d3.select(_hover[0]).data()[0][0]),1);
+					if ($('a[href="#tangent"]').html()) {
+						link_tangent(d3.select(_hover[0]).data()[0][0]);
+						toggle_graph();
+					}
+					else {
+						toggle_graph();
+						insert_page(null,$('.' + d3.select(_hover[0]).data()[0][0]),1);
+					}
 				}
 			}
 			if (event.which == 46) {
@@ -73,6 +79,7 @@ function toggle_graph() {
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
 		if (status_timer) clearTimeout(status_timer);
+		undo_tangent();
 		go_to(null,return_page_id);
 	}
 	else {
