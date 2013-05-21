@@ -30,8 +30,11 @@ function resize_windows(){
 	$('#map').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
 		
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10);
-	$('img').width(function(index) { 
-		return Math.min(max_img_width,$(this).attr('width'));
+	$('img').width(function(index) {
+		var _this = $(this);
+		var new_width = Math.min(max_img_width,_this.attr('width'))
+		if (_this.attr('height')) _this.height(new_width/_this.attr('width') * _this.attr('height'));
+		return new_width;
 	});
 };
 
@@ -221,14 +224,13 @@ $(document).ready(function() {
 			content = '<button class="preview_main">*</button>' + /*'<button class="preview_split">&raquo;</button>' +*/ content;
 			content = '<div id=_' + new_id +' class="preview_window">' + content + '</div>';
 			
-			if (!$('.preview_window').html()) {
-				$(this).parent().after(content);
-				size_preview_buttons();
-				size_linear_buttons($(this).closest('.inner,.outer'));
-			}
+			$('.preview_window#_' + new_id).remove();
+			$(this).parent().after(content);
+			size_preview_buttons();
+			size_linear_buttons($(this).closest('.inner,.outer'));
 			
 			var button_top = $(this).offset().top;
-			var show_end = $('.preview_window').offset().top + $('.preview_window').height() - $(window).height() + 15;
+			var show_end = $('.preview_window#_' + new_id).offset().top + $('.preview_window#_' + new_id).height() - $(window).height() + 15;
 			if (show_end < button_top) {
 				if (show_end > $(window).scrollTop()) $('html,body').animate({'scrollTop':show_end});
 			}
@@ -385,8 +387,10 @@ function linear_move(direction, redraw) {
 		$(window).scrollTop(0);
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 		
-		$('.' + letter + number).show();
-		$('.'+id).hide();
+		if (!$('.'+id).hasClass(letter+number)) {
+			$('.' + letter + number).show();
+			$('.'+id).hide();
+		}
 			
 		if (tab_is_unique($('.'+id))) $('.'+id).attr('id','');
 		$('.' + letter + number).attr('id',letter+number);
