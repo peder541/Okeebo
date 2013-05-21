@@ -503,20 +503,22 @@ function update_all_affected_links(first_id) {
 }
 
 /// summary and page are null for a new page
-function insert_page(summary,page,exists) {
+function insert_page(summary,page,exists,reinsert) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
-	if (typeof(page) !== 'undefined' && current_div.is(page)) {
-		console.log('self');
-		return 'self';
-	}
-	if (typeof(page) !== 'undefined' && current_div.hasClass(get_parent_tag(page.attr('class').split(' ').pop()))) {
-		console.log('redundant');
-		return 'redundant';
-	}
-	if (typeof(page) !== 'undefined' && page.hasClass(get_parent_tag(current_div.attr('class').split(' ').pop()))) {
-		console.log('cyclical');
-		return 'cyclical';
+	if (!reinsert) {
+		if (typeof(page) !== 'undefined' && current_div.is(page)) {
+			console.log('self');
+			return 'self';
+		}
+		if (typeof(page) !== 'undefined' && current_div.hasClass(get_parent_tag(page.attr('class').split(' ').pop()))) {
+			console.log('redundant');
+			return 'redundant';
+		}
+		if (typeof(page) !== 'undefined' && page.hasClass(get_parent_tag(current_div.attr('class').split(' ').pop()))) {
+			console.log('cyclical');
+			return 'cyclical';
+		}
 	}
 	var current_div_id = current_div.attr('id');
 	if (!current_div.hasClass('outer')) {
@@ -672,7 +674,7 @@ function undo_page_delete() {
 		var current_page = $('.inner,.outer').filter(':visible');
 		var restore_parent_id = restore.parent[i].attr('class').split(' ').pop();
 		if (!current_page.hasClass(restore_parent_id)) go_to(current_page.attr('id'),restore_parent_id);
-		insert_page(restore.summary[i],restore.page,i);
+		insert_page(restore.summary[i],restore.page,i,true);
 	}
 }
 
@@ -931,7 +933,7 @@ function create_sidebar() {
 			
 			// To work with htmlPurifier
 			$(this).children('.in,.out').empty();
-			$(this).children('.tangent').replaceWith(function() { 
+			$(this).find('.tangent').replaceWith(function() { 
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
 			
@@ -941,7 +943,7 @@ function create_sidebar() {
 			// Illusion
 			$(this).children('.in').html('+');
 			$(this).children('.out').html('-');
-			$(this).children('a.tangent').replaceWith(function() { 
+			$(this).find('a.tangent').replaceWith(function() { 
 				return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
 			});
 		});
@@ -977,4 +979,56 @@ function delete_sidebar() {
 	resize_writing_items();
 	$('.left').css('left',0);
 	size_buttons(inner_outer.filter(':visible'));
+}
+
+function make_tangent() {
+	document.execCommand('createLink',false,'#tangent');
+	toggle_graph();
+}
+function link_tangent(target_page) {
+	$('a[href="#tangent"]').replaceWith(function() {
+		return '<button class="tangent _' + target_page + '">' + $(this).text() + '</button>';
+	});
+}
+function undo_tangent() {
+	$('a[href="#tangent"]').replaceWith(function() {
+		return $(this).text();
+	});
+}
+function find_tangent() {
+	return $(getSelectionHtml()).children('button.tangent');
+}
+function getSelectionHtml() {
+    var html = "";
+    if (typeof window.getSelection != "undefined") {
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+            var container = document.createElement("div");
+            for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                container.appendChild(sel.getRangeAt(i).cloneContents());
+            }
+            html = container.innerHTML;
+        }
+    } else if (typeof document.selection != "undefined") {
+        if (document.selection.type == "Text") {
+            html = document.selection.createRange().htmlText;
+        }
+    }
+    return html;
+}
+
+function make_iframe() {
+	element = document.getSelection().anchorNode;
+	$(element).closest('p').after('<iframe src="https://www.okeebo.com/img" />');
+	iframe_trigger();
+}
+function iframe_trigger() {
+	$('iframe').load(function() {
+		iframe_to_image(parent.$(this));
+	});
+}
+function iframe_to_image(iframe) {
+	if (!iframe) iframe = parent.$('iframe');
+	iframe.replaceWith(iframe.contents().find('img'));
+	parent.$('title').html('Okeebo');
 }
