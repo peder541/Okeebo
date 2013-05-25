@@ -10,6 +10,7 @@ var mobile = 0;
 var info_timer, mobile_timer, status_timer;
 var different = -1, _adjust = 0;
 var badIE = false;
+var IE = false;
 
 function resize_windows(){
 	var w1 = $(window).width();
@@ -28,15 +29,27 @@ function resize_windows(){
 	$('.inner,.outer,.exit,.splitscreen,#meta-map').css('margin-left',left_margin);
 			
 	$('#map').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
-		
+	
+	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10);
 	$('img').width(function(index) {
 		var _this = $(this);
+		if (IE) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
 		var new_width = Math.min(max_img_width,_this.attr('width'))
 		if (_this.attr('height')) _this.height(new_width/_this.attr('width') * _this.attr('height'));
 		return new_width;
 	});
+	if (IE) $('img').each(function(index) {
+		this.addEventListener('DOMAttrModified',dom_attr_mod,false);
+    });
 };
+
+// Makes IE Resize images using Attributes instead of CSS.
+function dom_attr_mod(ev) {
+	var _this = $(this);
+	_this.attr('width',_this.width());
+	_this.attr('height',_this.height());
+}
 
 function get_scrollbar_width() {
 	$('body').css('overflow','hidden');
@@ -65,8 +78,11 @@ $(document).ready(function() {
 
 	resize_windows();
 	
-	$('body').append('<!--[if lt IE 8]><script type="text/javascript">badIE = true;</script><![endif]-->');
+	$('body').append('<div id="badIE"><!--[if lt IE 8]><script type="text/javascript">badIE = true;</script><![endif]--></div>');
+	$('#badIE').remove();
 	if (badIE) setTimeout("size_buttons($('.inner,.outer').eq(" + $('.inner,.outer').index($('.inner,.outer').filter(':visible')) + "));",100);
+	$('body').append('<div id="IE"><!--[if IE]><script type="text/javascript">IE = true;</script><![endif]--></div>');
+	$('#IE').remove();
 	
 	redraw_node_map($('.outer').filter(':visible').attr('id'));
 	size_buttons($('.outer').filter(':visible'));
