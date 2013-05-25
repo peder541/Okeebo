@@ -20,7 +20,8 @@ $(document).ready(function(event) {
 	
 	//toggle_graph();
 	
-	$('body').append('<!--[if lt IE 9]><script type="text/javascript">noSVG = true;</script><![endif]-->');
+	$('body').append('<div id="noSVG"><!--[if lt IE 9]><script type="text/javascript">noSVG = true;</script><![endif]--></div>');
+	$('#noSVG').remove();
 	
 	$(window).on('resize', function() {
 		/// Might want a more specific selector to accommodate other uses of svg.
