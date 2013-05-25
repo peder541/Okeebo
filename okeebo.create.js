@@ -80,7 +80,7 @@ $(document).ready(function(event) {
 						}
 						else enable_sidebar_option($('#add_intro_text'));
 					}
-					setTimeout(size_buttons,10,$(this).parent());
+					setTimeout(size_buttons,10,$('.outer').filter(':visible'));
 					event.preventDefault();
 					return false;
 				}
@@ -141,15 +141,18 @@ $(document).ready(function(event) {
 	.on('input','[contenteditable="true"]',function(event) {
 		setTimeout(keyup,10,$(this));
 	});
-	// Resizable Images in Chrome
+	// Resizable Images in Chrome, Opera, and Safari
 	$(document).on('click','[contenteditable="true"] img',function(event) {
-		if ($(this).attr('_moz_resizing') != 'true') {
+		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
 			var _this = $(this);
 			$('.active-img').removeClass('active-img');
 			$('.resize_handle').remove();
 			_this.addClass('active-img');
-			toggle_edit();
-			toggle_edit();
+			// Removes Blinking Caret (except for outer pages). Not sure if necessary.
+			if (!$('.outer').is(':visible')) {
+				toggle_edit();
+				toggle_edit();
+			}
 			_this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
 			
 			$('body')
@@ -477,6 +480,7 @@ function handle_paste_glitch(obj) {
 
 /// Fixes most of the execCommand discrepancies. Applied during toggle_edit() to maintain the undo stack as much as possible.
 function improve_formatting() {
+	$('p img').unwrap();
 	$('div[contenteditable] > p > div').unwrap();
 	var list = $('ol,ul');
 	if (list.parent().is('p')) list.unwrap();
@@ -500,10 +504,12 @@ function toggle_edit() {
 		toggle_edit_one($(this));
 	});
 	if (!$('[contenteditable]').html()) {
+		image_unwrap();
 		$('body').off('click','[contenteditable="true"]');
 		$('#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
 	}
 	else {
+		image_wrap();
 		$('body').on('click','[contenteditable="true"]',function(event) { if (!$(this).is(':focus')) $(this).focus(); } );
 		$('#bold,#italic,#underline,#ul,#ol,#img,#link').show();
 	}
@@ -1293,4 +1299,18 @@ function iframe_to_image(iframe) {
 	if (!iframe) iframe = parent.$('iframe');
 	iframe.replaceWith(iframe.contents().find('img'));
 	parent.$('title').html('Okeebo');
+	image_wrap();
+}
+function image_wrap() {
+	var _img = $('img').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
+	_img.wrap('<div contenteditable="true">');
+	_img.after('<p>');
+	_img.before('<p>');
+}
+function image_unwrap() {
+	$('img').each(function(index) {
+		var _this = $(this);
+		while (_this.prev('p').is('p') && !_this.prev('p').html()) _this.prev('p').remove();
+		while (_this.next('p').is('p') && !_this.next('p').html()) _this.next('p').remove();
+	});
 }
