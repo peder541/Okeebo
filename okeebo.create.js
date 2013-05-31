@@ -463,6 +463,13 @@ $(document).ready(function(event) {
 	$('#img').on('click',function(event) {
 		make_iframe();
 	});
+	$('#link').on('click',function(event) {
+		var url = prompt('To what URL should this link go?');
+		if (url) {
+			if (document.getSelection().toString()) document.execCommand('createLink',false,url);
+			else document.execCommand('insertHTML',false,'<a href="' + url + '">' + url + '</a>');
+		}
+	});
 	
 });
 
