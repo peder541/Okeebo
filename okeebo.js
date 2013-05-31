@@ -448,6 +448,8 @@ function linear_move(direction, redraw) {
 	var status_top = $(window).scrollTop()+$(window).height()*0.9-$('#status').outerHeight();
 	if (Math.abs(status_top-$('#status').offset().top) > 1) $('#status').css({'bottom':'auto','top':status_top});
 	
+	size_linear_buttons($('.outer,.inner').filter(':visible'));
+	
 	return false;
 }
 
