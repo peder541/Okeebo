@@ -466,8 +466,10 @@ $(document).ready(function(event) {
 	$('#link').on('click',function(event) {
 		var url = prompt('To what URL should this link go?');
 		if (url) {
+			var display = url;
+			if (url.indexOf('https:') == -1 && url.indexOf('http:') == -1) url = 'http://' + url;
 			if (document.getSelection().toString()) document.execCommand('createLink',false,url);
-			else document.execCommand('insertHTML',false,'<a href="' + url + '">' + url + '</a>');
+			else document.execCommand('insertHTML',false,'<a href="' + url + '">' + display + '</a>');
 		}
 	});
 	
@@ -511,12 +513,10 @@ function toggle_edit() {
 		toggle_edit_one($(this));
 	});
 	if (!$('[contenteditable]').html()) {
-		image_unwrap();
 		$('body').off('click','[contenteditable="true"]');
 		$('#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
 	}
 	else {
-		image_wrap();
 		$('body').on('click','[contenteditable="true"]',function(event) { if (!$(this).is(':focus')) $(this).focus(); } );
 		$('#bold,#italic,#underline,#ul,#ol,#img,#link').show();
 	}
@@ -557,6 +557,8 @@ function toggle_edit_one(obj) {
 		obj.children('h3').attr('contenteditable','true');
 		obj.children('h4').children('p[id]').children('span').attr('contenteditable','true');	// Placeholder for Unlinked Page Summary
 		obj.children('p[id]').children('span').attr('contenteditable','true');
+		
+		obj.children('img').wrap('<p>');
 		
 		var data = obj.children('h3').nextUntil('.in').not('form.linear');
 		if (data.html()) {
@@ -1292,7 +1294,13 @@ function getSelectionHtml() {
 
 function make_iframe() {
 	element = document.getSelection().anchorNode;
-	$(element).closest('p').after('<iframe src="https://www.okeebo.com/img" />');
+	var closest_p = $(element).closest('p')
+	if (closest_p.html()) closest_p.after('<iframe src="https://www.okeebo.com/img" />');
+	else {
+		var current_div = $('.inner,.outer').filter(':visible');
+		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before('<iframe src="https://www.okeebo.com/img" />');
+		else current_div.find('h3').after('<iframe src="https://www.okeebo.com/img" />');
+	}
 	iframe_trigger();
 }
 function iframe_trigger() {
@@ -1311,13 +1319,4 @@ function iframe_to_image(iframe) {
 function image_wrap() {
 	var _img = $('img').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
 	_img.wrap('<div contenteditable="true">');
-	_img.after('<p>');
-	_img.before('<p>');
-}
-function image_unwrap() {
-	$('img').each(function(index) {
-		var _this = $(this);
-		while (_this.prev('p').is('p') && !_this.prev('p').html()) _this.prev('p').remove();
-		while (_this.next('p').is('p') && !_this.next('p').html()) _this.next('p').remove();
-	});
 }
