@@ -469,11 +469,29 @@ $(document).ready(function(event) {
 			var display = url;
 			if (url.indexOf('https:') == -1 && url.indexOf('http:') == -1) url = 'http://' + url;
 			if (document.getSelection().toString()) document.execCommand('createLink',false,url);
-			else document.execCommand('insertHTML',false,'<a href="' + url + '">' + display + '</a>');
+			else {
+				try {
+					document.execCommand('insertHTML',false,'<a href="' + url + '">' + display + '</a>');
+				}
+				catch(err) {
+					var needle = '&lt;a href="' + url + '"&gt;' + display + '&lt;/a&gt;';
+					var subject = '<a href="' + url + '">' + display + '</a>';
+					handle_insert_glitch(needle, subject);
+				}
+			}
 		}
 	});
 	
 });
+
+function handle_insert_glitch(needle, subject) {
+	document.execCommand('undo',false,null);
+	var element = $(document.getSelection().anchorNode.parentNode);
+	document.execCommand('insertText',false,subject);
+	element.html(element.html().replace(needle,subject));
+	size_buttons(element.parents('.outer,.inner'));
+	element.keyup();
+}
 
 function keyup(obj) {
 	obj.keyup();
@@ -1237,6 +1255,8 @@ function create_sidebar() {
 	//inner_outer.css('width',calc_width);
 	//if (inner_outer.outerWidth != $(window).width() - 48 - sidebar_width) inner_outer.css('width','-webkit-' + calc_width);
 	
+	$('#menu').attr('title','Close Sidebar');
+	
 	$('body').css('overflow-y','auto');
 	resize_windows();
 	resize_writing_items();
@@ -1249,6 +1269,7 @@ function delete_sidebar() {
 	$('body').off('fadeIn show','.inner,.outer');
 	$('body').off('drop');
 	var inner_outer = $('.inner,.outer');
+	$('#menu').attr('title','Show Sidebar');
 	inner_outer.css('width','');
 	resize_windows();
 	resize_writing_items();
