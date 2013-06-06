@@ -90,6 +90,15 @@ $(document).ready(function() {
 	
 	
 	/// Window Events
+	window.onmspointerdown = function(event) {
+		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE) {
+			if (mobile_timer) clearTimeout(mobile_timer);
+			mobile = 1;
+		}
+	};
+	window.onmspointerup = function(event) {
+		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE) mobile_timer = setTimeout('mobile = 0;',400);
+	};
 	$(window).on('touchstart',function(event) {
 		if (mobile_timer) clearTimeout(mobile_timer);
 		mobile = 1;
@@ -242,8 +251,8 @@ $(document).ready(function() {
 			
 			$('.preview_window#_' + new_id).remove();
 			$(this).parent().after(content);
-			size_preview_buttons();
-			size_linear_buttons($(this).closest('.inner,.outer'));
+			//size_preview_buttons();
+			size_buttons($(this).closest('.inner,.outer'));
 			
 			var button_top = $(this).offset().top;
 			var show_end = $('.preview_window#_' + new_id).offset().top + $('.preview_window#_' + new_id).height() - $(window).height() + 15;
@@ -268,7 +277,7 @@ $(document).ready(function() {
 			if (preview_offset < $(window).scrollTop()) $(window).scrollTop(preview_offset);
 			var obj = $(this).closest('.inner,.outer');
 			$(this).parent().remove();
-			size_linear_buttons(obj);
+			size_buttons(obj);
 		}
 		
 	});
