@@ -1216,6 +1216,10 @@ function create_sidebar() {
 		if (_drag) toggle_drag();
 		if ($('#bold').is(':visible')) toggle_edit();
 		var text = '';
+		
+		$('video').replaceWith(function(index) { return $(this).children('object'); });
+		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
+		
 		$('.inner,.outer').each(function(index) {
 			var _this = $(this);
 			_this.children('form.linear').remove();
