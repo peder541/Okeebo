@@ -32,7 +32,7 @@ function resize_windows(){
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10);
-	$('img').width(function(index) {
+	$('img,video,object').width(function(index) {
 		var _this = $(this);
 		if (IE) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
 		var new_width = Math.min(max_img_width,_this.attr('width'))
