@@ -142,7 +142,7 @@ $(document).ready(function(event) {
 		setTimeout(keyup,10,$(this));
 	});
 	// Resizable Images in Chrome, Opera, and Safari
-	$(document).on('click','[contenteditable="true"] img',function(event) {
+	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object',function(event) {
 		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
 			var _this = $(this);
 			$('.active-img').removeClass('active-img');
@@ -809,6 +809,7 @@ function insert_page(summary,page,exists,reinsert) {
 		}
 	}
 	var current_div_id = current_div.attr('id');
+	if (current_div_id.charAt(0) == 'z') return false;
 	if (!current_div.hasClass('outer')) {
 		current_div.attr('class','outer ' + current_div.attr('class'));
 		letter = String.fromCharCode(current_div_id.charCodeAt(0) + 1);
