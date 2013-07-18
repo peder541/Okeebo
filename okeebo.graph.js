@@ -13,8 +13,8 @@ var graph_timer;
 var noSVG = false;
 var return_page_id = 'Z1';
 var _hover = null, edge = null;
-var darkColor = ['rgb(44,67,116)','#2c4374'];
-var liteColor = ['rgb(89,144,233)','#5990e9'];
+var darkColor = ['rgb(44,67,116)','#2c4374','rgb(44,116,67)','#2c7443'];
+var liteColor = ['rgb(89,144,233)','#5990e9','rgb(89,233,144)','#59e990'];
 
 $(document).ready(function(event) {
 	
@@ -285,8 +285,18 @@ function draw_lines() {
 	
 	var circle = d3.selectAll('circle');
 	
+	if (return_page_id == 'Z1') {
+		var active = circle.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == '`1') return true; });
+		var color = active.style('fill').replace(/\s/g,'').toLowerCase();
+		active.style('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]);
+	}
+	
 	circle.each(function(d,i) {
 		for (var j=0; j < d.length; ++j) {
+			if (d[j] == return_page_id) {
+				var color = d3.select(this).style('fill').replace(/\s/g,'').toLowerCase();
+				$(this).css('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]);
+			}
 			var parent_id = d3_get_parent_tag(d[j]);
 			if (parent_id) {
 				var parent = circle.filter(function(data,index) {
