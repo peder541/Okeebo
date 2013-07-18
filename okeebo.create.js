@@ -134,6 +134,7 @@ $(document).ready(function(event) {
 			setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
 			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
 		}
+		if (event.type == 'paste') setTimeout("$('p,a,b,i,u,sup,sub').removeAttr('style');",0);
 	})
 	.on('copy',function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -515,7 +516,17 @@ function improve_formatting() {
 	var div_contenteditable = $('div[contenteditable]');
 	var plainText = div_contenteditable.contents().filter(function() { return this.nodeType === 3; });
 	plainText.wrap('<p />');
+	
+	// Plain-text cuts inline elements out of paragraphs. Fixing with this.
+	$('div[contenteditable]').children('a,b,i,u,sub,sup').each(function() { 
+		var _this = $(this);
+		_this.prev('p').append(_this);
+		var new_parent = _this.parent('p');
+		new_parent.append(new_parent.next('p').detach().html());
+	});
+	
 	div_contenteditable.children('br').remove();
+	div_contenteditable.children('p').filter(function() { return ($(this).html() == '\n'); }).remove()
 	
 	div_contenteditable.children('div').each(function() { 
 		var string = '';
