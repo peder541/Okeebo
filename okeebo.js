@@ -31,7 +31,7 @@ function resize_windows(){
 	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
-	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10);
+	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
 	$('img,video,object').width(function(index) {
 		var _this = $(this);
 		if (IE) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
