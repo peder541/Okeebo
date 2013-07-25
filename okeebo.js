@@ -26,7 +26,14 @@ function resize_windows(){
 	else sidebar_width = 0;
 	if (left_margin < 0) left_margin = 0;
 	
-	$('.inner,.outer,.exit,.splitscreen,#meta-map').css('margin-left',left_margin);
+	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum').css('margin-left',left_margin);
+	var forum = $('#forum');
+	if (forum.index() < 0) {
+		$('body').append('<p id="forum"></p>');
+		forum = $('#forum');
+	}
+	forum.width($('#map').offset().left - forum.offset().left);
+	forum.css('top',75-Math.max(forum.height(),19));
 			
 	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
 	
@@ -502,9 +509,18 @@ function redraw_node_map(id,color) {
 	$('#m_a').append('<div class="node" id="m_a1"> </div>');
 	if (line[0]!='Z1') $('#m_a1').css({'background-color':p_color,'border-color':p_brdr});
 	else $('#m_a1').css({'background-color':a_color,'border-color':a_brdr,'cursor':'default'});
+	
+	$('#forum').empty();
+	$('body').append('<p id="forum"></p>');
+	var forum = $('#forum');
+	
 	for (j=i-1; j>=0; --j) {					
 		update_last_node_line($('.'+line[j]),alpha-j+1);
 		if (line[j+1]) {
+			
+			if (forum.html()) forum.append(' &nbsp; > &nbsp; ');
+			forum.append('<u onclick="go_to(&quot;'+line[0]+'&quot;,&quot;'+line[j+1]+'&quot;)">' + $('.'+line[j+1]+' h3').html() + '</u>');
+			
 			var b = $('.'+line[j+1]+' .in + p').first().attr('id');
 			var n = line[j].substr(1,line[j].length-1);
 			b = b.substr(1,b.length-1);
@@ -513,6 +529,8 @@ function redraw_node_map(id,color) {
 			else $('#m_'+String.fromCharCode(alpha-j)+n).css({'background-color':p_color,'border-color':p_brdr});
 		}
 	}
+	forum.width($('#map').offset().left - forum.offset().left);
+	forum.css('top',75-Math.max(forum.height(),19));
 	var map = $('#map');
 	map.scrollTop(0);
 	map.scrollTop($('.row').last().offset().top);
