@@ -518,9 +518,11 @@ function improve_formatting() {
 	plainText.wrap('<p />');
 	
 	// Plain-text cuts inline elements out of paragraphs. Fixing with this.
-	$('div[contenteditable]').children('a,b,i,u,sub,sup').each(function() { 
+	$('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
 		var _this = $(this);
-		_this.prev('p').append(_this);
+		var prev_p = _this.prev('p');
+		if (prev_p.html()) _this.prev('p').append(_this);
+		else _this.wrap('<p>');
 		var new_parent = _this.parent('p');
 		new_parent.append(new_parent.next('p').detach().html());
 	});
@@ -652,6 +654,21 @@ function toggle_drag() {
 }
 
 function allowDrop(event) {
+	/// Show when a drag is far enough to switch
+	var y = event.pageY;
+	if (!y) y = event.clientY + $(window).scrollTop();
+	if (!y) y = $('#dragdrop').offset().top + 25;
+	
+	var set_p = $('.outer').filter(':visible').children('p');
+	set_p.each(function(index) {
+		var _this = $(this);
+		var data = event.dataTransfer.getData("Text");
+		if (this.id != data) {
+			if (y < _this.offset().top + _this.height()/2) _this.css('outline-color','#00FF80');
+			else _this.css('outline-color','#FF8000');
+		}
+	});
+	
 	if (event.preventDefault) event.preventDefault();
 	else event.returnValue = false;
 }
@@ -1356,4 +1373,42 @@ function iframe_to_image(iframe) {
 function image_wrap() {
 	var _img = $('img').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
 	_img.wrap('<div contenteditable="true">');
+}
+
+function create_handles(id) {
+	if (typeof(id) === 'undefined') $('.outer > p[id]').append('<div class="handle"></div>');
+	else if (typeof(id) === 'string') $('.outer > p[id="' + id + '"]').append('<div class="handle"></div>');
+	else if (typeof(id) === 'object') for (var i in id) $('.outer > p[id="' + id[i] + '"]').append('<div class="handle"></div>');	
+	else return false;
+	
+	$('.handle')
+		.css({
+			'height':17,
+			'width':17,
+			'background-color':'#C9AEE5',
+			'background-image':'url("move_cursor.gif")',
+			'background-repeat':'no-repeat',
+			'background-position':'right bottom',
+			'border-radius':8,
+			'position':'absolute',
+			'cursor':'move',
+			'margin-top':-2
+		})
+		.off('mousedown').off('mouseenter').off('mouseleave')
+		.on('mousedown',function(event) { 
+			toggle_drag();
+			$(document).on('mouseout mouseup',function(event) { 
+				toggle_drag();
+				$(document).off('mouseout mouseup');
+				$('p[id]').css('outline','');
+			});
+			//$('.inner p').css('outline','dashed 1px #ccc'); 
+			$('.outer').attr('ondrop','drop(event); toggle_drag(); $(document).off("mouseout mouseup"); $("p[id]").css("outline","");');
+		})
+		.on('mouseenter',function(event) { 
+			$(this).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'}); 
+		})
+		.on('mouseleave',function(event) {
+			$(this).parent('p[id]').css({'outline':'','outline-offset':''});
+		});	
 }
