@@ -1,27 +1,27 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta name="viewport" content="initial-scale=1, minimum-scale=1" />
-	<title>Okeebo</title>
-	<link rel="stylesheet" href="okeebo.css" />
-	<link rel="stylesheet" media="print" href="print.css" />
-	<script type="text/javascript" src="jquery-1.7.js"></script>
-	<script type="text/javascript" src="okeebo.js"></script>
-	<script type="text/javascript" src="hammer.js"></script>
-	<script type="text/javascript" src="jquery.specialevent.hammer.js"></script>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="initial-scale=1, minimum-scale=1" />
+        <title>Okeebo</title>
+        <link rel="stylesheet" href="../../okeebo.css" />
+        <link rel="stylesheet" media="print" href="../../print.css" />
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script type="text/javascript" src="../../okeebo.js"></script>
+        <script type="text/javascript" src="../../hammer.js"></script>
+        <script type="text/javascript" src="../../jquery.specialevent.hammer.js"></script>
 </head>
 
 <body>
 
-	<div id="meta-map">
-	</div>
+        <div id="meta-map">
+        </div>
 
-	<button class="exit">&times;</button>
+        <button class="exit">&times;</button>
 
-	<div id="map">
-	</div>
+        <div id="map_helper"></div>
+        <div id="map">
+        </div>
 
-	
+
