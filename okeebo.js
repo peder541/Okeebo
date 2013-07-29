@@ -26,12 +26,12 @@ function resize_windows(){
 	else sidebar_width = 0;
 	if (left_margin < 0) left_margin = 0;
 	
-	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum').css('margin-left',left_margin);
 	var forum = $('#forum');
 	if (forum.index() < 0) {
 		$('body').append('<p id="forum"></p>');
 		forum = $('#forum');
 	}
+	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum').css('margin-left',left_margin);
 	forum.width($('#map').offset().left - forum.offset().left);
 	forum.css('top',75-Math.max(forum.height(),19));
 			
@@ -371,30 +371,34 @@ function clear_selected_text() {
 }
 
 function clean_transition(new_obj,old_obj) {
-	if ($('[contenteditable]').is(':visible')) {
-		resize_writing_items();
-		setTimeout("resize_writing_items();",450);
-	}
+	/*if ($('[contenteditable]').is(':visible')) {
+		$('.left,.right,#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
+	}*/
 	$('body').css('overflow-y','hidden');
 	var top_margin = new_obj.css('margin-top');
 	top_margin = parseInt(top_margin.substr(0,top_margin.length-2),10);
-	if (new_obj.height()-$(window).height() > -top_margin) {
+	var _window = $(window);
+	if (new_obj.height()-_window.height() > -top_margin) {
 		$('body').css('overflow-y','auto');
-		if (($(window).width() < 900)) {
-			var x = 900 - $(window).width();
-			if (x < scrollbar_width) old_obj.css({'padding-right':24-x,'max-width':876-(24-x)});
-			else old_obj.css({'padding-right':24-scrollbar_width,'max-width':876-(24-scrollbar_width)});
-			if (old_obj.height()-$(window).height() > -top_margin) old_obj.css({'padding-right':24,'max-width':852});
-			else setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':24,'max-width':852});",400);
+		if ((_window.width() < 900)) {
+			var x = 900 - _window.width();
+			if (x < scrollbar_width) old_obj.css({'padding-right':24-x,'width':852});
+			else old_obj.css({'padding-right':24-scrollbar_width,'width':852-x+scrollbar_width});
+			if (old_obj.height()-_window.height() > -top_margin) old_obj.css({'padding-right':'','width':''});
+			else setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':'','width':''});",400);
 		}
 	}
 	else {
-		if ((old_obj.height()-$(window).height() > -top_margin) && ($(window).width() < 900 + scrollbar_width)) {
-			var x = 900 + scrollbar_width - $(window).width();
-			if (x < scrollbar_width) old_obj.css({'padding-right':24+x,'margin-right':scrollbar_width-x});
-			else old_obj.css({'padding-right':24+scrollbar_width});
-			setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':24,'margin-right':0});",400);
+		if ((old_obj.height()-_window.height() > -top_margin) && (_window.width() < 900 + scrollbar_width)) {
+			var x = 900 + scrollbar_width - _window.width();
+			if (x < scrollbar_width) old_obj.css({'padding-right':24+x,'margin-right':scrollbar_width-x,'width':'auto'});
+			else old_obj.css({'padding-right':24+scrollbar_width,'width':'auto'});
+			setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':'','margin-right':'','width':''});",400);
 		}
+	}
+	if ($('[contenteditable]').is(':visible')) {
+		resize_writing_items(Math.min(scrollbar_width,x)-scrollbar_width);
+		setTimeout("resize_writing_items()",0);
 	}
 }
 
@@ -425,6 +429,7 @@ function go_to(old_id,new_id) {
 		$(window).scrollTop(0);
 		redraw_node_map(new_id);
 		size_buttons(new_obj);
+		if ($('[contenteditable]').is(':visible')) resize_writing_items()
 		use_math_plug_in();
 	}
 }
@@ -473,6 +478,7 @@ function linear_move(direction, redraw) {
 		}*/
 		size_buttons($('#' + letter + number));
 		use_math_plug_in();
+		if ($('[contenteditable]').is(':visible')) resize_writing_items()
 		return true;
 	}
 	if (status_timer) clearTimeout(status_timer);
@@ -510,16 +516,15 @@ function redraw_node_map(id,color) {
 	if (line[0]!='Z1') $('#m_a1').css({'background-color':p_color,'border-color':p_brdr});
 	else $('#m_a1').css({'background-color':a_color,'border-color':a_brdr,'cursor':'default'});
 	
-	$('#forum').empty();
-	$('body').append('<p id="forum"></p>');
 	var forum = $('#forum');
+	forum.empty();
 	
 	for (j=i-1; j>=0; --j) {					
 		update_last_node_line($('.'+line[j]),alpha-j+1);
 		if (line[j+1]) {
 			
 			if (forum.html()) forum.append(' &nbsp; > &nbsp; ');
-			forum.append('<u onclick="go_to(&quot;'+line[0]+'&quot;,&quot;'+line[j+1]+'&quot;)">' + $('.'+line[j+1]+' h3').html() + '</u>');
+			forum.append('<u onclick="concept_zoom_out(' + (j+1) + ',0)">' + $('.'+line[j+1]+' h3').html() + '</u>');
 			
 			var b = $('.'+line[j+1]+' .in + p').first().attr('id');
 			var n = line[j].substr(1,line[j].length-1);
