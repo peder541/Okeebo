@@ -8,10 +8,15 @@ var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
 
-function resize_writing_items() {
+function resize_writing_items(buffer) {
+	if (typeof(buffer) === 'undefined') buffer = 0;
+	var sidebar_width = $('#sidebar').outerWidth();
+	if (!sidebar_width) sidebar_width = 0;
+	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
 	$('button').not('.in,.out,.tangent,.preview_main,.preview_exit').css('margin-left',$('.inner').css('margin-left'));
-	$('#bold,#italic,#underline,#ul,#ol,#img,#link').css('left',$('.inner,.outer').outerWidth()-29);
+	$('#bold,#italic,#underline,#ul,#ol,#img,#link').css('left',base_width-29);
 	//modify_arrange_buttons();
+	$('.delete').css('margin-left',base_width-89-64);
 }
 
 $(document).ready(function(event) {
@@ -482,6 +487,8 @@ $(document).ready(function(event) {
 			}
 		}
 	});
+	create_handles();
+	create_deletes();
 	
 });
 
@@ -619,7 +626,7 @@ function toggle_drag() {
 			if (this.dragDrop) this.dragDrop();
 			return false;
 		});
-		$('.outer p[id]').css('cursor','move');
+		$('.outer p[id]').css('cursor','move').css('outline-color','');
 		
 	}
 	else {
@@ -655,30 +662,22 @@ function toggle_drag() {
 
 function allowDrop(event) {
 	/// Show when a drag is far enough to switch
-	var y = event.pageY;
-	if (!y) y = event.clientY + $(window).scrollTop();
-	if (!y) y = $('#dragdrop').offset().top + 25;
-	
-	var set_p = $('.outer').filter(':visible').children('p');
-	set_p.each(function(index) {
-		var _this = $(this);
-		var data = event.dataTransfer.getData("Text");
-		if (this.id != data) {
-			if (y < _this.offset().top + _this.height()/2) _this.css('outline-color','#00FF80');
-			else _this.css('outline-color','#FF8000');
-		}
-	});
+	color_dragging(event,event.dataTransfer.getData("Text"));
 	
 	if (event.preventDefault) event.preventDefault();
 	else event.returnValue = false;
 }
 
 function drag(event) {
-	if (event.target) event.dataTransfer.setData("Text",event.target.id);
+	if (event.target) {
+		event.dataTransfer.setData("Text",event.target.id);
+		event.dataTransfer.effectAllowed = "move";
+	}
 	$('#dragdrop').remove();
 }
 
 function drop(event) {
+	$('p[id]').css('outline-color','');
 	if (event.preventDefault) event.preventDefault();
 	var data;
 	if (event.type == 'drop') data = event.dataTransfer.getData("Text");
@@ -799,10 +798,12 @@ function update_all_affected_links(first_id) {
 			if (skip) continue;
 			list.push(obj);
 			arrange_links(obj.children(),letter,first_number);
-			first_number += count_children(obj);
-			var allow_linear_checked = obj.children('form.linear').children('input').prop('checked');
-			if ((typeof(allow_linear_checked) !== 'undefined') && !allow_linear_checked) {
-				++first_number;
+			if (obj.children('p[id*="' + letter + '"]').index() != -1) {
+				first_number += count_children(obj);
+				var allow_linear_checked = obj.children('form.linear').children('input').prop('checked');
+				if ((typeof(allow_linear_checked) !== 'undefined') && !allow_linear_checked) {
+					++first_number;
+				}
 			}
 		}
 		var list = [];
@@ -886,6 +887,8 @@ function insert_page(summary,page,exists,reinsert) {
 		$('#' + letter + '0').children('span').attr('contenteditable','true');
 	}
 	size_buttons(current_div);
+	create_handles(letter+0);
+	create_deletes(letter+0);
 	
 	if (!page) {
 		$('.inner,.outer').last().after('<div class="inner ' + div_letter + '0"><h3>Title</h3><p>Content</p></div>');
@@ -900,7 +903,7 @@ function insert_page(summary,page,exists,reinsert) {
 	if (!current_div.find('.linear input').prop('checked')) {
 		arrange_links(':visible',letter,number);
 		repair_links(':visible',letter,number);
-	}	
+	}
 	// Could possibly be improved with more specific first_id
 	if (letter.charCodeAt(0) >= 97) update_all_affected_links('a1');
 	$('body').css('overflow','auto');
@@ -913,75 +916,113 @@ function insert_page(summary,page,exists,reinsert) {
 }
 
 /// Handles pages with multiple keys
-function delete_page() {
+function delete_page(target_id,quick) {
 	var current_page = $('.inner,.outer').filter(':visible');
-	if (!current_page.hasClass('outer')) {
-		var current_id = current_page.attr('id');
-		var summaries = new Array();
-		var parents = new Array();
-		var current_keys = current_page.attr('class').split(' ');
-		current_keys.shift();
-		var active_parent, active_parent_id;
-		current_page.removeAttr('id');
-		for (var j=0; j < current_keys.length; ++j) {
-			var current_letter = current_keys[j].charAt(0);
-			var link_letter = String.fromCharCode(current_keys[j].charCodeAt(0)-1);
-			var current_number = current_keys[j].substr(1,current_keys[j].length);
-			var page_summary = $('#' + link_letter + current_number);
-			var parent_page = page_summary.parent();
-			var parent_id = parent_page.attr('id');
-			if (!parent_id) parent_id = parent_page.attr('class').split(' ').pop();
-			var parent_page_first_id = parent_page.children('p[id]').first().attr('id');
-			var arrange_letter = parent_page_first_id.charAt(0);
-			var arrange_first_number = parseInt(parent_page_first_id.substring(1,parent_page_first_id.length),10);
-			
-			/// Might want to record these tangents in the undo delete stack.
-			var tangent = $('.tangent._' + current_keys[j]);
-			tangent.each(function(index) {
-				var _this = $(this);
-				_this.before(_this.html()).remove();
-			});
-	
-			if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
-			parent_page.show();
-			current_page.hide();
-			if (current_keys[j] == current_id) {
-				active_parent = parent_page;
-				active_parent_id = parent_id;
+	if (typeof(target_id) !== 'undefined' && target_id) {
+		var old_id = current_page.attr('id');
+		go_to(old_id,target_id);
+		return delete_page(null,quick);
+	}
+	if (current_page.hasClass('outer')) {
+		//alert('"' + current_page.children('h3').html() + '" has subsections.\nYou will have to delete them before you can delete it.');
+		//return false;
+		/// Should this be allowed? Deleting pages gets computationally heavy and users probably don't actually want to delete multiple pages
+		try { if (!confirm('"' + current_page.children('h3').html() + '" has subsections that will be deleted. Do you want to continue?')) {
+			if (quick) {
+				var pages = new Array();
+				var key_spot = new Array();
+				var id = current_page.attr('id');
+				for (var i=0; id; ++i) {
+					pages[i] = $('.'+id);
+					var classes = pages[i].attr('class').split(' ');
+					for (var j in classes) if (id == classes[j]) break;
+					key_spot[i] = j;
+					id = get_parent_tag(id);
+				}
+				update_all_affected_links('a1');
+				for (var i in key_spot) pages[i].attr('id',pages[i].attr('class').split(' ')[key_spot[i]]);
 			}
-	
-			/// Turns off edit to handle content split by a page summary
-			if (!_drag) toggle_edit_one(parent_page);
-
-			summaries.push(page_summary.detach());
-			parents.push(parent_page);
-			$('.in.' + link_letter + current_number).remove();
-	
-			/// Turns edit back on after "merging" content once separated by a page summary
-			if (!_drag) toggle_edit_one(parent_page);
+			return false;
+		} }
+		catch (e) { console.log(e); }
+		var test = true;
+		current_page.children('p[id]').each(function(index) {
+			var target_id = this.id;
+			target_id = String.fromCharCode(target_id.charCodeAt(0)+1) + target_id.substr(1);
+			test = delete_edge(target_id,1);
+			if (!test) return false;
+		});
+		if (!test) return false;
+	}
+	var current_id = current_page.attr('id');
+	var summaries = new Array();
+	var parents = new Array();
+	var current_keys = current_page.attr('class').split(' ');
+	current_keys.shift();
+	var active_parent, active_parent_id;
+	current_page.removeAttr('id');
+	for (var j=0; j < current_keys.length; ++j) {
+		var current_letter = current_keys[j].charAt(0);
+		var link_letter = String.fromCharCode(current_keys[j].charCodeAt(0)-1);
+		var current_number = current_keys[j].substr(1,current_keys[j].length);
+		var page_summary = $('#' + link_letter + current_number);
+		var parent_page = page_summary.parent();
+		var parent_id = parent_page.attr('id');
+		if (!parent_id) parent_id = parent_page.attr('class').split(' ').pop();
+		var parent_page_first_id = parent_page.children('p[id]').first().attr('id');
+		var arrange_letter = parent_page_first_id.charAt(0);
+		var arrange_first_number = parseInt(parent_page_first_id.substring(1,parent_page_first_id.length),10);
 		
-			if (parent_page.has('p[id]').is(':visible')) {
+		/// Might want to record these tangents in the undo delete stack.
+		var tangent = $('.tangent._' + current_keys[j]);
+		tangent.each(function(index) {
+			var _this = $(this);
+			_this.before(_this.html()).remove();
+		});
+	
+		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
+		parent_page.show();
+		current_page.hide();
+		if (current_keys[j] == current_id) {
+			active_parent = parent_page;
+			active_parent_id = parent_id;
+		}
+	
+		/// Turns off edit to handle content split by a page summary
+		if (!_drag) toggle_edit_one(parent_page);
+
+		summaries.push(page_summary.detach());
+		parents.push(parent_page);
+		$('.in.' + link_letter + current_number).remove();
+	
+		/// Turns edit back on after "merging" content once separated by a page summary
+		if (!_drag) toggle_edit_one(parent_page);
+		
+		if (parent_page.has('p[id]').is(':visible')) {
+			if (!quick) {
 				arrange_links(parent_page.children(),arrange_letter,arrange_first_number);
 				repair_links(parent_page.children(),arrange_letter,arrange_first_number);
 			}
-			else {
-				if (_drag) toggle_edit_one(parent_page);
-				if (parent_page.hasClass('inner')) {
-					parent_page.removeClass('outer');
-					parent_page.children('form.linear').remove();
-				}
-			}
-			parent_page.hide();
 		}
-		active_parent.show();
-		_delete.push({ page: current_page.detach(), summary: summaries, parent: parents });
-		update_all_affected_links('a1');
-		active_parent.attr('id',active_parent_id);
+		else {
+			if (_drag) toggle_edit_one(parent_page);
+			if (parent_page.hasClass('inner')) {
+				parent_page.removeClass('outer');
+				parent_page.children('form.linear').remove();
+			}
+		}
+		parent_page.hide();
+	}
+	active_parent.show();
+	_delete.push({ page: current_page.detach(), summary: summaries, parent: parents });
+	if (!quick) update_all_affected_links('a1');
+	active_parent.attr('id',active_parent_id);
+	if (!quick) {
 		size_buttons(active_parent);
 		redraw_node_map(active_parent_id);
-		return true;
+		enable_sidebar_option($('#undo_page_delete'));
 	}
-	else return false;
+	return true;
 }
 
 function undo_page_delete() {
@@ -995,7 +1036,7 @@ function undo_page_delete() {
 	}
 }
 
-function delete_edge(edge) {
+function delete_edge(edge,quick) {
 	var page = $('.' + edge);
 	var prefix = 1;
 	if (page.hasClass('outer')) ++prefix;
@@ -1076,11 +1117,12 @@ function delete_edge(edge) {
 		
 		size_buttons(parent_page);
 		redraw_node_map(visible_page.attr('id'));
+		return true;
 	}
 	// Single Key
 	else {
-		go_to($('.inner,.outer').filter(':visible').attr('id'),edge);
-		delete_page();
+		//go_to($('.inner,.outer').filter(':visible').attr('id'),edge);
+		return delete_page(edge,quick);
 	}
 }
 
@@ -1207,8 +1249,14 @@ function create_sidebar() {
 	
 	$('#drag').on('click',function(event) {
 		toggle_drag();
-		if (_drag) $('#drag').html('Stop Dragging Summaries');
-		else $('#drag').html('Start Dragging Summaries');
+		if (_drag) {
+			$('#drag').html('Stop Dragging Summaries');
+			$('body').append('<style id="hide_handles">.handle { display: none !important; }</style>');
+		}
+		else {
+			$('#drag').html('Start Dragging Summaries');
+			$('#hide_handles').remove();
+		}
 	});
 	$('#insert_new_page').on('click',function(event) {
 		if ($(this).hasClass('disabled')) return false;
@@ -1232,7 +1280,6 @@ function create_sidebar() {
 	$('#delete_page').on('click',function(event) {
 		if ($(this).hasClass('disabled')) return false;
 		delete_page();
-		enable_sidebar_option($('#undo_page_delete'));
 		var current_page = $('.inner,.outer').filter(':visible');
 		if (!current_page.hasClass('outer')) enable_sidebar_option($('#delete_page'));
 	});
@@ -1305,9 +1352,9 @@ function delete_sidebar() {
 	$('#menu').attr('title','Show Sidebar');
 	inner_outer.css('width','');
 	resize_windows();
-	resize_writing_items();
 	$('.left').css('left',0);
 	size_buttons(inner_outer.filter(':visible'));
+	resize_writing_items();
 }
 
 function make_tangent() {
@@ -1383,27 +1430,31 @@ function create_handles(id) {
 	
 	$('.handle')
 		.css({
-			'height':17,
-			'width':17,
+			'height':21,
+			'width':21,
 			'background-color':'#C9AEE5',
-			'background-image':'url("move_cursor.gif")',
+			'background-image':'url("move_cursor.png")',
 			'background-repeat':'no-repeat',
-			'background-position':'right bottom',
-			'border-radius':8,
+			'background-position':'center center',
+			'border-radius':11,
 			'position':'absolute',
 			'cursor':'move',
 			'margin-top':-2
 		})
 		.off('mousedown').off('mouseenter').off('mouseleave')
-		.on('mousedown',function(event) { 
+		.on('mousedown',function(event) {
+			clear_selected_text();
+			$('p[id]').css('outline','');
 			toggle_drag();
-			$(document).on('mouseout mouseup',function(event) { 
+			$(document).on('mouseout mouseup',function(event) {
 				toggle_drag();
 				$(document).off('mouseout mouseup');
-				$('p[id]').css('outline','');
+				if (event.type == 'mouseup') $(event.target).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'});
 			});
 			//$('.inner p').css('outline','dashed 1px #ccc'); 
-			$('.outer').attr('ondrop','drop(event); toggle_drag(); $(document).off("mouseout mouseup"); $("p[id]").css("outline","");');
+			$('.outer').attr('ondrop','drop(event); toggle_drag(); $(document).off("mouseout mouseup");');
+			
+			color_dragging(event,$(this).parent('p[id]').attr('id'));
 		})
 		.on('mouseenter',function(event) { 
 			$(this).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'}); 
@@ -1411,4 +1462,59 @@ function create_handles(id) {
 		.on('mouseleave',function(event) {
 			$(this).parent('p[id]').css({'outline':'','outline-offset':''});
 		});	
+}
+
+function color_dragging(event,data) {
+	var y = event.pageY;
+	if (!y) y = event.clientY + $(window).scrollTop();
+	if (!y) y = $('#dragdrop').offset().top + 25;
+	var set_p = $('.outer').filter(':visible').children('p');
+	set_p.each(function(index) {
+		var _this = $(this);
+		if (this.id != data) {
+			if (y < _this.offset().top + _this.height()/2) _this.css('outline-color','#00FF80');
+			else _this.css('outline-color','#FF8000');
+		}
+	});
+}
+
+function create_deletes(id) {
+	if (typeof(id) === 'undefined') $('.outer > p[id]').append('<div class="delete"></div>');
+	else if (typeof(id) === 'string') $('.outer > p[id="' + id + '"]').append('<div class="delete"></div>');
+	else if (typeof(id) === 'object') for (var i in id) $('.outer > p[id="' + id[i] + '"]').append('<div class="delete"></div>');	
+	else return false;
+	$('.delete')
+		.off('click').off('mouseenter').off('mouseleave')
+		.css({
+			'height':16,
+			'width':16,
+			'background-image':'url("trash.png")',
+			'background-repeat':'no-repeat',
+			'background-position':'right bottom',
+			'position':'absolute',
+			'cursor':'pointer',
+			'margin-left':$('.outer p[id]').filter(':visible').width()-64,
+			'margin-top':-2
+		})
+		.on('click',function(event) {
+			var parent_p = $(this).parent('p[id]');
+			parent_p.css({'outline':'','outline-offset':''});
+			var target_id = parent_p.attr('id');
+			target_id = String.fromCharCode(target_id.charCodeAt(0)+1) + target_id.substr(1);
+			delete_page(target_id);
+			$('.delete').remove();
+			create_deletes();
+		})
+		.on('mouseenter',function(event) { 
+			$(this).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'}); 
+		})
+		.on('mouseleave',function(event) {
+			$(this).parent('p[id]').css({'outline':'','outline-offset':''});
+		})/*
+		.each(function(index) {
+			var parent_p = $(this).parent('p[id]');
+			var linked_page_id = parent_p.attr('id');
+			linked_page_id = String.fromCharCode(linked_page_id.charCodeAt(0)+1) + linked_page_id.substr(1);
+			if ($('.'+linked_page_id).hasClass('outer')) $(this).remove();
+		})*/;
 }
