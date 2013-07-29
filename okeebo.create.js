@@ -1517,7 +1517,7 @@ function create_deletes(id) {
 			parent_p.css({'outline':'','outline-offset':''});
 			var target_id = parent_p.attr('id');
 			target_id = String.fromCharCode(target_id.charCodeAt(0)+1) + target_id.substr(1);
-			delete_page(target_id);
+			delete_edge(target_id);
 			$('.delete').remove();
 			create_deletes();
 		})
