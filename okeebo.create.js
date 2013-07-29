@@ -671,7 +671,7 @@ function allowDrop(event) {
 function drag(event) {
 	if (event.target) {
 		event.dataTransfer.setData("Text",event.target.id);
-		event.dataTransfer.effectAllowed = "move";
+		//event.dataTransfer.effectAllowed = "move";
 	}
 	$('#dragdrop').remove();
 }
@@ -824,17 +824,33 @@ function insert_page(summary,page,exists,reinsert) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
 	if (!reinsert) {
-		if (typeof(page) !== 'undefined' && current_div.is(page)) {
-			console.log('self');
-			return 'self';
-		}
-		if (typeof(page) !== 'undefined' && current_div.hasClass(get_parent_tag(page.attr('class').split(' ').pop()))) {
-			console.log('redundant');
-			return 'redundant';
-		}
-		if (typeof(page) !== 'undefined' && page.hasClass(get_parent_tag(current_div.attr('class').split(' ').pop()))) {
-			console.log('cyclical');
-			return 'cyclical';
+		if (typeof(page) !== 'undefined') {
+			if (current_div.is(page)) {
+				console.log('self');
+				return 'self';
+			}
+			function redundant_test(current_div,page) {
+				var classes = page.attr('class').split(' ');
+				for (var i in classes) if (classes[i] != 'inner' && classes[i] != 'outer') 
+					if (current_div.hasClass(get_parent_tag(classes[i]))) return true;
+				return false;
+			}
+			if (redundant_test(current_div,page)) {
+				console.log('redundant');
+				return 'redundant';
+			}
+			function cyclical_test(id,page) {
+				if (!id) return false;
+				if (page.hasClass(id)) return true;
+				var classes = $('.'+id).attr('class').split(' ');
+				for (var i in classes) if (classes[i] != 'inner' && classes[i] != 'outer') 
+					if (cyclical_test(get_parent_tag(classes[i]),page)) return true;
+				return false;
+			}
+			if (cyclical_test(current_div.attr('id'),page)) {
+				console.log('cyclical');
+				return 'cyclical';
+			}
 		}
 	}
 	var current_div_id = current_div.attr('id');
