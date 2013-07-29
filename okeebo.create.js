@@ -101,11 +101,13 @@ $(document).ready(function(event) {
 		if ($(this).is('h3')) {
 			// Title (page)
 			if ($(this).parent().hasClass('inner')) {
-				var id = $(this).parent().attr('id');
-				var link_letter = String.fromCharCode(id.charCodeAt(0)-1);
-				if (link_letter == '@') return false;
-				var number = id.substring(1,id.length);
-				$('#' + link_letter + number + ' span:first-child').html($(this).html());
+				var classes = $(this).parent().attr('class').split(' ');
+				for (var i in classes) {
+					var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
+					if (link_letter == '@') return false;
+					var number = classes[i].substring(1,classes[i].length);
+					$('#' + link_letter + number + ' span:first-child').html($(this).html());
+				}
 			}
 		}
 		else if ($(this).is('p[id] span:first-child')) {
@@ -113,7 +115,15 @@ $(document).ready(function(event) {
 			var id = $(this).parent().attr('id');
 			var child_letter = String.fromCharCode(id.charCodeAt(0)+1);
 			var number = id.substring(1,id.length);
-			$('.' + child_letter + number + ' h3').html($(this).html());
+			var page = $('.' + child_letter + number);
+			page.children('h3').html($(this).html());
+			var classes = page.attr('class').split(' ');
+			for (var i in classes) {
+				var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
+				if (link_letter == '@') return false;
+				var number = classes[i].substring(1,classes[i].length);
+				if (link_letter + number != id) $('#' + link_letter + number + ' span:first-child').html($(this).html());
+			}
 		}
 		else if ($(this).is('p[id] span')) {
 			// Summary
