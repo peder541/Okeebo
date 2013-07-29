@@ -46,7 +46,9 @@ $(document).ready(function(event) {
 					}
 					else {
 						toggle_graph();
-						insert_page(null,$('.' + d3.select(_hover[0]).data()[0][0]),1);
+						var page_id = d3.select(_hover[0]).data()[0][0];
+						var summary_id = String.fromCharCode(page_id.charCodeAt(0)-1) + page_id.substr(1);
+						insert_page($('#' + summary_id).clone(),$('.' + page_id),1);
 					}
 				}
 			}
