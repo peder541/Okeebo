@@ -4,7 +4,7 @@
  * 
  */
 
-var padding = 20;
+var padding = 30;
 var radius = padding/4;
 var w = 1280, h = 800;
 var s = 0;
@@ -144,7 +144,7 @@ function draw_graph() {
 							
 			return xScale(parseInt(d[0].substring(1,d[0].length),10));
 		})
-		.attr('r',radius)
+		.attr('r',radius = padding/Math.pow(Math.max($('circle').index($('circle').last()),1),0.3))
 		.sort(function(a,b) {
 			var chr_sort = a[0].charCodeAt(0) - b[0].charCodeAt(0);
 			if (chr_sort != 0) return chr_sort;
