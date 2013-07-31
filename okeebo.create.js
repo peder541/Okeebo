@@ -1325,6 +1325,7 @@ function create_sidebar() {
 		$('.inner,.outer').each(function(index) {
 			var _this = $(this);
 			_this.children('form.linear').remove();
+			$('.handle,.delete').remove();
 			
 			// Remove excess <br> from titles
 			_this.find('h3 br').remove();
@@ -1340,6 +1341,8 @@ function create_sidebar() {
 			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html() + '</div>';
 			
 			// Illusion
+			create_handles();
+			create_deletes();
 			_this.children('.in').html('+');
 			_this.children('.out').html('-');
 			_this.find('a.tangent').replaceWith(function() { 
@@ -1455,18 +1458,6 @@ function create_handles(id) {
 	else return false;
 	
 	$('.handle')
-		.css({
-			'height':21,
-			'width':21,
-			'background-color':'#C9AEE5',
-			'background-image':'url("move_cursor.png")',
-			'background-repeat':'no-repeat',
-			'background-position':'center center',
-			'border-radius':11,
-			'position':'absolute',
-			'cursor':'move',
-			'margin-top':-2
-		})
 		.off('mousedown').off('mouseenter').off('mouseleave')
 		.on('mousedown',function(event) {
 			clear_selected_text();
@@ -1511,17 +1502,7 @@ function create_deletes(id) {
 	else return false;
 	$('.delete')
 		.off('click').off('mouseenter').off('mouseleave')
-		.css({
-			'height':16,
-			'width':16,
-			'background-image':'url("trash.png")',
-			'background-repeat':'no-repeat',
-			'background-position':'right bottom',
-			'position':'absolute',
-			'cursor':'pointer',
-			'margin-left':$('.outer p[id]').filter(':visible').width()-64,
-			'margin-top':-2
-		})
+		.css('margin-left',$('.outer p[id]').filter(':visible').width()-64)
 		.on('click',function(event) {
 			var parent_p = $(this).parent('p[id]');
 			parent_p.css({'outline':'','outline-offset':''});
