@@ -99,7 +99,7 @@ $(document).ready(function() {
 	
 	/// Window Events
 	window.onmspointerdown = function(event) {
-		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE) {
+		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE && event.pointerType != 'mouse') {
 			if (mobile_timer) clearTimeout(mobile_timer);
 			mobile = 1;
 		}
@@ -419,6 +419,7 @@ function go_to(old_id,new_id) {
 		// Doesn't break with rapid Ctrl+Arrow
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 		new_obj.show();
+		redraw_node_map(new_id);
 		old_obj.hide();
 		/**/
 		new_obj.attr('id',new_id);
@@ -427,7 +428,6 @@ function go_to(old_id,new_id) {
 		if ($('#info').is(':visible')) $('#map .node').mouseleave();
 		
 		$(window).scrollTop(0);
-		redraw_node_map(new_id);
 		size_buttons(new_obj);
 		if ($('[contenteditable]').is(':visible')) resize_writing_items()
 		use_math_plug_in();
