@@ -131,7 +131,10 @@ $(document).ready(function(event) {
 		else {
 			// Content
 		}
+		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
+		resize_windows();
 		size_buttons($('.inner,.outer').filter(':visible'));
+		resize_writing_items();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -149,6 +152,10 @@ $(document).ready(function(event) {
 			setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
 			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
 		}
+		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
+		resize_windows();
+		size_buttons($('.inner,.outer').filter(':visible'));
+		resize_writing_items();
 		if (event.type == 'paste') setTimeout("$('p,a,b,i,u,sup,sub').removeAttr('style');",0);
 	})
 	.on('copy',function(event) {
