@@ -7,14 +7,15 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
+var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#new_page';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (!sidebar_width) sidebar_width = 0;
 	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
-	$('button').not('.in,.out,.tangent,.preview_main,.preview_exit').css('margin-left',$('.outer').css('margin-left'));
-	$('#bold,#italic,#underline,#ul,#ol,#img,#link').css('left',base_width-29);
+	$('button').not('.in,.out,.tangent,.preview_main,.preview_exit,.insert').css('margin-left',$('.outer').css('margin-left'));
+	$(writing_buttons).css('left',base_width-29);
 	//modify_arrange_buttons();
 	$('.delete').css('margin-left',base_width-89-64);
 }
@@ -44,7 +45,7 @@ $(document).ready(function(event) {
 		var last_id = $(this).children('p[id]').last().attr('id');
 		if (last_id) {
 			var last_letter = last_id.charAt(0);
-			var last_number = parseInt(last_id.substring(1,last_id.length),10);
+			var last_number = parseInt(last_id.substring(1),10);
 			if ($('#' + last_letter + (last_number + 1)).html()) {
 				$(this).children('form.linear').children('input').prop('checked',true);
 			}
@@ -58,6 +59,54 @@ $(document).ready(function(event) {
 	
 	toggle_edit();
 	
+	// Table
+	$(document).on('mousemove',function(event) {
+		if (typeof(ns_resize_table) !== 'undefined' && typeof(ns_resize_table[1]) !== 'undefined') {
+			clear_selected_text();
+			var dif = event.pageY - ns_resize_table[1];
+			var obj = ns_resize_table[0];
+			var height = ns_resize_table[2];
+			var new_height = height + dif;
+			obj.attr('height',new_height);
+		}
+		if (typeof(ew_resize_table) !== 'undefined') {
+			clear_selected_text();
+			var dif = event.pageX - ew_resize_table[1];
+			var obj = ew_resize_table[0];
+			var width = ew_resize_table[2];
+			obj.css('width','');
+			obj.attr('width',width + dif);
+		}
+	});
+	$(document).on('mousedown mousemove','td',function(event) {
+		var _this = $(this);
+		var left = _this.offset().left;
+		var top = _this.offset().top;
+		var width = _this.outerWidth();
+		var height = _this.outerHeight();
+		if (event.type == 'mousemove') {
+			if (Math.ceil(left) == event.pageX || Math.floor(width + left) - 3 <= event.pageX) _this.css('cursor','ew-resize');
+			else if (Math.ceil(top) + 1 >= event.pageY || Math.floor(height + top) - 3 <= event.pageY) _this.css('cursor','ns-resize');
+			else _this.css('cursor','');
+		}
+		if (event.type == 'mousedown') {
+			if (_this.css('cursor') == 'ew-resize') {
+				if (Math.ceil(left) == event.pageX) _this = $('td').eq($('td').index(_this)-1);
+				ew_resize_table = [_this,event.pageX,_this.width()];
+				$(document).one('mouseup',function(event) {
+					delete ew_resize_table;
+				});
+			}
+			if (_this.css('cursor') == 'ns-resize') {
+				_this = _this.parent('tr');
+				if (Math.ceil(top)+1>= event.pageY) _this = $('tr').eq($('tr').index(_this)-1);
+				ns_resize_table = [_this,event.pageY,_this.height()];
+				$(document).one('mouseup',function(event) {
+					delete ns_resize_table;
+				});
+			}
+		}
+	});
 	
 	/// Document Events
 	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
@@ -105,7 +154,7 @@ $(document).ready(function(event) {
 				for (var i in classes) {
 					var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
 					if (link_letter == '@') return false;
-					var number = classes[i].substring(1,classes[i].length);
+					var number = classes[i].substr(1);
 					$('#' + link_letter + number + ' span:first-child').html($(this).html());
 				}
 			}
@@ -114,14 +163,14 @@ $(document).ready(function(event) {
 			// Title (link)
 			var id = $(this).parent().attr('id');
 			var child_letter = String.fromCharCode(id.charCodeAt(0)+1);
-			var number = id.substring(1,id.length);
+			var number = id.substr(1);
 			var page = $('.' + child_letter + number);
 			page.children('h3').html($(this).html());
 			var classes = page.attr('class').split(' ');
 			for (var i in classes) {
 				var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
 				if (link_letter == '@') return false;
-				var number = classes[i].substring(1,classes[i].length);
+				var number = classes[i].substr(1);
 				if (link_letter + number != id) $('#' + link_letter + number + ' span:first-child').html($(this).html());
 			}
 		}
@@ -439,7 +488,7 @@ $(document).ready(function(event) {
 			
 		}
 		if ($(window).scrollTop() < 80) {
-			$('#bold,#italic,#underline,#ul,#ol,#img,#link').css('position','absolute');
+			$(writing_buttons).css('position','absolute');
 			$('#bold').css('top','');
 			$('#italic').css('top','');
 			$('#underline').css('top','');
@@ -447,9 +496,10 @@ $(document).ready(function(event) {
 			$('#ol').css('top','');
 			$('#img').css('top','');
 			$('#link').css('top','');
+			$('#new_page').css('top','');
 		}
 		else {
-			$('#bold,#italic,#underline,#ul,#ol,#img,#link').css('position','fixed');
+			$(writing_buttons).css('position','fixed');
 			$('#bold').css('top',3);
 			$('#italic').css('top',27);
 			$('#underline').css('top',51);
@@ -457,6 +507,7 @@ $(document).ready(function(event) {
 			$('#ol').css('top',109);
 			$('#img').css('top',143);
 			$('#link').css('top',167);
+			$('#new_page').css('top',191);
 		}
 	});
 	
@@ -504,8 +555,12 @@ $(document).ready(function(event) {
 			}
 		}
 	});
+	$('#new_page').on('click',function(event) {
+		insert_page();
+	});
 	create_handles();
 	create_deletes();
+	//create_inserts();
 	
 });
 
@@ -569,11 +624,11 @@ function toggle_edit() {
 	});
 	if (!$('[contenteditable]').html()) {
 		$('body').off('click','[contenteditable="true"]');
-		$('#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
+		$(writing_buttons).hide();
 	}
 	else {
 		$('body').on('click','[contenteditable="true"]',function(event) { if (!$(this).is(':focus')) $(this).focus(); } );
-		$('#bold,#italic,#underline,#ul,#ol,#img,#link').show();
+		$(writing_buttons).show();
 	}
 }
 
@@ -622,7 +677,7 @@ function toggle_edit_one(obj) {
 		}
 		obj.children('p[id]').each(function(index) {
 			var p = obj.children('p[id]').eq(index);
-			data = p.nextUntil('.in').not('form.linear');
+			data = p.nextUntil('.in').not('form.linear,.insert');
 			if (data.html()) {
 				p.after('<div contenteditable="true"></div>');
 				p.next('div[contenteditable]').html(data);
@@ -704,7 +759,7 @@ function drop(event) {
 	var first_p = set_p.first();
 	var first_id = set_p.filter('[id]').first().attr('id');
 	var letter = first_id.charAt(0);
-	var first_number = parseInt(first_id.substring(1,first_id.length),10);
+	var first_number = parseInt(first_id.substr(1),10);
 	if (data.charAt(0) != first_id.charAt(0)) return false;
 	var y = event.pageY;
 	if (!y) y = event.clientY + $(window).scrollTop();
@@ -748,7 +803,7 @@ function drop(event) {
 function arrange_links(filter,letter,first_number) {
 	var child_letter = String.fromCharCode(letter.charCodeAt(0)+1);
 	$('.in + p[id]').filter(filter).each(function(index) {
-		var old_number = this.id.substr(1,this.id.length-1);
+		var old_number = this.id.substr(1);
 		var new_number = index + first_number;
 		if ($(this).attr('id').charAt(0) == letter) {
 			$(this).attr('id',letter+new_number);
@@ -778,7 +833,7 @@ function arrange_links(filter,letter,first_number) {
 function repair_links(filter,letter,first_number) {
 	var child_letter = String.fromCharCode(letter.charCodeAt(0)+1);
 	$('.in').filter(filter).each(function(index) {
-		var number = this.id.substr(1,this.id.length-1);
+		var number = this.id.substr(1);
 		if ($(this).attr('id')) {
 			$(this).addClass(letter+number).attr('id','');
 			var page = $('[id*="_' + child_letter + number + '_"]');
@@ -872,6 +927,7 @@ function insert_page(summary,page,exists,reinsert) {
 	}
 	var current_div_id = current_div.attr('id');
 	if (current_div_id.charAt(0) == 'z') return false;
+	//$('.insert').remove();
 	if (!current_div.hasClass('outer')) {
 		current_div.attr('class','outer ' + current_div.attr('class'));
 		letter = String.fromCharCode(current_div_id.charCodeAt(0) + 1);
@@ -896,7 +952,7 @@ function insert_page(summary,page,exists,reinsert) {
 		first_id = current_div.children('p[id]').first().attr('id');
 		if (first_id) {
 			letter = first_id.charAt(0);
-			number = parseInt(first_id.substring(1,first_id.length),10);
+			number = parseInt(first_id.substr(1),10);
 		}
 		else {
 			letter = 'a';
@@ -944,6 +1000,7 @@ function insert_page(summary,page,exists,reinsert) {
 	resize_writing_items();
 	current_div.attr('id',current_div_id);
 	redraw_node_map(current_div_id);
+	//create_inserts();
 	
 	$(window).scrollTop($(document).height());
 }
@@ -997,14 +1054,14 @@ function delete_page(target_id,quick) {
 	for (var j=0; j < current_keys.length; ++j) {
 		var current_letter = current_keys[j].charAt(0);
 		var link_letter = String.fromCharCode(current_keys[j].charCodeAt(0)-1);
-		var current_number = current_keys[j].substr(1,current_keys[j].length);
+		var current_number = current_keys[j].substr(1);
 		var page_summary = $('#' + link_letter + current_number);
 		var parent_page = page_summary.parent();
 		var parent_id = parent_page.attr('id');
 		if (!parent_id) parent_id = parent_page.attr('class').split(' ').pop();
 		var parent_page_first_id = parent_page.children('p[id]').first().attr('id');
 		var arrange_letter = parent_page_first_id.charAt(0);
-		var arrange_first_number = parseInt(parent_page_first_id.substring(1,parent_page_first_id.length),10);
+		var arrange_first_number = parseInt(parent_page_first_id.substr(1),10);
 		
 		/// Might want to record these tangents in the undo delete stack.
 		var tangent = $('.tangent._' + current_keys[j]);
@@ -1077,7 +1134,7 @@ function delete_edge(edge,quick) {
 	// Multiply Keys
 	if (classes.length > prefix + 1) {
 		var link_letter = String.fromCharCode(edge.charCodeAt(0) - 1);
-		var link_number = edge.substring(1,edge.length);
+		var link_number = edge.substr(1);
 		var link_paragraph = $('#' + link_letter + link_number);
 		var parent_page = link_paragraph.parent();
 		link_paragraph.remove();
@@ -1104,7 +1161,7 @@ function delete_edge(edge,quick) {
 				// Original Idea: Put at the end of layer
 				var last_id = $('.in + p[id*="' + new_link_letter + '"]').last().attr('id');
 				var new_number = 0;
-				if (last_id) new_number = parseInt(last_id.substring(1,last_id.length),10);
+				if (last_id) new_number = parseInt(last_id.substr(1),10);
 				/**/
 				/*
 				// Alternate Idea: Make sure they're after EVERYTHING
@@ -1115,7 +1172,7 @@ function delete_edge(edge,quick) {
 				page.children('.in + p[id]').each(function(index) {
 					var _this = $(this);
 					var old_child_letter = String.fromCharCode(this.id.charCodeAt(0) + 1);
-					var old_number = parseInt(this.id.substring(1,this.id.length));
+					var old_number = parseInt(this.id.substr(1));
 					++new_number;
 					// Avoid identity crises
 					while ($('.' + new_child_letter + new_number).html()) ++new_number;
@@ -1204,7 +1261,7 @@ function modify_arrange_buttons(create,not) {
 		var set_p_id = $('p[id]').filter(':visible');
 		var first_id = set_p_id.eq(0).attr('id');
 		var letter = first_id.charAt(0);
-		var first_number = parseInt(first_id.substring(1,first_id.length),10);
+		var first_number = parseInt(first_id.substr(1),10);
 		
 		var index = $('.switch').index($(this));
 		var _before = set_p_id.eq(index);
@@ -1526,3 +1583,18 @@ function create_deletes(id) {
 		});
 	resize_writing_items();
 }
+/*
+function create_inserts(id) {
+	if (typeof(id) === 'undefined') $('.outer,.inner').append('<button class="insert">Insert New Page</button>');
+	else if (typeof(id) === 'string') 
+		$('.outer,.inner').filter('[class*="' + id + '"]').append('<button class="insert">Insert New Page</button>');
+	else if (typeof(id) === 'object') for (var i in id) 
+		$('.outer,.inner').filter('[class*="' + id[i] + '"]').append('<button class="insert">Insert New Page</button>');	
+	else return false;
+	$('.insert')
+		.off('click')
+		.on('click',function(event) {
+			insert_page();
+		});
+}
+*/
