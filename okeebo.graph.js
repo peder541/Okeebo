@@ -138,17 +138,17 @@ function draw_graph() {
 					
 			var xScale = d3.scale.linear()
 							.domain([0.5, d3.max(d3.selectAll(same_row).data(), function(array) {
-								return parseInt(array[0].substring(1,array[0].length),10);
+								return parseInt(array[0].substr(1),10);
 							}) + 0.5 ])
 							.range([s + padding, w - padding]);
 							
-			return xScale(parseInt(d[0].substring(1,d[0].length),10));
+			return xScale(parseInt(d[0].substr(1),10));
 		})
 		.attr('r',radius = padding/Math.pow(Math.max($('circle').index($('circle').last()),1),0.3))
 		.sort(function(a,b) {
 			var chr_sort = a[0].charCodeAt(0) - b[0].charCodeAt(0);
 			if (chr_sort != 0) return chr_sort;
-			var int_sort = a[0].substring(1) - b[0].substring(1);
+			var int_sort = a[0].substr(1) - b[0].substr(1);
 			return int_sort;
 		});
 	
@@ -261,7 +261,7 @@ function update_graph() {
 			if (!xScale[cy]) 
 				xScale[cy] = d3.scale.linear()
 							.domain([0.5, d3.max(d3.selectAll(same_row).data(), function(array) {
-								return parseInt(array[0].substring(1,array[0].length),10);
+								return parseInt(array[0].substr(1),10);
 							}) + 0.5 ])
 							.range([s + padding, w - padding]);
 			
@@ -272,9 +272,9 @@ function update_graph() {
 							.range([s + padding, w - padding]);
 							
 			if (same_row.length == same_row_visible.length || _this.css('display') == 'none')
-				return xScale[cy](parseInt(d[0].substring(1,d[0].length),10));
+				return xScale[cy](parseInt(d[0].substr(1),10));
 			else
-				return (xScale[cy](parseInt(d[0].substring(1,d[0].length),10)) + xScale_visible[cy](same_row_visible.index(_this)))/2;
+				return (xScale[cy](parseInt(d[0].substr(1),10)) + xScale_visible[cy](same_row_visible.index(_this)))/2;
 			
 		})
 		.attr('r',radius);
@@ -362,7 +362,7 @@ function d3_get_parent_tag(id) {
 	if (!id || test_l=='?' || test_l=='X' || test_l=='^') return false;
 	if (test_l=='`') test_l='Z';
 	var hit_l = String.fromCharCode(id.charCodeAt(0)-1);
-	var hit_n = id.substr(1,id.length-1);
+	var hit_n = id.substr(1);
 	var parent = $('#'+hit_l+hit_n).parent();
 	var parent_class = parent.attr('class').split(' ');
 	for (var i=0; i<parent_class.length; ++i) {
