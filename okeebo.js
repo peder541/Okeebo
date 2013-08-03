@@ -157,9 +157,9 @@ $(document).ready(function() {
 			return ( $(this).css('background-color') == 'rgb(85, 85, 85)' || $(this).css('background-color') == '#555' ); 
 		}).attr('id');
 		var l1 = this.id.charCodeAt(2);
-		var n1 = this.id.substr(3,this.id.length-3);
+		var n1 = this.id.substr(3);
 		var l0 = old.charCodeAt(2);
-		var n0 = old.substr(3,old.length-3);
+		var n0 = old.substr(3);
 		
 		if (event.type == 'mouseenter') {
 			var visible_page = $('.inner,.outer').filter(':visible');
@@ -252,9 +252,9 @@ $(document).ready(function() {
 		
 		// Essentially acts as a preview/link in the app and preserves the original functionality of <a>
 		if (type == 'tangent') {
-			var new_id = this.className.split(' ')[1].substr(1,this.className.split(' ')[1].length-1);
+			var new_id = this.className.split(' ')[1].substr(1);
 			// Code for Preview Text
-			var content = $('#' + String.fromCharCode(new_id.charCodeAt(0)-1) + new_id.substr(1,new_id.length-1)).html();
+			var content = $('#' + String.fromCharCode(new_id.charCodeAt(0)-1) + new_id.substr(1)).html();
 			content = '<button class="preview_exit">&times;</button><p style="margin:0px 6px;">' + content + '</p>';
 			content = '<button class="preview_main">*</button>' + /*'<button class="preview_split">&raquo;</button>' +*/ content;
 			content = '<div id=_' + new_id +' class="preview_window">' + content + '</div>';
@@ -276,7 +276,7 @@ $(document).ready(function() {
 		
 		if (type == 'preview_main') {
 			var new_id = $(this).parent().attr('id');
-			new_id = new_id.substr(1,new_id.length-1);
+			new_id = new_id.substr(1);
 			explore_tangent(new_id);
 			$(this).parent().remove();
 			return false;
@@ -439,8 +439,8 @@ function go_to(old_id,new_id) {
 function linear_move(direction, redraw) {
 	var id = $('.inner,.outer').filter(':visible').attr('id');
 	if ($('.'+ id).css('opacity') != 1) return false;
-	var number = id.substr(1,id.length-1) - (38 - direction);
-	var letter = id.substr(0,1);
+	var number = id.substr(1) - (38 - direction);
+	var letter = id.charAt(0);
 	if ($('.' + letter + number).html()) {
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
@@ -530,8 +530,8 @@ function redraw_node_map(id,color) {
 			forum.append('<u onclick="concept_zoom_out(' + (j+1) + ',0)">' + $('.'+line[j+1]+' h3').html() + '</u>');
 			
 			var b = $('.'+line[j+1]+' .in + p').first().attr('id');
-			var n = line[j].substr(1,line[j].length-1);
-			b = b.substr(1,b.length-1);
+			var n = line[j].substr(1);
+			b = b.substr(1);
 			n = n - b + 1;
 			if (j==0) $('#m_'+String.fromCharCode(alpha-j)+n).css({'background-color':a_color,'border-color':a_brdr,'cursor':'default'});
 			else $('#m_'+String.fromCharCode(alpha-j)+n).css({'background-color':p_color,'border-color':p_brdr});
@@ -566,9 +566,9 @@ function concept_zoom_out(dif,adj) {
 		var parent_tag = get_parent_tag(target);
 		if (parent_tag) {
 			y = $('.' + parent_tag + ' > .in + p').first().attr('id');
-			y = y.substr(1,y.length-1);
+			y = y.substr(1);
 			d = y - (1 - adj);
-			target = target.substr(0,1) + d;
+			target = target.charAt(0) + d;
 		}
 	}
 	var target_obj = $('.' + target);
@@ -594,14 +594,14 @@ function concept_zoom_out(dif,adj) {
 
 function concept_zoom_in(id) {	
 	var letter = String.fromCharCode(id.charCodeAt(0)+1);
-	var number = id.substr(1,id.length-1);
+	var number = id.substr(1);
 	if ($('.' + letter + number).html()) {
 		if ($('#status').is(':visible')) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		$(window).scrollTop(0);
 		var old_obj = $('.outer').filter(':visible');
 		var a = old_obj.children('.in + p').first().attr('id');
-		a = a.substr(1,a.length-1);
+		a = a.substr(1);
 		var b = number - a + 1;
 		
 		$('.' + letter + number).fadeIn();
@@ -641,7 +641,7 @@ function size_linear_buttons(obj) {
 	$('.left').css('background-position',_width/2-6);
 	$('.right').css('background-position',$('.right').offset().left+_width/2-6);
 	var l = obj.attr('id').charAt(0);
-	var n = parseInt(obj.attr('id').substr(1,obj.attr('id').length-1),10);
+	var n = parseInt(obj.attr('id').substr(1),10);
 	if (!$('.'+l+(n-1)).html()) $('.left').css({'cursor':'default','background-image':'none'});
 	else $('.left').css({'cursor':'pointer','background-image':''});
 	if (!$('.'+l+(n+1)).html()) $('.right').css({'cursor':'default','background-image':'none'});
@@ -671,7 +671,7 @@ function get_parent_tag(id) {
 	if (!id || test_l=='?' || test_l=='X') return false;
 	if (test_l=='`') test_l='Z';
 	var hit_l = String.fromCharCode(id.charCodeAt(0)-1);
-	var hit_n = id.substr(1,id.length-1);
+	var hit_n = id.substr(1);
 	
 	var parent = $('#'+hit_l+hit_n).parent();
 	var parent_id = parent.attr('id');
@@ -716,7 +716,7 @@ function modify_large_map(create,meta) {
 	if (create && $(map).html()) return true;
 	if (!create && !$(map).html()) return false;
 	if (create) different = -1;
-	if (create) $('body').append('<div id="' + map.substr(1,map.length-1) + '"></div>');
+	if (create) $('body').append('<div id="' + map.substr(1) + '"></div>');
 	if (window.innerHeight) $(map).height(window.innerHeight);
 	else $(map).height($(window).height());
 	if (window.innerWidth && window.innerWidth < $(window).width()) $(map).width(window.innerWidth);
@@ -750,9 +750,9 @@ function modify_large_map(create,meta) {
 			if (different == -1) return false;
 			var _new = $(map + ' .node').eq(different).attr('id');
 			var l1 = _new.charCodeAt(2);
-			var n1 = _new.substr(3,_new.length-3);
+			var n1 = _new.substr(3);
 			var l0 = _old.charCodeAt(2);
-			var n0 = _old.substr(3,_old.length-3);
+			var n0 = _old.substr(3);
 			
 			$(map).remove();
 					
@@ -853,9 +853,9 @@ function modify_large_map(create,meta) {
 		
 		var old = $('.node').filter(function() { return ( $(this).css('background-color') == 'rgb(85, 85, 85)' ); }).attr('id');
 		var l1 = this.id.charCodeAt(2);
-		var n1 = this.id.substr(3,this.id.length-3);
+		var n1 = this.id.substr(3);
 		var l0 = old.charCodeAt(2);
-		var n0 = old.substr(3,old.length-3);
+		var n0 = old.substr(3);
 		var visible_page = $('.inner,.outer').filter(':visible');
 		if (l1>l0) $('#lm_info').html(visible_page.children('.in + p').eq(n1-1).children('span').html());
 		else {
