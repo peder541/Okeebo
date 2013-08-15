@@ -36,6 +36,11 @@ function resize_windows(){
 	forum.css('top',75-Math.max(forum.height(),19));
 			
 	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
+	var map_left = $('#map').offset().left;
+	$('#search').css('left',map_left+71);
+	/*$('#search').css('left',0.88*(map_left-left_margin)+left_margin);
+	$('#notes').css('left',0.55*(map_left-left_margin)+left_margin);
+	$('#home').css('left',0.22*(map_left-left_margin)+left_margin);*/
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
@@ -254,7 +259,9 @@ $(document).ready(function() {
 		if (type == 'tangent') {
 			var new_id = this.className.split(' ')[1].substr(1);
 			// Code for Preview Text
-			var content = $('#' + String.fromCharCode(new_id.charCodeAt(0)-1) + new_id.substr(1)).html();
+			var obj = $('#' + String.fromCharCode(new_id.charCodeAt(0)-1) + new_id.substr(1)).clone();
+			obj.children('.delete,.handle').remove();
+			var content = obj.html();
 			content = '<button class="preview_exit">&times;</button><p style="margin:0px 6px;">' + content + '</p>';
 			content = '<button class="preview_main">*</button>' + /*'<button class="preview_split">&raquo;</button>' +*/ content;
 			content = '<div id=_' + new_id +' class="preview_window">' + content + '</div>';
@@ -277,8 +284,9 @@ $(document).ready(function() {
 		if (type == 'preview_main') {
 			var new_id = $(this).parent().attr('id');
 			new_id = new_id.substr(1);
+			var test = $('.outer').filter(':visible').hasClass('Z3');
 			explore_tangent(new_id);
-			$(this).parent().remove();
+			if (!test) $(this).parent().remove();
 			return false;
 		}
 		
@@ -296,10 +304,7 @@ $(document).ready(function() {
 	/// Other Events
 	$('.exit').on('click',function() {
 		var old_workspace = $('#meta-map div').index($('.meta-node'));
-		var old_obj = $('.inner,.outer').filter(':visible');
-		var old_id = old_obj.attr('id');
-		for (var i=old_workspace; i < workspace.length-1; ++i) workspace[i] = workspace[i+1];
-		workspace.pop();
+		var old_id = workspace.splice(old_workspace,1);
 		var new_id = workspace[old_workspace];
 		if (!new_id) new_id = workspace[--old_workspace];
 		$('.meta-node').remove();
@@ -332,6 +337,12 @@ $(document).ready(function() {
 			$('form.linear').show();
 		}
 	});
+	$('#search').on('click',function(event) {
+		var word = prompt('Search this book:');
+		if (word) createIndex(word);
+	});
+	
+	flashToHTML5();
 	
 });
 
@@ -501,9 +512,10 @@ function linear_move(direction, redraw) {
 // Color parameter is optional
 function redraw_node_map(id,color) {
 	clear_selected_text();
-	if (IE) $('.'+id).children('video').each(function(index) { if (this.currentTime == 0) this.play(); });
+	$('.'+id).find('video').each(function(index) { if (this.currentTime == 0) this.play(); });
 	setTimeout("pauseVideo();",0);
 	$('#map').empty();
+	if (id == 'Z3') return false;
 	if (id.charCodeAt(0) < 90) return false;
 	var a_color = '#555', a_brdr = '#2A2A2A', p_color = '#00F', p_brdr = '#008';
 	if (color == 1) a_color = '#888', p_color = '#66F';
@@ -924,4 +936,137 @@ function pauseVideo(index) {
 		if (video_html5 && video_html5.pause) video_html5.pause();
 		if (video_flash && video_flash.pauseVideo) video_flash.pauseVideo();	
 	}
+}
+
+function flashToHTML5() {
+	$('object[data*="youtube"]').each(function(i,e) {
+		$.get('https://www.okeebo.com/video?id=' + e.id + '&html5',function(data) {
+			$('object[data*="youtube"]').eq(i).replaceWith(data);
+		});	
+	});
+}
+
+function updateVideo(video_id) {
+	$('video').each(function(i,e) {
+		var id = $(e).children('object').attr('id');
+		if (typeof(video_id) === 'undefined' || video_id == id) $.get('https://www.okeebo.com/video?id=' + id + '&html5',function(data) {
+			var vid = jQuery('video').eq(i);
+			var spot = vid[0].currentTime;
+			if (spot != 0) {
+				data = data.replace(/\" type=\"video/g,'#t=' + spot + '" type="video');
+				var paused = vid[0].paused;
+				vid.replaceWith(data);
+				var new_vid = jQuery('#'+id).parent('video');
+				new_vid[0].play();
+				if (paused) setTimeout('jQuery("video").eq(' + jQuery('video').index(new_vid) + ')[0].pause()',10);
+			}
+			else vid.replaceWith(data);
+		});
+	});
+}
+// if src links are expired *.currentSrc will return undefined
+
+
+function createIndex(word,times,and) {	
+	// Handle word as an array
+	if (typeof(word) === 'object') {
+		var info = [];
+		$.each(word,function(index,value) {			
+			var new_info = createIndex(value.toLowerCase(),times);
+			if (info.length == 0) info = new_info;
+			else {
+				var l1 = new_info.length;
+				loop1:
+				for (var i=0; i<l1; ++i) {
+					var new_id = new_info[i].ID;
+					var l0 = info.length;
+					for (var j=0; j<l0; ++j) {
+						if (info[j].ID == new_id) {
+							if (and) info[j].hits = Math.min(info[j].hits,new_info[i].hits);
+							else info[j].hits += new_info[i].hits;
+							continue loop1;
+						}
+					}
+					if (!and) info.push(new_info[i]);
+				}
+			}
+		});
+		// Create Index page
+		$('.Z3').remove();
+		$('body').append('<div class="outer Z3"></div>');
+		var Z3 = $('.Z3');
+		var title = 'Index: Sections containing "' + word + '"';
+		if (typeof(times) === 'number' && times) {
+			title += ' ' + times + ' times';
+			if (!and) title += ' at least one of them';
+		}
+		else {
+			if (and) title += ' (gcf)';
+			else title += ' (sum)';
+		}
+		Z3.append('<h3>' + title + '</h3>');
+	}
+	else {
+		word = word.toLowerCase();
+		// Create Index page
+		$('.Z3').remove();
+		$('body').append('<div class="outer Z3"></div>');
+		var Z3 = $('.Z3');
+		var title = 'Index: Sections containing "' + word + '"';
+		if (typeof(times) === 'number' && times) title += ' ' + times + ' times';
+		else times = 1;
+		Z3.append('<h3>' + title + '</h3>');
+		
+		var info = [];
+		// Find pages containing word
+		$('.inner').not('.outer').each(function(i) {
+			var string = this.innerHTML.toLowerCase();
+			var test = string.indexOf(word);
+			// Count how many times word appears on page
+			for (var j=0; test != -1; ++j) {
+				string = string.substr(test+1);
+				if (typeof(word) === 'object') {
+					$.each(word,function(index,value) {
+						var spot = string.indexOf(value);
+						if (test == -1 || (spot != -1 && spot < test)) test = spot;
+					});
+				}
+				else test = string.indexOf(word);
+			}
+			if (j >= times) test = 0;
+			if (test != -1) {
+				var classes = this.className.split(/\s/);
+				var new_id = classes[classes.length-1];
+				info.push({ 'ID': new_id, 'hits': j });
+			}
+		});
+	}
+	// Sort pages by how many times they contain word
+	info.sort(function(a,b) { return b.hits - a.hits; });
+	var length = info.length;
+	// Put page summaries in index page
+	for (var k=0; k < length; ++k) {
+		var new_id = info[k].ID;
+		if (new_id) {
+			// Code for Preview Text
+			var obj = $('#' + String.fromCharCode(new_id.charCodeAt(0)-1) + new_id.substr(1)).clone();
+			obj.children('.delete,.handle').remove();
+			var content = obj.html();
+			content = /*'<button class="preview_exit">&times;</button>*/'<p style="margin:0px 6px;">' + content + '</p>';
+			content = '<button class="preview_main">*<br/><span>' + info[k].hits + '</span></button>' + /*'<button class="preview_split">&raquo;</button>' +*/ content;
+			content = '<div id=_' + new_id +' class="preview_window">' + content + '</div>';
+			
+			$('.preview_window#_' + new_id).remove();
+			Z3.append(content);
+		}
+	}
+	// Go to index page
+	var index = workspace.indexOf('Z3');
+	if (index != -1) {
+		Z3.attr('id','Z3');
+		switch_tab(index);
+	}
+	else explore_tangent('Z3');
+	$(window).resize();
+	return info;
 }
