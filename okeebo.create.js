@@ -7,7 +7,7 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
-var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#new_page';
+var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#new_page';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -488,15 +488,7 @@ $(document).ready(function(event) {
 			
 		}
 		if ($(window).scrollTop() < 80) {
-			$(writing_buttons).css('position','absolute');
-			$('#bold').css('top','');
-			$('#italic').css('top','');
-			$('#underline').css('top','');
-			$('#ul').css('top','');
-			$('#ol').css('top','');
-			$('#img').css('top','');
-			$('#link').css('top','');
-			$('#new_page').css('top','');
+			$(writing_buttons).css({'position':'absolute','top':''});
 		}
 		else {
 			$(writing_buttons).css('position','fixed');
@@ -507,7 +499,8 @@ $(document).ready(function(event) {
 			$('#ol').css('top',109);
 			$('#img').css('top',143);
 			$('#link').css('top',167);
-			$('#new_page').css('top',191);
+			$('#vid').css('top',191);
+			$('#new_page').css('top',215);
 		}
 	});
 	
@@ -554,6 +547,9 @@ $(document).ready(function(event) {
 				}
 			}
 		}
+	});
+	$('#vid').on('click',function(event) {
+		insert_video();
 	});
 	$('#new_page').on('click',function(event) {
 		insert_page();
@@ -607,7 +603,7 @@ function improve_formatting() {
 	});
 	
 	div_contenteditable.children('br').remove();
-	div_contenteditable.children('p').filter(function() { return ($(this).html() == '\n'); }).remove()
+	div_contenteditable.children('p').filter(function() { var html = $(this).html(); return (html == '\n' || html == '\n\t'); }).remove()
 	
 	div_contenteditable.children('div').each(function() { 
 		var string = '';
@@ -1511,7 +1507,7 @@ function iframe_to_image(iframe) {
 	image_wrap();
 }
 function image_wrap() {
-	var _img = $('img').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
+	var _img = $('img,video').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
 	_img.wrap('<div contenteditable="true">');
 }
 
@@ -1598,3 +1594,20 @@ function create_inserts(id) {
 		});
 }
 */
+function insert_video() {
+	var yt_url = prompt('Paste YouTube URL here:');
+	var yt_id = yt_url.match(/[?&]v=.{11}/g);
+	if (yt_id) {
+		yt_id = yt_id[0].substr(3);
+		element = document.getSelection().anchorNode;
+		var spot = $(element).closest('p');
+		var current_page = $('.inner,.outer').filter(':visible');
+		$.get('https://www.okeebo.com/video?id=' + yt_id + '&html5',function(data) {
+			if (spot.index() == -1) {
+				if (!current_page.hasClass('outer')) current_page.find('p').eq(0).before(data);
+				else current_page.find('h3').after(data);
+			}
+			else spot.after(data);
+		});
+	}
+}
