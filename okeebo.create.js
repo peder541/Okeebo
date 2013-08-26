@@ -1397,8 +1397,8 @@ function create_sidebar() {
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
 			
-			if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html() + '</div>';
-			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html() + '</div>';
+			if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
 			
 			// Illusion
 			create_handles();
