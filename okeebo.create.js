@@ -8,16 +8,18 @@ var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
 var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page';
+var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (!sidebar_width) sidebar_width = 0;
 	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
-	$('button').not('.in,.out,.tangent,.preview_main,.preview_exit,.insert').css('margin-left',$('.outer').css('margin-left'));
+	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
 	$(writing_buttons).css('left',base_width-29);
 	//modify_arrange_buttons();
 	$('.delete').css('margin-left',base_width-89-64);
+	$('.OkeeboMath').each(function(index) { resizeMathLangButtons(index) });
 }
 
 $(document).ready(function(event) {
@@ -565,6 +567,7 @@ $(document).ready(function(event) {
 	create_handles();
 	create_deletes();
 	//create_inserts();
+	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) });
 	
 });
 
@@ -1623,7 +1626,11 @@ function insert_video() {
 function DisplayToCode(index,type) {
 	var container = $('.OkeeboMath');
 	if (typeof(index) === 'number') container = container.eq(index);
-	else if (typeof(type) === 'undefined') type = index;
+	else {
+		if (typeof(type) === 'undefined') type = index;
+		container.each(function(i) { DisplayToCode(i,type); });
+		return;
+	}
 	var math = MathJax.Hub.getJaxFor(container.children('script')[0]);
 	if (math) {
 		if (type != 'mml' && math.inputJax == "TeX") {
@@ -1647,41 +1654,67 @@ function DisplayToCode(index,type) {
 	return;
 }
 
-function CodeToDisplay(index) {
+function CodeToDisplay(index,callback) {
 	var container = $('.OkeeboMath');
 	if (typeof(index) === 'number') container = container.eq(index);
+	else {
+		container.each(function(i) { CodeToDisplay(i); });
+		return;	
+	}
 	container.children('br').remove();
 	if (container.children('script').index() == -1) {
 		var html = $('<div/>').html(container.html()).text();
 		var formattedHTML = html.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
 		container.html(formattedHTML).addClass('center').attr('contenteditable','false');
-		MathJax.Hub.Typeset();
+		MathJax.Hub.Queue(['Typeset',MathJax.Hub,container[0]]);
 	}
 	return;
 }
 
 function TeXtoMathML(index) {
-	CodeToDisplay(index);
-	DisplayToCode(index,'mml');
+	if (typeof(index) !== 'number') {
+		$('.OkeeboMath').each(function(i) { TeXtoMathML(i); });
+		return;	
+	}
+	MathJax.Hub.Queue(function() { CodeToDisplay(index); });
+	MathJax.Hub.Queue(function() { DisplayToCode(index,'mml'); });
 }
 
-function MathMLtoTeX(index) {
+function MathMLtoTeX(index,change) {
 	var container = $('.OkeeboMath');
 	if (typeof(index) === 'number') container = container.eq(index);
+	else if (index instanceof jQuery) {
+		if (change) container = index;
+		else container = index.clone();
+	}
+	else if (typeof(index) === 'string') {
+		container = $('<div />');
+		container.text(index);
+	}
+	else {
+		container.each(function(i) { MathMLtoTeX(i); });
+		return;	
+	}
 	if (container.children('script').index() == -1) {
-		container.html($('<div/>').html(container.html()).text().replace(/\s(?=\s*<)/g,''));
-		container.html(processMathML(container.children('math'),''));
+		var math = container.children('math');
+		if (math.length == 0) container.html($('<div/>').html(container.html()).text().replace(/\s(?=\s*<)/g,''));
+		math = container.children('math');
+		if (math.length > 0) container.html(processMathML(math,''));
+		if (typeof(index) === 'string' || (index instanceof jQuery && !change)) console.log(container.html());
 	}
 }
 
 function processMathML(tag,string) {
-	var tagName = tag[0].tagName;
+	var tagName = tag[0].tagName.toLowerCase();
 	if (tagName == 'math') {
 		if (tag.attr('display') == 'block') string += '\\[';
 		else string += '\\(';
 	}
 	if (tagName == 'msqrt') string += '\\sqrt{';
-	if (tagName == 'mtable') string += '\\begin{array}{c}';
+	if (tagName == 'mtable') {
+		if (typeof(tag.attr('columnalign')) === 'undefined') string += '\\begin{array}{c}';
+		else string += '\\begin{array}{' + tag.attr('columnalign').replace(/right/g,'r').replace(/left/g,'l').replace(/center/g,'c') + '}';
+	}
 	//string = string.replace(/\|\\begin{array}{c}$/,'\\begin{vmatrix}');
 	tag.children().each(function(index) {
 		var _this = $(this);
@@ -1719,7 +1752,7 @@ function processMathML(tag,string) {
 		if (tagName == 'munderover' && index == 0) string += '\\mathop ';
 		if (tagName == 'munderover' && index == 1) string += '\\limits_{';
 		if (tagName == 'munderover' && index == 2) string += '}^{';
-		if (this.tagName == 'mo') {
+		if (this.tagName.toLowerCase() == 'mo') {
 			// Special operators
 			if (_this.text() == 'lim') string += '\\';
 			if (_this.attr('linebreak') == 'newline') string += '\\\\';
@@ -1746,10 +1779,14 @@ function processMathML(tag,string) {
 		}
 		if (tagName == 'mtable' && index != 0) string += '\\\\';
 		if (_this.attr('mathvariant') == 'bold') string += '\\mathbf{';
+		if (this.tagName.toLowerCase() == 'mtext') string += '\\text{';
+		if (this.tagName.toLowerCase() == 'mspace') string += '\\quad ';
+		if (['sin','cos','tan'].indexOf(_this.text()) != -1) string += '\\';
 		
 		if (_this.children().length == 0) string += _this.text();
 		else string = processMathML(_this,string);
-				
+		
+		if (this.tagName.toLowerCase() == 'mtext') string += '}';
 		if (_this.attr('mathvariant') == 'bold') string += '}';
 		if (tagName == 'mfrac' && index == 1) string += '}';
 		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '}';
@@ -1768,4 +1805,44 @@ function processMathML(tag,string) {
 	if (tagName == 'mtable') string += '\\end{array}';
 	//string = string.replace(/end{array}\|/g,'end{vmatrix}');
 	return string;
+}
+
+function insertMathLangButtons(index) {
+	var container = $('.OkeeboMath').eq(index);
+	container.append('<button type="button" class="OkeeboMathTeX" contenteditable="false">LaTeX</button>');
+	container.append('<button type="button" class="OkeeboMathML" contenteditable="false">MathML</button>')
+	container.append('<button type="button" class="OkeeboMathDisplay" contenteditable="false">Display</button>');
+	
+	resizeMathLangButtons(index);
+	
+	container.children('.OkeeboMathTeX').on('click',function(event) {
+		container.children('.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay').remove();
+		if (container.children('script').length > 0) DisplayToCode(index,'tex');
+		else MathMLtoTeX(index);
+		MathJax.Hub.Queue(function() { insertMathLangButtons(index) });
+	});
+	container.children('.OkeeboMathML').on('click',function(event) {
+		container.children('.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay').remove();
+		if (container.children('script').length > 0) DisplayToCode(index,'mml');
+		else TeXtoMathML(index);
+		MathJax.Hub.Queue(function() { insertMathLangButtons(index) });
+	});
+	container.children('.OkeeboMathDisplay').on('click',function(event) {
+		container.children('.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay').remove();
+		CodeToDisplay(index);
+		MathJax.Hub.Queue(function() { insertMathLangButtons(index) });
+	});
+}
+
+function resizeMathLangButtons(index) {
+	var container = $('.OkeeboMath').eq(index);
+	var base = container.closest('.inner,.outer');
+	var top = container.offset().top + container.outerHeight() - base.offset().top;
+	var left = container.offset().left - base.offset().left;
+	var LaTeX = container.children('.OkeeboMathTeX');
+	var MathML = container.children('.OkeeboMathML');
+	var Display = container.children('.OkeeboMathDisplay');
+	LaTeX.css({'top':top,'left':left});
+	MathML.css({'top':top,'left':left+LaTeX.outerWidth()});
+	Display.css({'top':top,'left':left+LaTeX.outerWidth()+MathML.outerWidth()});
 }
