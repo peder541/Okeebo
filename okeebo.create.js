@@ -1681,8 +1681,8 @@ function processMathML(tag,string) {
 		else string += '\\(';
 	}
 	if (tagName == 'msqrt') string += '\\sqrt{';
-	if (tagName == 'mtable') string += '\\begin{array}{}';
-	string = string.replace(/\|\\begin{array}{}$/,'\\begin{vmatrix}');
+	if (tagName == 'mtable') string += '\\begin{array}{c}';
+	//string = string.replace(/\|\\begin{array}{c}$/,'\\begin{vmatrix}');
 	tag.children().each(function(index) {
 		var _this = $(this);
 		if (tagName == 'mfrac' && index == 0) string += '\\frac{';
@@ -1691,6 +1691,13 @@ function processMathML(tag,string) {
 		if (tagName == 'msup' && index == 1) string += '^';
 		if (tagName == 'msubsup' && index == 1) string += '_';
 		if (tagName == 'msubsup' && index == 2) string += '^';
+		if (tagName == 'mroot' && index == 0) {
+			string += '\\sqrt[';
+			var root = tag.children().eq(1);
+			if (root.children().length == 0) string += root.text();
+			string = processMathML(root,string);
+			string += ']{';
+		}
 		if (tagName == 'munder' && index == 0) {
 			string += '\\underset{';
 			var below = tag.children().eq(1);
@@ -1716,6 +1723,21 @@ function processMathML(tag,string) {
 			// Special operators
 			if (_this.text() == 'lim') string += '\\';
 			if (_this.attr('linebreak') == 'newline') string += '\\\\';
+			if (_this.text() == '(' || _this.text() == '[' || _this.text() == '{') string += '\\left';
+			if (_this.text() == ')' || _this.text() == ']' || _this.text() == '}') string += '\\right';
+			if (_this.text() == String.fromCharCode(10216)) {
+				string += '\\left';
+				_this.text('<');
+			}
+			if (_this.text() == String.fromCharCode(10217)) {
+				string += '\\right';
+				_this.text('>');
+			}
+			if (_this.text() == "|") {
+				count = string.match(/\|/g);
+				if (count && count.length % 2 == 1) string += '\\right';
+				else string += '\\left';
+			}
 		}
 		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '{';
 		if (tagName == 'mtr') {
@@ -1732,7 +1754,7 @@ function processMathML(tag,string) {
 		if (tagName == 'mfrac' && index == 1) string += '}';
 		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '}';
 		if (tagName == 'munderover' && index == 2) string += '}';
-		if ((tagName == 'munder' || tagName == 'mover') && index == 0) {
+		if ((tagName == 'munder' || tagName == 'mover' || tagName == 'mroot') && index == 0) {
 			string += '}';
 			return false;
 		}
@@ -1744,6 +1766,6 @@ function processMathML(tag,string) {
 	}
 	if (tagName == 'msqrt') string += '}';
 	if (tagName == 'mtable') string += '\\end{array}';
-	string = string.replace(/end{array}\|/g,'end{vmatrix}');
+	//string = string.replace(/end{array}\|/g,'end{vmatrix}');
 	return string;
 }
