@@ -7,7 +7,7 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
-var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#new_page';
+var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -500,7 +500,9 @@ $(document).ready(function(event) {
 			$('#img').css('top',143);
 			$('#link').css('top',167);
 			$('#vid').css('top',191);
-			$('#new_page').css('top',215);
+			//$('#new_page').css('top',215);
+			$('#sup').css('top',225);
+			$('#sub').css('top',249);
 		}
 	});
 	
@@ -553,6 +555,12 @@ $(document).ready(function(event) {
 	});
 	$('#new_page').on('click',function(event) {
 		insert_page();
+	});
+	$('#sup').on('click',function(event) {
+		document.execCommand('superscript',false,null);
+	});
+	$('#sub').on('click',function(event) {
+		document.execCommand('subscript',false,null);
 	});
 	create_handles();
 	create_deletes();
@@ -1610,4 +1618,132 @@ function insert_video() {
 			else spot.after(data);
 		});
 	}
+}
+
+function DisplayToCode(index,type) {
+	var container = $('.OkeeboMath');
+	if (typeof(index) === 'number') container = container.eq(index);
+	else if (typeof(type) === 'undefined') type = index;
+	var math = MathJax.Hub.getJaxFor(container.children('script')[0]);
+	if (math) {
+		if (type != 'mml' && math.inputJax == "TeX") {
+			var originalTeX = math.originalText;
+			var formattedTeX;
+			if (math.root.display == 'block') formattedTeX = '\\[ ' + originalTeX + ' \\]';
+			else formattedTeX = '\\(' + originalTeX + '\\)';
+			container.html(formattedTeX).removeClass('center').attr('contenteditable','true');
+		}
+		else {
+			var originalMathML = math.root.toMathML().replace('<math xmlns="http://www.w3.org/1998/Math/MathML"','<math');
+			var formattedMathML = originalMathML.replace(/ (?= *<)/g,'&nbsp;&nbsp;')
+												.replace(/</g,'&lt;')
+												.replace(/>/g,'&gt;')
+												.replace(/\n/g,'<br>');
+			container.html(formattedMathML).removeClass('center').attr('contenteditable','true');
+			if (type == 'tex') MathMLtoTeX(index);
+		}
+	}
+	else console.log('none');
+	return;
+}
+
+function CodeToDisplay(index) {
+	var container = $('.OkeeboMath');
+	if (typeof(index) === 'number') container = container.eq(index);
+	container.children('br').remove();
+	if (container.children('script').index() == -1) {
+		var html = $('<div/>').html(container.html()).text();
+		var formattedHTML = html.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
+		container.html(formattedHTML).addClass('center').attr('contenteditable','false');
+		MathJax.Hub.Typeset();
+	}
+	return;
+}
+
+function TeXtoMathML(index) {
+	CodeToDisplay(index);
+	DisplayToCode(index,'mml');
+}
+
+function MathMLtoTeX(index) {
+	var container = $('.OkeeboMath');
+	if (typeof(index) === 'number') container = container.eq(index);
+	if (container.children('script').index() == -1) {
+		container.html($('<div/>').html(container.html()).text().replace(/\s(?=\s*<)/g,''));
+		container.html(processMathML(container.children('math'),''));
+	}
+}
+
+function processMathML(tag,string) {
+	var tagName = tag[0].tagName;
+	if (tagName == 'math') {
+		if (tag.attr('display') == 'block') string += '\\[';
+		else string += '\\(';
+	}
+	if (tagName == 'msqrt') string += '\\sqrt{';
+	if (tagName == 'mtable') string += '\\begin{array}{}';
+	string = string.replace(/\|\\begin{array}{}$/,'\\begin{vmatrix}');
+	tag.children().each(function(index) {
+		var _this = $(this);
+		if (tagName == 'mfrac' && index == 0) string += '\\frac{';
+		if (tagName == 'mfrac' && index == 1) string += '}{';
+		if (tagName == 'msub' && index == 1) string += '_';
+		if (tagName == 'msup' && index == 1) string += '^';
+		if (tagName == 'msubsup' && index == 1) string += '_';
+		if (tagName == 'msubsup' && index == 2) string += '^';
+		if (tagName == 'munder' && index == 0) {
+			string += '\\underset{';
+			var below = tag.children().eq(1);
+			if (below.children().length == 0) string += below.text();
+			string = processMathML(below,string);
+			string += '}{';
+		}
+		if (tagName == 'mover' && index == 0) {
+			string += '\\overset{';
+			var above = tag.children().eq(1);
+			if (above.children().length == 0) string += above.text();
+			string = processMathML(above,string);
+			string += '}{';
+			if (above.attr('stretchy') == 'false') string = string.replace(/overset{\^}{$/,'hat{');
+			else string = string.replace(/overset{\^}{$/,'widehat{');
+			if (above.attr('accent') == 'false') string = string.replace(/overset{→}{$/,'overrightarrow{')
+																.replace(/overset{¯}{$/,'overline{');
+		}
+		if (tagName == 'munderover' && index == 0) string += '\\mathop ';
+		if (tagName == 'munderover' && index == 1) string += '\\limits_{';
+		if (tagName == 'munderover' && index == 2) string += '}^{';
+		if (this.tagName == 'mo') {
+			// Special operators
+			if (_this.text() == 'lim') string += '\\';
+			if (_this.attr('linebreak') == 'newline') string += '\\\\';
+		}
+		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '{';
+		if (tagName == 'mtr') {
+			if (index != 0) string += '\&';
+			string += '{';	
+		}
+		if (tagName == 'mtable' && index != 0) string += '\\\\';
+		if (_this.attr('mathvariant') == 'bold') string += '\\mathbf{';
+		
+		if (_this.children().length == 0) string += _this.text();
+		else string = processMathML(_this,string);
+				
+		if (_this.attr('mathvariant') == 'bold') string += '}';
+		if (tagName == 'mfrac' && index == 1) string += '}';
+		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '}';
+		if (tagName == 'munderover' && index == 2) string += '}';
+		if ((tagName == 'munder' || tagName == 'mover') && index == 0) {
+			string += '}';
+			return false;
+		}
+		if (tagName == 'mtr') string += '}';
+	});
+	if (tagName == 'math') {
+		if (tag.attr('display') == 'block') string += '\\]';
+		else string += '\\)';
+	}
+	if (tagName == 'msqrt') string += '}';
+	if (tagName == 'mtable') string += '\\end{array}';
+	string = string.replace(/end{array}\|/g,'end{vmatrix}');
+	return string;
 }
