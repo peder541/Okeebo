@@ -117,6 +117,64 @@ $(document).ready(function(event) {
 			return false;
 		}
 	})
+	.on('keydown','.OkeeboMath span[contenteditable="true"]',function(event) {
+		
+		if (event.which == 65 && event.ctrlKey) {
+			var range = document.createRange();
+			var sel = window.getSelection();
+			var children = this.childNodes;
+			range.setStart(children[0], 0);
+			range.setEnd(children[children.length-1], children[children.length-1].textContent.length)
+			sel.removeAllRanges();
+			sel.addRange(range);
+			return false;
+		}
+		
+		if (event.which == 13) {
+			
+			var string = crawl_back() + '\n' + crawl_forward();
+			 string = string.replace(/ (?= *<)/g,'&nbsp;&nbsp;')
+			 				.replace(/\t/g,'&nbsp;&nbsp;&nbsp;&nbsp;')
+							.replace(/</g,'&lt;')
+							.replace(/>/g,'&gt;')
+							.replace(/\n/g,'<br>');
+			if (index == -1) {
+				try {
+					document.execCommand('insertHTML',false,'<br>');
+				}
+				catch (e) {
+					var _this = $(this);
+					var spans = _this.parent().children('span');
+					spans.eq(0).append('<br id="hook">' + spans.eq(1).detach().html());
+					
+					spans.eq(0).focus();
+					
+					var range = document.createRange();
+					var sel = window.getSelection();
+					range.setStart($('#hook')[0].nextSibling, 0);
+					range.collapse(true);
+					sel.removeAllRanges();
+					sel.addRange(range);
+		
+					$('#hook').removeAttr('id');	
+				}
+			}
+			else {
+				$(this).html(string);
+				
+				var range = document.createRange();
+				var sel = window.getSelection();
+				var children = this.childNodes;
+				range.setStart(children[Math.min(children.length-1,index)], 0);
+				range.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+			delete index;
+			
+			return false;
+		}
+	})
 	.on('keydown','div[contenteditable]',function(event) {
 		if (event.which == 8 || event.which == 46) {
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
@@ -634,7 +692,26 @@ function toggle_edit() {
 		$(writing_buttons).hide();
 	}
 	else {
-		$('body').on('click','[contenteditable="true"]',function(event) { if (!$(this).is(':focus')) $(this).focus(); } );
+		$('body').on('click mousedown focus','[contenteditable="true"]',function(event) {
+			var _this = $(this);
+			/*
+			if ($(event.target).is('.OkeeboMath span')) {
+				var page = _this.closest('div[contenteditable="true"]');
+				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
+				_this.one('blur',function(event) {
+					page.css({'outline':'','outline-offset':''});
+				});
+			}
+			else */if (!_this.is(':focus')) {
+				//_this.focus();
+				var page = _this.closest('div[contenteditable="true"]');
+				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
+				_this.one('blur',function(event) {
+					page.css({'outline':'','outline-offset':''});
+				});
+			}
+			//console.log(this,event.target);
+		});
 		$(writing_buttons).show();
 	}
 }
@@ -1638,7 +1715,7 @@ function DisplayToCode(index,type) {
 			var formattedTeX;
 			if (math.root.display == 'block') formattedTeX = '\\[ ' + originalTeX + ' \\]';
 			else formattedTeX = '\\(' + originalTeX + '\\)';
-			container.html(formattedTeX).removeClass('center').attr('contenteditable','true');
+			container.html('<span class="lang" contenteditable="true">' + formattedTeX + '</span>').removeClass('center')/*.attr('contenteditable','true')*/;
 		}
 		else {
 			var originalMathML = math.root.toMathML().replace('<math xmlns="http://www.w3.org/1998/Math/MathML"','<math');
@@ -1646,7 +1723,7 @@ function DisplayToCode(index,type) {
 												.replace(/</g,'&lt;')
 												.replace(/>/g,'&gt;')
 												.replace(/\n/g,'<br>');
-			container.html(formattedMathML).removeClass('center').attr('contenteditable','true');
+			container.html('<span class="lang" contenteditable="true">' + formattedMathML + '</span>').removeClass('center')/*.attr('contenteditable','true')*/;
 			if (type == 'tex') MathMLtoTeX(index);
 		}
 	}
@@ -1687,6 +1764,15 @@ function MathMLtoTeX(index,change) {
 		if (change) container = index;
 		else container = index.clone();
 	}
+	else if (index instanceof HTMLElement) {
+		MathMLtoTeX($().add(index),change);
+		return;	
+	}
+	else if (index instanceof HTMLCollection) {
+		var length = index.length;
+		for (var i=0; i<length; ++i) MathMLtoTeX(index[i],change);
+		return;	
+	}
 	else if (typeof(index) === 'string') {
 		container = $('<div />');
 		container.text(index);
@@ -1701,6 +1787,7 @@ function MathMLtoTeX(index,change) {
 		math = container.children('math');
 		if (math.length > 0) container.html(processMathML(math,''));
 		if (typeof(index) === 'string' || (index instanceof jQuery && !change)) console.log(container.html());
+		else if (typeof(index) === 'number') container.html('<span class="lang" contenteditable="true">' + container.html() + '</span>');
 	}
 }
 
@@ -1845,4 +1932,38 @@ function resizeMathLangButtons(index) {
 	LaTeX.css({'top':top,'left':left});
 	MathML.css({'top':top,'left':left+LaTeX.outerWidth()});
 	Display.css({'top':top,'left':left+LaTeX.outerWidth()+MathML.outerWidth()});
+}
+
+function crawl_back() {
+	var sel = document.getSelection();
+	var node = sel.anchorNode;
+	var string = node.textContent.substr(0,sel.anchorOffset);
+	if (node instanceof HTMLBRElement) string = '\n' + string;
+	if (node instanceof HTMLSpanElement) index = -1;
+	else index = 0;
+	node = node.previousSibling;
+	while (node) {
+		if (node instanceof HTMLBRElement) string = '\n' + string;
+		else string = node.textContent + string;
+		node = node.previousSibling;
+		if (index != -1) ++index;
+	}
+	if (index != -1) {
+		if (sel.anchorOffset != 0) index += 2;
+		else index += 1;
+	}
+	return string;
+}
+
+function crawl_forward() {
+	var sel = document.getSelection();
+	var node = sel.focusNode;
+	var string = node.textContent.substr(sel.focusOffset);
+	node = node.nextSibling;
+	while (node) {
+		if (node instanceof HTMLBRElement) string += '\n';
+		else string += node.textContent; 
+		node = node.nextSibling;
+	}
+	return string;
 }
