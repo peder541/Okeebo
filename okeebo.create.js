@@ -151,7 +151,9 @@ $(document).ready(function(event) {
 					
 					var range = document.createRange();
 					var sel = window.getSelection();
-					range.setStart($('#hook')[0].nextSibling, 0);
+					var target = $('#hook')[0].nextSibling;
+					if (target instanceof HTMLBRElement) range.setStart(target.parentNode, [].indexOf.call(target.parentNode.childNodes,target));
+					else range.setStart(target, 0);
 					range.collapse(true);
 					sel.removeAllRanges();
 					sel.addRange(range);
@@ -165,7 +167,10 @@ $(document).ready(function(event) {
 				var range = document.createRange();
 				var sel = window.getSelection();
 				var children = this.childNodes;
-				range.setStart(children[Math.min(children.length-1,index)], 0);
+				index = Math.min(children.length-1,index);
+				var target = children[index];
+				if (target instanceof HTMLBRElement) range.setStart(target.parentNode, [].indexOf.call(target.parentNode.childNodes,target));
+				else range.setStart(target, 0);
 				range.collapse(true);
 				sel.removeAllRanges();
 				sel.addRange(range);
@@ -199,11 +204,6 @@ $(document).ready(function(event) {
 					return false;
 				}
 			}
-		}
-		if (event.which == 9) {
-			console.log('tab');
-			document.execCommand('insertText',false,'\t');
-			return false;
 		}
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
