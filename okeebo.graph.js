@@ -15,6 +15,7 @@ var return_page_id = 'Z1';
 var _hover = null, edge = null;
 var darkColor = ['rgb(44,67,116)','#2c4374','rgb(44,116,67)','#2c7443'];
 var liteColor = ['rgb(89,144,233)','#5990e9','rgb(89,233,144)','#59e990'];
+var continuous = false;
 
 $(document).ready(function(event) {
 	
@@ -49,6 +50,7 @@ $(document).ready(function(event) {
 						var page_id = d3.select(_hover[0]).data()[0][0];
 						var summary_id = String.fromCharCode(page_id.charCodeAt(0)-1) + page_id.substr(1);
 						insert_page($('#' + summary_id).clone(),$('.' + page_id),1);
+						if (continuous) toggle_graph(1);
 					}
 				}
 			}
@@ -57,10 +59,12 @@ $(document).ready(function(event) {
 					toggle_graph();
 					go_to(return_page_id,d3.select(_hover[0]).data()[0][0]);
 					delete_page();
+					if (continuous) toggle_graph(1);
 				}
 				if (edge) {
 					toggle_graph();
 					delete_edge(edge);
+					if (continuous) toggle_graph(1);
 				}
 			}
 			if (event.which == 27) {
@@ -71,13 +75,13 @@ $(document).ready(function(event) {
 	
 });
 
-function toggle_graph() {
+function toggle_graph(flicker) {
 	if (noSVG) return false;
 	if ($('svg').is(':visible')) {
 		if (typeof(go_to) === 'undefined') return false;
 		$('svg').remove();
 		$('body').css('background-color','');
-		$('#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#new_page,.left,.right,#map_helper').show();
+		$('#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#sup,#sub,#new_page,.left,.right,#map_helper').show();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
@@ -87,7 +91,7 @@ function toggle_graph() {
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
-		$('.inner,.outer,#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#new_page,.left,.right,#map_helper').hide();
+		$('.inner,.outer,#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#sup,#sub,#new_page,.left,.right,#map_helper').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white');
 		
@@ -99,7 +103,7 @@ function toggle_graph() {
 		draw_graph();
 		draw_lines();
 		if (status_timer) clearTimeout(status_timer);
-		$('#status').html('Press Esc to quit viewing graph.')
+		if (!flicker) $('#status').html('Press Esc to quit viewing graph.')
 			.css({'left':w*0.5-$('#status').outerWidth()*0.5,'top':h*0.5-$('#status').outerHeight()*0.5,'bottom':'auto'})
 			.fadeIn();
 		status_timer = setTimeout("$('#status').fadeOut();",2400);
@@ -184,6 +188,7 @@ function draw_graph() {
 			return_page_id = _this_id[0];
 			if (return_page_id == '`1') return_page_id = 'Z1';
 			toggle_graph();
+			if (continuous) toggle_graph(1);
 			return;
 		}
 		handle_circle_click(_this);
@@ -329,57 +334,49 @@ function draw_lines() {
 		active.style('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]);
 	}
 	
-	var parent_array = {};
+	var pos = {};
 	
-	var second_cy = $('circle').eq(1).attr('cy');
-	var first_cy = $('circle').eq(0).attr('cy');
+	circle.each(function(d,i) {
+		var _this = d3.select(this);
+		for (var j=0; j < d.length; ++j) pos[d[j]] = [_this.attr('cx'),_this.attr('cy'),_this.style('fill'),_this.style('display')];
+	});
+	pos['Z1'] = pos['`1'];
 	
 	circle.each(function(d,i) {
 		for (var j=0; j < d.length; ++j) {
-			if (d[j] == return_page_id) {
+			var id = d[j];
+			if (id == return_page_id) {
 				var color = d3.select(this).style('fill').replace(/\s/g,'').toLowerCase();
 				$(this).css('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]);
 			}
-			var parent_id = d3_get_parent_tag(d[j]);
-			if (parent_id) {
-				if (!parent_array[parent_id]) parent_array[parent_id] = circle.filter(function(data,index) {
-					for (var k=0; k < data.length; ++k) {
-						if (data[k] == parent_id || (parent_id == 'Z1' && data[k] == '`1')) return true;
-					}
-				});
-				var parent = parent_array[parent_id];
-			 	if (parent) {
-					var _this = d3.select(this);
-					var path_data = 'M ' + _this.attr('cx') + ' ' + _this.attr('cy') + ' ';
-					if (parent.attr('cy') == _this.attr('cy')) {
-						//break;
-						var mid_x = _this.attr('cx')*0.5 + parent.attr('cx')*0.5;
-						var dif_y = second_cy - first_cy;
-						var mid_y = _this.attr('cy')*1.0 + 60;
-						var q1_y = _this.attr('cy')*1.0 + 50;
+			var parent = d3_get_parent_tag(id);
+			if (parent) {
+				if (pos[parent]) {
+					var path_data = 'M ' + pos[id][0] + ' ' + pos[id][1] + ' ';
+					var mid_x = pos[id][0]*0.5 + pos[parent][0]*0.5;
+					if (pos[parent][1] == pos[id][1]) {
+						var mid_y = pos[id][1]*1.0 + pos['b1'][1]*0.45 - pos['Z1'][1]*0.45;
+						var q1_y = pos[id][1]*1.0 + pos['b1'][1]*0.4 - pos['Z1'][1]*0.4;
 						var q3_y = q1_y;
-						path_data += 'Q ' + _this.attr('cx') + ' ' + q1_y + ' ' + mid_x + ' ' + mid_y + ' ';
-						path_data += 'Q ' + parent.attr('cx') + ' ' + q3_y + ' ' + parent.attr('cx') + ' ' + parent.attr('cy');
 					}
 					else {
-						var mid_x = _this.attr('cx')*0.5 + parent.attr('cx')*0.5;
-						var mid_y = _this.attr('cy')*0.5 + parent.attr('cy')*0.5;
-						var q1_y = _this.attr('cy')*0.5 + mid_y*0.5;
-						var q3_y = mid_y*0.5 + parent.attr('cy')*0.5;
-						path_data += 'Q ' + _this.attr('cx') + ' ' + q1_y + ' ' + mid_x + ' ' + mid_y + ' ';
-						path_data += 'Q ' + parent.attr('cx') + ' ' + q3_y + ' ' + parent.attr('cx') + ' ' + parent.attr('cy');
+						var mid_y = pos[id][1]*0.5 + pos[parent][1]*0.5;
+						var q1_y = pos[id][1]*0.75 + pos[parent][1]*0.25;
+						var q3_y = pos[id][1]*0.25 + pos[parent][1]*0.75;
 					}
+					path_data += 'Q ' + pos[id][0] + ' ' + q1_y + ' ' + mid_x + ' ' + mid_y + ' ';
+					path_data += 'Q ' + pos[parent][0] + ' ' + q3_y + ' ' + pos[parent][0] + ' ' + pos[parent][1];
 					
-					var color = parent.style('fill').replace(/\s/g,'').toLowerCase();
+					var color = pos[parent][2].replace(/\s/g,'').toLowerCase();
 						
 					d3.select('svg').append('path')
 						.attr('d',path_data)
 						.attr('stroke','black')
 						.attr('stroke-width','1')
 						.attr('fill','none')
-						.data([d[j]])
+						.data([id])
 						.style('display',
-							(darkColor.indexOf(color) != -1 || parent.style('display') == 'none' || _this.style('display') == 'none')
+							(darkColor.indexOf(color) != -1 || pos[parent][3] == 'none' || pos[id][3] == 'none')
 								? 'none' : 'inline');
 				}
 			}
