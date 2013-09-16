@@ -1470,10 +1470,10 @@ function create_sidebar() {
 		$('video').replaceWith(function(index) { return $(this).children('object'); });
 		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
 		
+		$('.handle,.delete').remove();
 		$('.inner,.outer').each(function(index) {
 			var _this = $(this);
 			_this.children('form.linear').remove();
-			$('.handle,.delete').remove();
 			
 			// Remove excess <br> from titles
 			_this.find('h3 br').remove();
@@ -1489,14 +1489,16 @@ function create_sidebar() {
 			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
 			
 			// Illusion
-			create_handles();
-			create_deletes();
 			_this.children('.in').html('+');
 			_this.children('.out').html('-');
 			_this.find('a.tangent').replaceWith(function() { 
 				return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
 			});
 		});
+		// Illusion
+		create_handles();
+		create_deletes();
+			
 		$('#_save').val(text);
 		$('#_title').val($('.Z1 h3').html());
 		if (this.id == 'publish') $('#_publish').val('true');
@@ -1966,4 +1968,21 @@ function crawl_forward() {
 		node = node.nextSibling;
 	}
 	return string;
+}
+
+function align(alignment) {
+	var sel = document.getSelection();
+	var node = sel.anchorNode;
+	while (node) {
+		if (node instanceof HTMLParagraphElement) {
+			var el = $(node);
+			if (el.attr('id')) return false;
+			if (alignment == 'right') el.removeClass('center').addClass('right-text');
+			else if (alignment == 'center') el.removeClass('right-text').addClass('center');
+			else el.removeClass('right-text').removeClass('center');
+			return true;	
+		}
+		node = node.parentNode;
+	}
+	return false;
 }
