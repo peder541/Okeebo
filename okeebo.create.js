@@ -1463,6 +1463,7 @@ function create_sidebar() {
 		if (_delete.length == 0) disable_sidebar_option($('#undo_page_delete'));
 	});
 	$('#publish,#save').on('click',function(event) {
+		mathPublish();
 		if (_drag) toggle_drag();
 		if ($('#bold').is(':visible')) toggle_edit();
 		var text = '';
@@ -1471,7 +1472,6 @@ function create_sidebar() {
 		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
 		
 		$('.handle,.delete').remove();
-		mathPublish();
 		$('.inner,.outer').each(function(index) {
 			var _this = $(this);
 			_this.children('form.linear').remove();
