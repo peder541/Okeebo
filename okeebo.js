@@ -514,6 +514,8 @@ function redraw_node_map(id,color) {
 	clear_selected_text();
 	$('.'+id).find('video').each(function(index) { 
 		if (this.currentTime == 0) this.play();
+		/*var i = $('video').index($(this));
+		setTimeout("v = $('video').eq("+i+"); if (badVideo(v)) updateVideo($(v).children('object').attr('id'));",10);*/
 	});
 	setTimeout("pauseVideo();",0);
 	$('#map').empty();
@@ -946,6 +948,11 @@ function flashToHTML5() {
 			$('object[data*="youtube"]').eq(i).replaceWith(data);
 		});	
 	});
+}
+
+function badVideo(video) {
+	if (video.readyState == 0 || video.ended && video.currentTime < video.duration) return true;
+	else return false;
 }
 
 function updateVideo(video_id) {
