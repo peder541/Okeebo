@@ -625,7 +625,7 @@ $(document).ready(function(event) {
 	create_handles();
 	create_deletes();
 	//create_inserts();
-	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) });
+	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) }).attr('contenteditable','false');
 	
 });
 
@@ -1471,6 +1471,7 @@ function create_sidebar() {
 		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
 		
 		$('.handle,.delete').remove();
+		mathPublish();
 		$('.inner,.outer').each(function(index) {
 			var _this = $(this);
 			_this.children('form.linear').remove();
@@ -1985,4 +1986,13 @@ function align(alignment) {
 		node = node.parentNode;
 	}
 	return false;
+}
+
+function mathPublish() {
+	DisplayToCode();
+	MathMLtoTeX();
+	$('.OkeeboMath').each(function(index) {
+		var _this = $(this);
+		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass('center');
+	});
 }
