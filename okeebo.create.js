@@ -625,7 +625,6 @@ $(document).ready(function(event) {
 	create_handles();
 	create_deletes();
 	//create_inserts();
-	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) }).attr('contenteditable','false');
 	
 });
 
@@ -683,6 +682,7 @@ function improve_formatting() {
 
 function toggle_edit() {
 	$('.preview_window').remove();
+	mathPublish();
 	improve_formatting();
 	$('.inner,.outer').each(function() {
 		toggle_edit_one($(this));
@@ -713,6 +713,7 @@ function toggle_edit() {
 			//console.log(this,event.target);
 		});
 		$(writing_buttons).show();
+		$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) }).attr('contenteditable','false');
 	}
 }
 
@@ -1703,6 +1704,21 @@ function insert_video() {
 	}
 }
 
+function insertEq() {
+	element = document.getSelection().anchorNode;
+	var closest_p = $(element).closest('p');
+	var html = '<p class="OkeeboMath" id="newMath">\\[ \\sin^2 \\theta + \\cos^2 \\theta = 1 \\]</p>';
+	if (closest_p.html()) closest_p.after(html);
+	else {
+		var current_div = $('.inner,.outer').filter(':visible');
+		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before(html);
+		else current_div.find('h3').after(html);
+	}
+	var math = $('#newMath');
+	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
+	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id')));
+}
+
 function DisplayToCode(index,type) {
 	var container = $('.OkeeboMath');
 	if (typeof(index) === 'number') container = container.eq(index);
@@ -1785,6 +1801,7 @@ function MathMLtoTeX(index,change) {
 		return;	
 	}
 	if (container.children('script').index() == -1) {
+		container.children('button').remove();
 		var math = container.children('math');
 		if (math.length == 0) container.html($('<div/>').html(container.html()).text().replace(/\s(?=\s*<)/g,''));
 		math = container.children('math');
