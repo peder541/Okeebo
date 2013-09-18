@@ -512,7 +512,9 @@ function linear_move(direction, redraw) {
 // Color parameter is optional
 function redraw_node_map(id,color) {
 	clear_selected_text();
-	$('.'+id).find('video').each(function(index) { if (this.currentTime == 0) this.play(); });
+	$('.'+id).find('video').each(function(index) { 
+		if (this.currentTime == 0) this.play();
+	});
 	setTimeout("pauseVideo();",0);
 	$('#map').empty();
 	if (id == 'Z3') return false;
