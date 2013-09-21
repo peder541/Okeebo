@@ -1574,21 +1574,51 @@ function getSelectionHtml() {
     return html;
 }
 
-function make_iframe() {
-	element = document.getSelection().anchorNode;
-	var closest_p = $(element).closest('p')
-	if (closest_p.html()) closest_p.after('<iframe src="https://www.okeebo.com/img" />');
-	else {
-		var current_div = $('.inner,.outer').filter(':visible');
-		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before('<iframe src="https://www.okeebo.com/img" />');
-		else current_div.find('h3').after('<iframe src="https://www.okeebo.com/img" />');
+function insert_video() {
+	var yt_url = prompt('Paste YouTube URL here:');
+	var yt_id = yt_url.match(/[\/?&]v[\/=].{11}/g);
+	if (yt_id) {
+		yt_id = yt_id[0].substr(3);
+		var id = "newVid" + String(Math.random()).replace(/\./g,'');
+		insertAfter('<video id="' + id + '" width="640" height="360"></video>');
+		$.get('https://www.okeebo.com/video/?id=' + yt_id + '&html5',function(data) {
+			$('#' + id).replaceWith(data);
+		}).fail(function(data) {
+			$('#' + id).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
+		});
 	}
+}
+
+function insertEq() {
+	insertAfter('<p class="OkeeboMath" id="newMath">\\[ \\sin^2 \\theta + \\cos^2 \\theta = 1 \\]</p>');
+	var math = $('#newMath');
+	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
+	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id').attr('contenteditable','false')));
+}
+
+function insertAfter(html) {
+	var element = document.getSelection().anchorNode;
+	var closest_p = $(element).closest('p');
+	var current_div = $('.inner,.outer').filter(':visible');
+	if (closest_p.html()) {
+		if (closest_p.is('.outer [id]')) closest_p.children('span').not(':first-child').append(html);
+		else closest_p.after(html);
+	}
+	else {
+		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before(html);
+		else current_div.find('h3').after(html);
+	}
+	size_buttons(current_div);
+}
+
+function make_iframe() {
+	insertAfter('<iframe src="https://www.okeebo.com/img" />');
 	iframe_trigger();
 }
 function iframe_trigger() {
 	$('iframe').load(function() {
 		var _this = parent.$(this);
-		_this.height(_this.contents().find('html').height())
+		_this.height(_this.contents().find('html').height());
 		iframe_to_image(_this);
 	});
 }
@@ -1686,38 +1716,6 @@ function create_inserts(id) {
 		});
 }
 */
-function insert_video() {
-	var yt_url = prompt('Paste YouTube URL here:');
-	var yt_id = yt_url.match(/[?&]v=.{11}/g);
-	if (yt_id) {
-		yt_id = yt_id[0].substr(3);
-		element = document.getSelection().anchorNode;
-		var spot = $(element).closest('p');
-		var current_page = $('.inner,.outer').filter(':visible');
-		$.get('https://www.okeebo.com/video?id=' + yt_id + '&html5',function(data) {
-			if (spot.index() == -1) {
-				if (!current_page.hasClass('outer')) current_page.find('p').eq(0).before(data);
-				else current_page.find('h3').after(data);
-			}
-			else spot.after(data);
-		});
-	}
-}
-
-function insertEq() {
-	element = document.getSelection().anchorNode;
-	var closest_p = $(element).closest('p');
-	var html = '<p class="OkeeboMath" id="newMath">\\[ \\sin^2 \\theta + \\cos^2 \\theta = 1 \\]</p>';
-	if (closest_p.html()) closest_p.after(html);
-	else {
-		var current_div = $('.inner,.outer').filter(':visible');
-		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before(html);
-		else current_div.find('h3').after(html);
-	}
-	var math = $('#newMath');
-	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
-	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id')));
-}
 
 function DisplayToCode(index,type) {
 	var container = $('.OkeeboMath');
@@ -1733,7 +1731,7 @@ function DisplayToCode(index,type) {
 			var originalTeX = math.originalText;
 			var formattedTeX;
 			if (math.root.display == 'block') formattedTeX = '\\[ ' + originalTeX + ' \\]';
-			else formattedTeX = '\\(' + originalTeX + '\\)';
+			else formattedTeX = '\\( ' + originalTeX + ' \\)';
 			container.html('<span class="lang" contenteditable="true">' + formattedTeX + '</span>').removeClass('center')/*.attr('contenteditable','true')*/;
 		}
 		else {
