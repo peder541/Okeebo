@@ -509,9 +509,25 @@ function linear_move(direction, redraw) {
 	return false;
 }
 
+function onYouTubePlayerReady(playerid) {
+	$('object[data*="youtube"]').each(function(index) {
+		if (this.getCurrentTime) {
+			var t0 = this.getCurrentTime();
+			var t1 = Number($(this).attr('time'));
+			if (t0 == 0 && t0 != t1) {
+				this.seekTo(t1);
+				this.pauseVideo();
+			}
+		}
+	});
+}
+
 // Color parameter is optional
 function redraw_node_map(id,color) {
 	clear_selected_text();
+	$('object[data*="youtube"]').each(function(index) {
+		if (this.getCurrentTime) $(this).attr('time',this.getCurrentTime());
+	});
 	$('.'+id).find('video').each(function(index) { 
 		if (this.currentTime == 0) this.play();
 		/*var i = $('video').index($(this));
@@ -591,6 +607,7 @@ function concept_zoom_out(dif,adj) {
 	
 	target_obj.fadeIn();
 	old_obj.fadeOut();
+	$('object[data*="youtube"]').css('visibility','hidden').filter('.' + target + ' object').css('visibility','');
 	clean_transition(target_obj,old_obj);
 	// target_obj.show();
 	// old_obj.hide();
@@ -622,6 +639,7 @@ function concept_zoom_in(id) {
 		
 		$('.' + letter + number).fadeIn();
 		old_obj.fadeOut();
+		$('object[data*="youtube"]').css('visibility','hidden').filter('.' + letter + number + ' object').css('visibility','');		
 		clean_transition($('.' + letter + number),old_obj);
 		//$('.' + letter + number).show();
 		//$('.outer').hide();
@@ -943,8 +961,8 @@ function pauseVideo(index) {
 }
 
 function flashToHTML5() {
-	$('object[data*="youtube"]').each(function(i,e) {
-		$.get('https://www.okeebo.com/video?id=' + e.id + '&html5',function(data) {
+	$('object[data*="youtube"]').not('video object').each(function(i,e) {
+		$.get('https://www.okeebo.com/video/?id=' + e.id + '&html5',function(data) {
 			$('object[data*="youtube"]').eq(i).replaceWith(data);
 		});	
 	});
