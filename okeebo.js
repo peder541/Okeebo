@@ -31,7 +31,7 @@ function resize_windows(){
 		$('body').append('<p id="forum"></p>');
 		forum = $('#forum');
 	}
-	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum').css('margin-left',left_margin);
+	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum,#home,#catalog,#function').css('margin-left',left_margin);
 	forum.width($('#map').offset().left - forum.offset().left);
 	forum.css('top',75-Math.max(forum.height(),19));
 			
@@ -343,6 +343,7 @@ $(document).ready(function() {
 	});
 	
 	flashToHTML5();
+	loadVideos();
 	
 });
 
@@ -459,6 +460,7 @@ function linear_move(direction, redraw) {
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 		
 		if (!$('.'+id).hasClass(letter+number)) {
+			$('object[data*="youtube"]').css('visibility','');
 			$('.' + letter + number).show();
 			$('.'+id).hide();
 		}
@@ -960,11 +962,28 @@ function pauseVideo(index) {
 	}
 }
 
+function loadVideos() {
+	var yt = $('.youtube-embed');
+	yt.each(function(i,e) {
+		var yt_id = e.id || e.innerHTML;
+		$.get('https://www.okeebo.com/video/?id=' + yt_id + '&html5',function(data) {
+			yt.eq(i).replaceWith(data);
+		}).fail(function() {
+			yt.eq(i).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
+		});
+	});	
+}
 function flashToHTML5() {
 	$('object[data*="youtube"]').not('video object').each(function(i,e) {
 		$.get('https://www.okeebo.com/video/?id=' + e.id + '&html5',function(data) {
 			$('object[data*="youtube"]').eq(i).replaceWith(data);
 		});	
+	});
+}
+function degradeToFlash() {
+	$('video').each(function(i,v) {
+		var $v = $(v);
+		if (v.error) $v.replaceWith($v.children('object')[0].outerHTML);
 	});
 }
 
