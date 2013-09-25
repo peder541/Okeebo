@@ -81,7 +81,7 @@ function toggle_graph(flicker) {
 		if (typeof(go_to) === 'undefined') return false;
 		$('svg').remove();
 		$('body').css('background-color','');
-		$('#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#sup,#sub,#new_page,.left,.right,#map_helper').show();
+		$('#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').show();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
@@ -91,7 +91,7 @@ function toggle_graph(flicker) {
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
-		$('.inner,.outer,#menu,#map,#bold,#italic,#underline,#ol,#ul,#img,#link,#vid,#sup,#sub,#new_page,.left,.right,#map_helper').hide();
+		$('.inner,.outer,#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white');
 		
