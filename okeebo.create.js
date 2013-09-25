@@ -7,7 +7,7 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
-var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page';
+var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page,#equation';
 var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay';
 
 function resize_writing_items(buffer) {
@@ -23,7 +23,7 @@ function resize_writing_items(buffer) {
 }
 
 $(document).ready(function(event) {
-	
+		
 	var _fadeIn = $.fn.fadeIn;
 	var _show = $.fn.show;
 
@@ -219,7 +219,7 @@ $(document).ready(function(event) {
 				}
 			}
 		}
-		else if ($(this).is('p[id] span:first-child')) {
+		else if ($(this).is('p[id] > span:first-child')) {
 			// Title (link)
 			var id = $(this).parent().attr('id');
 			var child_letter = String.fromCharCode(id.charCodeAt(0)+1);
@@ -563,6 +563,7 @@ $(document).ready(function(event) {
 			//$('#new_page').css('top',215);
 			$('#sup').css('top',225);
 			$('#sub').css('top',249);
+			$('#equation').css('top',273);
 		}
 	});
 	
@@ -621,6 +622,9 @@ $(document).ready(function(event) {
 	});
 	$('#sub').on('click',function(event) {
 		document.execCommand('subscript',false,null);
+	});
+	$('#equation').on('click',function(event) {
+		insertEq();
 	});
 	create_handles();
 	create_deletes();
@@ -1389,6 +1393,7 @@ function create_sidebar() {
 		.append('<p id="publish">Save and Publish</p>')
 		.append('<p id="save">Save without Publishing</p>')
 		.append('<hr />')
+		//.append('<p id="home">Return to Homepage</p>')
 		.append('<p id="close">Close Sidebar</p>')
 	;
 	
@@ -1506,6 +1511,9 @@ function create_sidebar() {
 		if (this.id == 'publish') $('#_publish').val('true');
 		$('form.save').submit();
 	});
+	$('#home').on('click',function(event) {
+		window.location = 'https://www.okeebo.com/beta/';
+	});
 	$('#close').on('click',function(event) {
 		delete_sidebar();
 	});
@@ -1574,6 +1582,15 @@ function getSelectionHtml() {
     return html;
 }
 
+function cleanSummaries() {
+	$('p[id]').each(function() { 
+		var last = $(this).children('span').eq(1).children().last(); 
+		while (last.is('br')) { 
+			last.remove(); last = $(this).children('span').eq(1).children().last();
+		}
+	});
+}
+
 function insert_video() {
 	var yt_url = prompt('Paste YouTube URL here:');
 	var yt_id = yt_url.match(/[\/?&]v[\/=].{11}/g);
@@ -1590,7 +1607,7 @@ function insert_video() {
 }
 
 function insertEq() {
-	insertAfter('<p class="OkeeboMath" id="newMath">\\[ \\sin^2 \\theta + \\cos^2 \\theta = 1 \\]</p>');
+	insertAfter('<span class="OkeeboMath" id="newMath">\\[ \\sin^2 \\theta + \\cos^2 \\theta = 1 \\]</span>');
 	var math = $('#newMath');
 	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
 	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id').attr('contenteditable','false')));
@@ -1820,6 +1837,30 @@ function processMathML(tag,string) {
 		if (typeof(tag.attr('columnalign')) === 'undefined') string += '\\begin{array}{c}';
 		else string += '\\begin{array}{' + tag.attr('columnalign').replace(/right/g,'r').replace(/left/g,'l').replace(/center/g,'c') + '}';
 	}
+	if (tagName == 'menclose') {
+		var enclose = (MathJax.Hub.config.TeX.extensions.indexOf('enclose.js') != -1);
+		var cancel = (MathJax.Hub.config.TeX.extensions.indexOf('cancel.js') != -1);
+		switch(tag.attr('notation')) {
+			case 'box':
+				string += '\\boxed{';
+				break;
+			case 'updiagonalstrike':
+				string += cancel ? '\\cancel{' : '{';
+				break;
+			case 'downdiagonalstrike':
+				string += cancel ? '\\bcancel{' : '{';
+				break;
+			case 'updiagonalstrike downdiagonalstrike':
+				string += cancel ? '\\xcancel{' : '{';
+				break;
+			case undefined:
+				string += enclose ? '\\enclose{longdiv}{' : '{';
+				break;
+			default:
+				// \enclose is a non-standard macro
+				string += enclose ? '\\enclose{' + tag.attr('notation').replace(/ /g,',') + '}{' : '{';
+		}
+	}
 	//string = string.replace(/\|\\begin{array}{c}$/,'\\begin{vmatrix}');
 	tag.children().each(function(index) {
 		var _this = $(this);
@@ -1887,6 +1928,14 @@ function processMathML(tag,string) {
 		if (this.tagName.toLowerCase() == 'mtext') string += '\\text{';
 		if (this.tagName.toLowerCase() == 'mspace') string += '\\quad ';
 		if (['sin','cos','tan'].indexOf(_this.text()) != -1) string += '\\';
+		if (tagName == 'mfenced') {
+			if (index == 0) string += /*tag.attr('open') || */'(';
+			else {
+				var s = tag.attr('separators');
+				if (s) s = s[Math.min(index,s.length)-1];
+				string += s || ',';
+			}
+		}
 		
 		if (_this.children().length == 0) string += _this.text();
 		else string = processMathML(_this,string);
@@ -1903,11 +1952,13 @@ function processMathML(tag,string) {
 		if (tagName == 'mtr') string += '}';
 	});
 	if (tagName == 'math') {
+		string = string.replace(/\u2061/g,'');
 		if (tag.attr('display') == 'block') string += '\\]';
 		else string += '\\)';
 	}
-	if (tagName == 'msqrt') string += '}';
+	if (tagName == 'msqrt' || tagName == 'menclose') string += '}';
 	if (tagName == 'mtable') string += '\\end{array}';
+	if (tagName == 'mfenced') string += tag.attr('close') || ')';
 	//string = string.replace(/end{array}\|/g,'end{vmatrix}');
 	return string;
 }
@@ -2008,6 +2059,8 @@ function mathPublish() {
 	MathMLtoTeX();
 	$('.OkeeboMath').each(function(index) {
 		var _this = $(this);
-		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass('center');
+		var _class = 'center';
+		if (_this.parents('p').is('[id]')) _class = '';
+		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
 	});
 }
