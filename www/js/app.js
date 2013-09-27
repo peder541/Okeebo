@@ -5,7 +5,8 @@ $(document).on('ready',function(event) {
 		var $url = $(this).attr('href');
 		if ($url.substr(0,22) == "https://www.okeebo.com") {
 			$.get($url,function(data) {
-				$(document).html(data);
+				document.write(data);
+				document.close();
 			});
 			return false;
 		}
