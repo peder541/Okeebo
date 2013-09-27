@@ -2,7 +2,16 @@
 
 $(document).on('ready',function(event) {
 	$('body').on('click','a',function(event) {
-		alert($(this).attr('href'));
-		return false;
+		var $url = $(this).attr('href');
+		if ($url.substr(0,22) == "https://www.okeebo.com") {
+			$.get($url,function(data) {
+				$(document).html(data);
+			});
+			return false;
+		}
+		else {
+			alert($url);
+			return false;
+		}
 	});
 });
