@@ -1,0 +1,54 @@
+@charset "utf-8";
+/* CSS Document */
+
+input[name=title] {
+	padding: 5px;
+	width: 90%;
+	border: 2px solid blue;
+	background-color: #eef;
+}
+input[name=title].taken {
+	border-color: red;
+	background-color: #fee;
+}
+input[name=title].avail {
+	border-color: green;
+	background-color: #efe;
+}
+
+select {
+	padding: 4px;
+	width: 95%;
+}
+
+#create {
+	width: 20%;
+	border: 0;
+	margin: 20px 10% 20px 20%;
+	background-color: rgb(0, 144, 0);
+	cursor: pointer;
+}
+#create:active {
+	background-color: rgb(0, 121, 0);
+}
+
+#cancel {
+	width: 20%;
+	border: 0;
+	margin: 20px 20% 20px 10%;
+	background-color: rgb(233, 0, 0);
+	cursor: pointer;
+}
+#cancel:active {
+	background-color: rgb(210, 0, 0);
+}
+
+#err {
+	position: absolute;
+	margin: 0;
+	padding: 0;
+	color: rgb(233, 0, 0);
+	right: 60px;
+	font-size: 0.75em;
+	display: block;
+}

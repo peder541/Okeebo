@@ -1,0 +1,45 @@
+@charset "utf-8";
+/* CSS Document */
+
+body {
+	background-color: white;
+	color: black;
+	font-size: 12pt;
+}
+
+#map,button,#meta-map {
+	display: none;
+}
+
+.inner,.outer {
+	position: relative;
+	display: block !important;
+	box-shadow: none;
+	background-color: transparent;
+	margin: 0 !important;
+	padding: 0 !important;
+	max-width: 100%;
+}
+
+.inner p,.outer p,.inner h3,.outer h3 {
+	margin: 3% 0;
+}
+
+.inner h3 {
+	padding: 0;
+	page-break-before: always;
+}
+
+.outer h3 {
+	padding: 0;
+}
+
+.tangent {
+	display: inline;
+	color: black;
+	text-decoration: none;
+	margin: 0;
+	padding: 0;
+}
+
+

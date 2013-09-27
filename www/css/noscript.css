@@ -1,0 +1,57 @@
+@charset "utf-8";
+/* CSS Document */
+
+html,body {
+	height: 100%;
+}
+
+.left,.right {
+	width: calc(50% - 450px + 12px);
+	height: calc(100% - 80px);
+	position: absolute;
+	top: 80px;
+	cursor: pointer;
+	border: 0;
+}
+
+.left {
+	left: 0;
+}
+
+.right {
+	right: 0;
+}
+
+.left:hover {
+	background-position: calc(25% - 225px);
+}
+
+.right:hover {
+	background-position: calc(225px + 75%);
+}
+
+#map {
+	left: calc(50% + 350px);	
+}
+
+.node:active {
+	border-style: solid;
+}
+
+@media (max-width: 900px) {
+	.left,.right {
+		width: 12px;
+	}
+	.left:hover {
+		background-position: 0;
+	}
+	.right:hover {
+		background-position: 100%;	
+	}
+	#map {
+		left: calc(100% - 100px);	
+	}
+	.inner,.outer {
+		margin-left: 0px;
+	}
+}

@@ -1,0 +1,54 @@
+@charset "utf-8";
+/* CSS Document */
+
+body {
+	background-color: #AAA;
+	font-family: Corbel;
+	padding: 0;
+	margin: 0;
+	font-size: 16px;
+	line-height: 180%;
+}
+
+p {
+	font-size: 1em;
+}
+
+#container {
+	background-color: #FCFCFC;
+	color: #333;
+	width: 900px;
+	height: 900px;
+	margin: 0 auto;
+	padding: 1.5em;
+}
+
+.edit {
+	background-color: transparent;
+	font-style: inherit;
+	font-variant: inherit;
+	font-family: inherit;
+	color: inherit;
+	font-size: 1em;
+	border: none;
+	resize: none;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	line-height: inherit;
+	outline: none;
+}
+
+.in + p .edit {
+	width: 100%;
+}
+
+/*
+
+#test {
+	display: none;
+}
+
+*/
+

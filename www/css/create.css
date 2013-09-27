@@ -1,0 +1,365 @@
+/*
+#edit,#drag,#save {
+	width: auto;
+	font-family: Optima, Corbel, sans-serif; 
+    padding: 2px;
+	position: absolute; 
+    top: 40px;
+	margin-left: 181.5px;
+}
+
+#edit {
+	background-color: rgb(89, 144, 233);
+	border-color: rgb(89, 144, 233);
+	left: 15px;
+	display: none;
+}
+
+#drag {
+	background-color: rgb(144, 89, 233);
+	border-color: rgb(144, 89, 233);
+    left: 60px;
+	display: none;
+}
+
+#save {
+	background-color: rgb(233, 89, 144);
+	border-color: rgb(233, 89, 144);
+	left: 110px;
+	display: none;
+}
+*/
+
+#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page,#equation {
+	position: absolute;
+	left: 871px;
+	height: 23px;
+	width: 26px;
+	margin-left: 181.5px;
+	display: none;
+	border-color: rgb(214, 214, 214);
+}
+
+#bold {
+	top: 83px;
+	background: url('bold.png') no-repeat center rgb(214, 214, 214);
+}
+
+#italic {
+	top: 107px;	
+	background: url('italic.png') no-repeat center rgb(214, 214, 214);
+}
+
+#underline {
+	top: 131px;
+	background: url('underline.png') no-repeat center rgb(214, 214, 214);
+}
+
+#ul {
+	top: 165px;
+	background: url('ul.png') no-repeat center rgb(214, 214, 214);
+}
+
+#ol {
+	top: 189px;
+	background: url('ol.png') no-repeat center rgb(214, 214, 214);
+}
+
+#img {
+	top: 223px;
+	background: url('img.png') no-repeat center rgb(214, 214, 214);
+}
+
+#link {
+	top: 247px;
+	background: url('link.png') no-repeat center rgb(214, 214, 214);
+}
+
+#vid {
+	top: 271px;
+	background: url('vid.png') no-repeat center rgb(214, 214, 214);
+}
+
+#sup {
+	top: 305px;
+	background: url('sup.png') no-repeat center rgb(214, 214, 214);
+}
+
+#sub {
+	top: 329px;
+	background: url('sub.png') no-repeat center rgb(214, 214, 214);
+}
+
+#equation {
+	top: 353px;
+	background: url('equation.png') no-repeat center rgb(214, 214, 214);
+}
+
+#new_page {
+	top: 295px;
+	background: url('new_page.png') no-repeat center rgb(214, 214, 214);
+}
+
+
+#hud {
+	position: fixed;
+	top: 0;
+	left: 3px;
+}
+
+
+p[id] > span {
+	/*outline: none;*/
+	display: inline-block;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.in + p {
+	padding-left: 8px;
+	padding-right: 1px;
+}
+
+/*[contenteditable="true"] {
+	outline: dashed 1px #ccc;
+	outline-offset: -0.5px;
+}*/
+
+[contenteditable="true"]:focus {
+	outline: solid 2px #F0C97D;
+	outline-offset: -1px;
+}
+
+[draggable] {
+	-khtml-user-drag: element;
+	-webkit-user-drag: element;
+	outline: dashed 1px #ccc;
+	outline-offset: -2px;
+}
+
+form.linear {
+	position: absolute;
+	top: -4px;
+	right: 32px;
+	font-size: 0.75em;
+}
+
+form.linear input {
+	position: relative;
+	top: 2px;
+}
+
+#menu {
+	position: absolute;
+	height: 29px;
+	margin: 0;
+	margin-left: 180px;
+	top: 38px;/*42px;*/
+	left: 24px;/*8px;*/
+	background: url('menu.png') no-repeat center rgb(89,144,233);
+	border-color: rgb(89,144,233);
+}
+
+#sidebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 240px;
+	height: 100%;
+	background-color: #555;
+	color: #DDD;
+}
+
+#sidebar p {
+	padding: 10px;
+	margin: 0;
+	cursor: pointer;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+#sidebar p::selection,#sidebar p::-moz-selection {
+	background: transparent;
+}
+#sidebar p:hover {
+	background-color: #7F7F7F;
+}
+#sidebar p:active {
+	background-color: #888;
+}
+
+#sidebar ~ .inner, #sidebar ~ .outer {
+	width: -webkit-calc(100% - 48px - 240px);
+	width: calc(100% - 48px - 240px);
+}
+
+#sidebar p.disabled {
+	background-color: transparent;
+	color: #6A6A6A;
+	cursor: default;	
+}
+
+
+/* Styling to make execCommand discrepancies have a more consistent appearance */
+
+div[contenteditable] {
+	margin-left: 2px;
+	padding-left: 12px;
+	padding-right: 5px;
+	margin-bottom: 16px;
+}
+
+div[contenteditable] > br {
+	margin-bottom: 19px;	
+}
+
+div[contenteditable] br + p, div[contenteditable] br + ol, div[contenteditable] br + ul {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+div[contenteditable] p ol, div[contenteditable] p ul {
+	margin: 0;
+}
+
+div[contenteditable] p {
+	margin-left: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+div[contenteditable] ol, div[contenteditable] ul {
+	margin-left: 0;
+	padding-left: 26px;
+	padding-right: 0;
+}
+
+div[contenteditable] .preview_window {
+	margin-left: -2px;
+	margin-right: 7px;
+}
+
+div[contenteditable] .preview_window p {
+	padding-left: 12px;
+	padding-right: 6px;
+}
+
+div[contenteditable] table {
+	margin-left: 0;	
+}
+
+div[contenteditable] table p {
+	margin-left: 2px;
+	padding-left: 12px;
+	padding-right: 5px;
+}
+
+.tab {
+	padding-left: 50px;
+}
+
+.active-img {
+	outline: 1px solid black;
+}
+.resize_handle {
+	width: 5px;
+	height: 5px;
+	border: 1px solid black;
+	background-color: white;
+	position: absolute;	
+}
+.resize_handle:hover {
+	background-color: black;
+}
+#nw {
+	cursor: nw-resize;
+}
+#n {
+	cursor: n-resize;
+}
+#ne {
+	cursor: ne-resize;
+}
+#e {
+	cursor: e-resize;
+}
+#se {
+	cursor: se-resize;
+}
+#s {
+	cursor: s-resize;
+}
+#sw {
+	cursor: sw-resize;
+}
+#w {
+	cursor: w-resize;
+}
+
+.handle {
+	height: 21px;
+	width: 21px;
+	background-color: #C9AEE5;
+	background-image: url('move_cursor.png');
+	background-repeat: no-repeat;
+	background-position: center center;
+	border-radius: 11px;
+	position: absolute;
+	cursor: move;
+	margin-top: -2px;
+}
+
+.delete {
+	height: 16px;
+	width: 16px;
+	background-image: url('trash.png');
+	background-repeat: no-repeat;
+	background-position: right bottom;
+	position: absolute;
+	cursor: pointer;
+	margin-top: -2px;
+}
+/*
+.insert {
+	width: 100%;
+	background-color: green;
+	border-color: green;
+	margin: 16px 0;
+	padding: 5px;
+	font-family: inherit;	
+	font-size: 1.25em;
+	max-width: 750px;
+}
+*/
+.OkeeboMath {
+	border: 1px solid black;
+	padding-right: 15px !important;
+	padding-left: 15px !important;
+	margin: 0 0 16px;
+	height: 120px;
+	overflow-y: scroll;
+	width: 90%;
+	display: block;
+}
+.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay {
+	color: black;
+	font-size: 0.75em;
+	font-family: Optima, Corbel, sans-serif;
+	width: auto;
+	height: auto;
+	padding: 0.5px;
+	line-height: 110%;
+	position: absolute;	
+	-moz-user-select: none;
+}
+.OkeeboMath span.lang {
+	display: inline-block;
+	min-height: 120px;
+	width: 100%;
+	outline: none;
+}
+p[id] span:nth-child(3) {
+	min-width: 90%;
+}
