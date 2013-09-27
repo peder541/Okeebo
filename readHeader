@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="initial-scale=1, minimum-scale=1" />
+        <title>Okeebo</title>
+        <link rel="stylesheet" href="../../okeebo.css" />
+        <link rel="stylesheet" media="print" href="../../print.css" />
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script type="text/javascript" src="../../okeebo.js"></script>
+        <script type="text/javascript" src="../../hammer.js"></script>
+        <script type="text/javascript" src="../../jquery.specialevent.hammer.js"></script>
+</head>
+
+<body>
+
+        <div id="meta-map">
+        </div>
+
+        <button class="exit">&times;</button>
+
+        <div id="map_helper"></div>
+        <div id="map">
+        </div>
+
+
