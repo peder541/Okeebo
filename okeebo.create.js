@@ -560,10 +560,10 @@ $(document).ready(function(event) {
 			$('#img').css('top',143);
 			$('#link').css('top',167);
 			$('#vid').css('top',191);
-			//$('#new_page').css('top',215);
 			$('#sup').css('top',225);
 			$('#sub').css('top',249);
 			$('#equation').css('top',273);
+			$('#new_page').css('top',307);
 		}
 	});
 	
@@ -615,7 +615,10 @@ $(document).ready(function(event) {
 		insert_video();
 	});
 	$('#new_page').on('click',function(event) {
-		insert_page();
+		var page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
+		var string = getSelectionHtml();
+		page.children('div').append(string);
+		insert_page(0,page,0,0,1);
 	});
 	$('#sup').on('click',function(event) {
 		document.execCommand('superscript',false,null);
@@ -654,18 +657,19 @@ function handle_paste_glitch(obj) {
 }
 
 /// Fixes most of the execCommand discrepancies. Applied during toggle_edit() to maintain the undo stack as much as possible.
-function improve_formatting() {
-	$('p img').unwrap();
-	$('div[contenteditable] > p > div').unwrap();
-	var list = $('ol,ul');
+function improve_formatting($obj) {
+	if (typeof($obj) === 'undefined') $obj = $('body');
+	$obj.find('p img').unwrap();
+	$obj.find('div[contenteditable] > p > div').unwrap();
+	var list = $obj.find('ol,ul');
 	if (list.parent().is('p')) list.unwrap();
 		
-	var div_contenteditable = $('div[contenteditable]');
+	var div_contenteditable = $obj.find('div[contenteditable]');
 	var plainText = div_contenteditable.contents().filter(function() { return this.nodeType === 3; });
 	plainText.wrap('<p />');
 	
 	// Plain-text cuts inline elements out of paragraphs. Fixing with this.
-	$('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
+	$obj.find('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
 		var _this = $(this);
 		var prev_p = _this.prev('p');
 		if (prev_p.html()) _this.prev('p').append(_this);
@@ -981,7 +985,7 @@ function update_all_affected_links(first_id) {
 }
 
 /// summary and page are null for a new page
-function insert_page(summary,page,exists,reinsert) {
+function insert_page(summary,page,exists,reinsert,cut) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
 	if (!reinsert) {
@@ -1049,7 +1053,22 @@ function insert_page(summary,page,exists,reinsert) {
 		}
 	}
 	var div_letter = String.fromCharCode(letter.charCodeAt(0) + 1);
-	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
+	if (cut) {
+		/*document.execCommand('insertHTML',false,'<button type="button" class="in ' + letter + '0">+</button>');
+		toggle_edit_one(current_div);
+		$('.' + letter + '0').unwrap();
+		toggle_edit_one(current_div);*/
+		/*document.execCommand('delete',false,null);/*
+		$('p').filter(function() { return ($(this).html()=='<br>'); }).replaceWith('<button type="button" class="in ' + letter + '0">+</button>');
+		toggle_edit_one(current_div);
+		toggle_edit_one(current_div);*/
+		
+		//insertAfter('<button type="button" class="in ' + letter + '0">+</button>');
+		if (getSelectionHtml()) document.execCommand('delete',false,null);
+		//toggle_edit_one(current_div);
+		//toggle_edit_one(current_div);
+	}
+	/*else */current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
 	if (summary) summary.attr('id',letter + '0');
 	else if (exists) {
 		summary = '<p id="' + letter + '0"><span class="italic">' + page.children('h3').html() + '</span><br /><span>Summary</span></p>';
@@ -1091,7 +1110,11 @@ function insert_page(summary,page,exists,reinsert) {
 	redraw_node_map(current_div_id);
 	//create_inserts();
 	
-	$(window).scrollTop($(document).height());
+	/*if (!cut) */$(window).scrollTop($(document).height());
+	/*else {
+		toggle_edit_one(current_div);
+		toggle_edit_one(current_div);
+	}*/
 }
 
 /// Handles pages with multiple keys
@@ -2064,3 +2087,60 @@ function mathPublish() {
 		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
 	});
 }
+
+function save(role) {
+	var text = '';
+	DisplayToCode();
+	var $body = $('body').clone();
+	CodeToDisplay();
+	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) });
+	
+	$body.find('.OkeeboMath').each(function(index) {
+		var _this = $(this);
+		MathMLtoTeX(_this,1);
+		var _class = 'center';
+		if (_this.parents('p').is('[id]')) _class = '';
+		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+	});
+	
+	improve_formatting($body);
+	
+	$body.find('video').replaceWith(function(index) { return $(this).children('object'); });
+	$body.find('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
+	
+	$body.find('.handle,.delete').remove();
+	$body.find('.inner,.outer').each(function(index) {
+		var _this = $(this);
+		toggle_edit_one(_this);
+		_this.children('form.linear').remove();
+		
+		// Remove excess <br> from titles
+		_this.find('h3 br').remove();
+		_this.find('p[id] .italic br').remove();
+		
+		// To work with htmlPurifier
+		_this.children('.in,.out').empty();
+		_this.find('.tangent').replaceWith(function() { 
+			return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
+		});
+		
+		if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+		else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+	});
+	
+	if (role == 'autosave') {
+		$('#_save').val(text);
+		$('#_title').val($('.Z1 h3').html());
+		$('#_publish').val('autosave');
+		$.post('https://www.okeebo.com/beta/publish.php',$('form.save').serialize(),function(data) { console.log('Autosaved at ' + Date()); });
+		$('#_publish').val('');
+	}
+	else {
+		$('#_save').val(text);
+		$('#_title').val($('.Z1 h3').html());
+		if (role == 'publish') $('#_publish').val('true');
+		$('form.save').submit();
+	}
+}
+
+setInterval('save("autosave");',60000);
