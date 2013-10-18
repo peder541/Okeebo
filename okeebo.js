@@ -534,6 +534,8 @@ function redraw_node_map(id,color) {
 		if (this.currentTime == 0) this.play();
 		/*var i = $('video').index($(this));
 		setTimeout("v = $('video').eq("+i+"); if (badVideo(v)) updateVideo($(v).children('object').attr('id'));",10);*/
+		// check readyState
+		// if (this.readyState == 0) $(this).children('object').unwrap();
 	});
 	setTimeout("pauseVideo();",0);
 	$('#map').empty();
