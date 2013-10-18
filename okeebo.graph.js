@@ -191,25 +191,37 @@ function draw_graph() {
 			if (continuous) toggle_graph(1);
 			return;
 		}
-		handle_circle_click(_this);
+		handle_circle_click(_this,0,$('path'));
 	});
 	
 	var d2 = new Date();
 	console.log('Draw Graph:', d2.valueOf() - d1.valueOf());
 }
 
-function handle_circle_click(_this,no_timer) {
+function handle_circle_click(_this,no_timer,$path) {
 	if (!no_timer) var d1 = new Date();
 	//var path = $('path[d$=" ' + _this.attr('cx') + ' ' + _this.attr('cy') + '"]');
 	var data = d3.select(_this[0]).data()[0];
 	var path = $('');
 	for (var i=0; i < data.length; ++i) {
 		var parent = data[i];
-		var _path = $('path').filter(function() {
+		var _path = $path.filter(function() {
 			var _child = d3.select(this).data()[0];
+			/**/
+			// ^ toggles WORKS to DRAFT
+			// WORKS
 			var _parent = d3_get_parent_tag(_child);
 			if (parent == _parent || (parent == '`1' && _parent == 'Z1')) return true;
 			else return false;
+			/*/
+			// DRAFT
+			var _parent = d3_get_parent_tag(_child);
+			while (_parent) {
+				if (parent == _parent || (parent == '`1' && _parent == 'Z1')) return true;
+				_parent = d3_get_parent_tag(_parent);
+			}
+			return false;
+			/**/
 		});
 		path = path.add(_path);
 	}
@@ -221,7 +233,7 @@ function handle_circle_click(_this,no_timer) {
 		var color = _this.css('fill').replace(/\s/g,'').toLowerCase();
 		var _return = 0;
 		if (d.length > 1) for (var i=0; i<d.length; ++i) {
-			var route = $('path').filter(function() {
+			var route = $path.filter(function() {
 				return d3.select(this).data()[0] == d[i];
 			});
 			if (route.css('display') == 'inline' && path.index(route) == -1) return false;
@@ -229,13 +241,16 @@ function handle_circle_click(_this,no_timer) {
 		for (var i=0; i<d.length; ++i) {
 			if (-1 != compare.indexOf(d[i])) {
 				if (liteColor.indexOf(color) != -1 || _this.css('display') == 'none') {
-					if (!(liteColor.indexOf(color) != -1 && _this.css('display') == 'none')) handle_circle_click(_this,1);
+					if (!(liteColor.indexOf(color) != -1 && _this.css('display') == 'none')) /**/handle_circle_click(_this,1,$path);
+					/*{	if (_this.css('display') == 'none') _this.css('fill',liteColor[0]).show();
+						else _this.css('fill',darkColor[0]).hide();
+					}*/
 					else {
-						var _path = $('path[d$="' + _this.attr('cx') + ' ' + _this.attr('cy') + '"]');
-						if (_path.index() != -1) _this.css('fill',darkColor[0]);
+						var _path = $path.filter('[d$="' + _this.attr('cx') + ' ' + _this.attr('cy') + '"]');
+						if (_path.index() != -1) _this.css('fill',darkColor[0]);//.show();
 					}
 				}
-				else _this.css('fill',liteColor[0]);
+				else _this.css('fill',liteColor[0]);//.hide();
 				return true;
 			}
 		}
@@ -243,16 +258,13 @@ function handle_circle_click(_this,no_timer) {
 	});
 	
 	if (path.css('display') == 'none') {
-		//var graph = function() {
-			path.show();
-			circles.style('display','inline');
-			_this.css('fill',liteColor[0]);
-		//}
-		//$(document).one('graph',graph);
+		path.show();
+		/**/circles.style('display','inline');
+		_this.css('fill',liteColor[0]);
 	}
 	else {
 		path.hide();
-		circles.style('display','none');
+		/**/circles.style('display','none');
 		_this.css('fill',darkColor[0]);
 	}
 	if (graph_timer) clearTimeout(graph_timer);
