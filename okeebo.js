@@ -44,7 +44,7 @@ function resize_windows(){
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
-	$('img,video,object').width(function(index) {
+	$('img,video,object,table').width(function(index) {
 		var _this = $(this);
 		if (IE && this.removeEventListener) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
 		_mod = (_this.parents('p').prev('.in').html()) ? 50 : 0;
@@ -1117,4 +1117,22 @@ function createIndex(word,times,and) {
 	else explore_tangent('Z3');
 	$(window).resize();
 	return info;
+}
+
+function mathResize() {
+	var f = $(window).width() - 24;
+	$('.OkeeboMath').each(function(index) {
+		var _this = $(this);
+		var l = _this.offset().left;
+		var s = 1.05;
+		do {
+			s -= 0.05;
+			_this.css('font-size',s+'em');
+			var m = 0;
+			_this.find('span').each(function(index) { 
+				var w = $(this).width(); 
+				if (w > m) m = w; 
+			}); 
+		} while (m > f - l);
+	});
 }
