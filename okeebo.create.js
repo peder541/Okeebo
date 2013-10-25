@@ -61,7 +61,7 @@ $(document).ready(function(event) {
 	
 	toggle_edit();
 	
-	// Table
+	/*// Table
 	$(document).on('mousemove',function(event) {
 		if (typeof(ns_resize_table) !== 'undefined' && typeof(ns_resize_table[1]) !== 'undefined') {
 			clear_selected_text();
@@ -101,6 +101,13 @@ $(document).ready(function(event) {
 			}
 			if (_this.css('cursor') == 'ns-resize') {
 				_this = _this.parent('tr');
+				var table = _this.parents('table');
+				console.log(table.css('border-width'));
+				table.find('tr').each(function(index) {
+					var tr = $(this);
+					tr.attr('height',tr.height());
+				});
+				table.removeAttr('height');
 				if (Math.ceil(top)+1>= event.pageY) _this = $('tr').eq($('tr').index(_this)-1);
 				ns_resize_table = [_this,event.pageY,_this.height()];
 				$(document).one('mouseup',function(event) {
@@ -108,7 +115,7 @@ $(document).ready(function(event) {
 				});
 			}
 		}
-	});
+	});*/
 	
 	/// Document Events
 	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
@@ -241,7 +248,6 @@ $(document).ready(function(event) {
 			// Content
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
-		resize_windows();
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
 	})
@@ -274,14 +280,14 @@ $(document).ready(function(event) {
 		setTimeout(keyup,10,$(this));
 	});
 	// Resizable Images in Chrome, Opera, and Safari
-	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object',function(event) {
+	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
 		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
 			var _this = $(this);
 			$('.active-img').removeClass('active-img');
 			$('.resize_handle').remove();
 			_this.addClass('active-img');
 			// Removes Blinking Caret (except for outer pages). Not sure if necessary.
-			if (!$('.outer').is(':visible')) {
+			if (!$('.outer').is(':visible') && !_this.is('table')) {
 				toggle_edit();
 				toggle_edit();
 			}
@@ -619,6 +625,7 @@ $(document).ready(function(event) {
 		var string = getSelectionHtml();
 		page.children('div').append(string);
 		insert_page(0,page,0,0,1);
+		improve_formatting();
 	});
 	$('#sup').on('click',function(event) {
 		document.execCommand('superscript',false,null);
@@ -848,7 +855,7 @@ function drop(event) {
 	if (event.type == 'drop') data = event.dataTransfer.getData("Text");
 	if (!data && typeof(_data) !== 'undefined') data = _data;
 	if (typeof(data) === 'undefined' || data.charCodeAt(1) > 57 || data == 'undefined' || !data) return false;
-	var set_p = $('.inner,.outer').filter(':visible').children('p');
+	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul');
 	var first_p = set_p.first();
 	var first_id = set_p.filter('[id]').first().attr('id');
 	var letter = first_id.charAt(0);
@@ -1634,6 +1641,18 @@ function insertEq() {
 	var math = $('#newMath');
 	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
 	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id').attr('contenteditable','false')));
+}
+
+function insertTable(row,col) {
+	if (typeof(row) === 'number' && typeof(col) === 'number') {
+		var html = '<table border=1>';
+		for (var i=0; i<row; ++i) {
+			html += '<tr>';
+			for (var j=0; j<col; ++j) html += '<td></td>';
+			html += '</tr>';
+		}
+		insertAfter(html);
+	}
 }
 
 function insertAfter(html) {
