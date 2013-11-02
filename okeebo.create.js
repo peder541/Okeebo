@@ -7,8 +7,8 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
-var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page,#equation';
-var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay';
+var writing_buttons = '.writing';
+var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -16,7 +16,7 @@ function resize_writing_items(buffer) {
 	if (!sidebar_width) sidebar_width = 0;
 	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
 	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
-	$(writing_buttons).css('left',base_width-29);
+	$(writing_buttons).css('left',base_width-26);
 	//modify_arrange_buttons();
 	$('.delete').css('margin-left',base_width-89-64);
 	$('.OkeeboMath').each(function(index) { resizeMathLangButtons(index) });
@@ -250,6 +250,7 @@ $(document).ready(function(event) {
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
+		if (document.getSelection().anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -558,18 +559,20 @@ $(document).ready(function(event) {
 		}
 		else {
 			$(writing_buttons).css('position','fixed');
-			$('#bold').css('top',3);
-			$('#italic').css('top',27);
+			$('#bold').css('top',5);
+			$('#italic').css('top',28);
 			$('#underline').css('top',51);
-			$('#ul').css('top',85);
-			$('#ol').css('top',109);
-			$('#img').css('top',143);
-			$('#link').css('top',167);
-			$('#vid').css('top',191);
-			$('#sup').css('top',225);
-			$('#sub').css('top',249);
-			$('#equation').css('top',273);
-			$('#new_page').css('top',307);
+			$('#sup').css('top',74);
+			$('#sub').css('top',97);
+			$('#ul').css('top',130);
+			$('#ol').css('top',153);
+			$('#al').css('top',176);
+			$('#img').css('top',209);
+			$('#link').css('top',232);
+			$('#vid').css('top',255);
+			$('#table').css('top',278);
+			$('#equation').css('top',301);
+			$('#new_page').css('top',324);
 		}
 	});
 	
@@ -595,6 +598,10 @@ $(document).ready(function(event) {
 	});
 	$('#ol').on('click',function(event) {
 		document.execCommand('insertOrderedList', false, null);
+	});
+	$('#al').on('click',function(event) {
+		document.execCommand('insertOrderedList', false, null);
+		$(document.getSelection().anchorNode).parents('ol').attr('type','a');
 	});
 	$('#img').on('click',function(event) {
 		make_iframe();
@@ -626,6 +633,11 @@ $(document).ready(function(event) {
 		page.children('div').append(string);
 		insert_page(0,page,0,0,1);
 		improve_formatting();
+	});
+	$('#table').on('click',function(event) {
+		var row = parseInt(prompt('Number of Rows:'),10);
+		var col = parseInt(prompt('Number of Columns:'),10);
+		insertTable(row,col);
 	});
 	$('#sup').on('click',function(event) {
 		document.execCommand('superscript',false,null);
@@ -736,7 +748,7 @@ function toggle_edit_one(obj) {
 	if (obj.children('h3').attr('contenteditable') == 'true') {
 		obj.children('h3').removeAttr('contenteditable');
 		obj.children('h4').children('p[id]').children('span').removeAttr('contenteditable');	// Placeholder for Unlinked Page Summary 
-		obj.children('p[id]').children('span').removeAttr('contenteditable');
+		obj.children('p[id],.sidebox').children('span,.sum,.full').removeAttr('contenteditable');
 		
 		var h3 = obj.children('h3');
 		var div = h3.next('div[contenteditable]');
@@ -745,14 +757,14 @@ function toggle_edit_one(obj) {
 			if (!data.html()) data = '<p>' + div.html() + '</p>';
 			h3.after(data);
 		}
-		else if (!obj.hasClass('outer')) {
+		else if (!obj.hasClass('outer') && !h3.next().is('.sidebox')) {
 			var data = '<p>Content</p>';
 			h3.after(data);
 		}
 		div.remove();
 		h3.removeAttr('contenteditable');
-		obj.children('p[id]').each(function(index) {
-			var p = obj.children('p[id]').eq(index);
+		obj.children('p[id],.sidebox').each(function(index) {
+			var p = obj.children('p[id],.sidebox').eq(index);
 			div = p.next('div[contenteditable]');
 			if (div.html()) {
 				var data = div.children();
@@ -766,18 +778,18 @@ function toggle_edit_one(obj) {
 	else {
 		obj.children('h3').attr('contenteditable','true');
 		obj.children('h4').children('p[id]').children('span').attr('contenteditable','true');	// Placeholder for Unlinked Page Summary
-		obj.children('p[id]').children('span').attr('contenteditable','true');
+		obj.children('p[id],.sidebox').children('span,.sum,.full').attr('contenteditable','true');
 		
 		obj.children('img').wrap('<p>');
 		
-		var data = obj.children('h3').nextUntil('.in').not('form.linear');
+		var data = obj.children('h3').nextUntil('.in,.sidebox').not('form.linear');
 		if (data.html()) {
 			obj.children('h3').after('<div contenteditable="true"></div>');
 			obj.children('div[contenteditable]').html(data);
 		}
-		obj.children('p[id]').each(function(index) {
-			var p = obj.children('p[id]').eq(index);
-			data = p.nextUntil('.in').not('form.linear,.insert');
+		obj.children('p[id],.sidebox').each(function(index) {
+			var p = obj.children('p[id],.sidebox').eq(index);
+			data = p.nextUntil('.in,.sidebox').not('form.linear,.insert');
 			if (data.html()) {
 				p.after('<div contenteditable="true"></div>');
 				p.next('div[contenteditable]').html(data);
@@ -855,7 +867,7 @@ function drop(event) {
 	if (event.type == 'drop') data = event.dataTransfer.getData("Text");
 	if (!data && typeof(_data) !== 'undefined') data = _data;
 	if (typeof(data) === 'undefined' || data.charCodeAt(1) > 57 || data == 'undefined' || !data) return false;
-	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul');
+	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul,.sidebox');
 	var first_p = set_p.first();
 	var first_id = set_p.filter('[id]').first().attr('id');
 	var letter = first_id.charAt(0);
@@ -1645,13 +1657,58 @@ function insertEq() {
 
 function insertTable(row,col) {
 	if (typeof(row) === 'number' && typeof(col) === 'number') {
-		var html = '<table border=1>';
+		var html = '<table border=1 id="newtable">';
 		for (var i=0; i<row; ++i) {
 			html += '<tr>';
-			for (var j=0; j<col; ++j) html += '<td></td>';
+			for (var j=0; j<col; ++j) html += '<td><br></td>';
 			html += '</tr>';
 		}
 		insertAfter(html);
+	}
+}
+
+function insertCol(place) {
+	var td = $(document.getSelection().anchorNode.parentNode);
+	var i = td.parent('tr').children('td').index(td);
+	var col = $('table').find('tr').children('td:nth-child(' + (i+1) + ')');
+	if (place == 'before') col.before('<td></td>');
+	else col.after('<td></td>');
+}
+
+function insertRow(place) {
+	var td = $(document.getSelection().anchorNode.parentNode);
+	var row = td.parent('tr');
+	var num = row.children('td').index(row.children('td').last()) + 1;
+	var html = '<tr>';
+	for (var i=0; i<num; ++i) html += '<td><br></td>';
+	html += '</tr>';
+	if (place == 'before') row.before(html);
+	else row.after(html);
+}
+
+function deleteCol(table,colNum) {
+	if (table instanceof jQuery && table.is('table')) {
+		var col = table.find('tr').children('td:nth-child(' + (colNum) + ')');
+		col.remove();
+	}
+}
+function deleteRow(table,rowNum) {
+	if (table instanceof jQuery && table.is('table')) {
+		var row = $('table').find('tr').eq(rowNum - 1);
+		row.remove();
+	}
+	else if (typeof(rowNum) === 'undefined') {
+		if (typeof(table) === 'number') {
+			rowNum = table;
+			var td = $(document.getSelection().anchorNode.parentNode);
+			var table = td.parents('table');
+			deleteRow(table,rowNum);
+		}
+		else if (typeof(table) === 'undefined') {
+			var td = $(document.getSelection().anchorNode.parentNode);
+			var row = td.parent('tr');
+			row.remove();
+		}
 	}
 }
 
@@ -2163,3 +2220,18 @@ function save(role) {
 }
 
 setInterval('save("autosave");',60000);
+
+function flocka(event) {
+	var button = $(event.target);
+	var sidebox = button.parent('.sidebox');
+	if (button.html() == '+') {
+		sidebox.children('.sum').hide();
+		sidebox.children('.full').show();
+		button.html('-');
+	}
+	else {
+		sidebox.children('.sum').show();
+		sidebox.children('.full').hide();
+		button.html('+');
+	}
+}
