@@ -118,7 +118,22 @@ $(document).ready(function(event) {
 	});*/
 	
 	/// Document Events
-	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
+	$(document).on('keydown',function(event) { 
+		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
+			switch (event.which) {
+				case 66:
+					$('#bold').click();
+					return false;
+				case 73:
+					$('#italic').click();
+					return false;
+				case 85:
+					$('#underline').click();
+					return false;
+			}
+		} 
+	})
+	.on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
 		if (event.which == 13) {
 			$(this).blur();
 			return false;
@@ -250,7 +265,8 @@ $(document).ready(function(event) {
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
-		if (document.getSelection().anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
+		var anchorNode = document.getSelection().anchorNode;
+		if (anchorNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -630,6 +646,7 @@ $(document).ready(function(event) {
 	$('#new_page').on('click',function(event) {
 		var page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
 		var string = getSelectionHtml();
+		if (string == '') string = '<p>Content</p>';
 		page.children('div').append(string);
 		insert_page(0,page,0,0,1);
 		improve_formatting();
@@ -1740,7 +1757,8 @@ function iframe_trigger() {
 }
 function iframe_to_image(iframe) {
 	if (!iframe) iframe = parent.$('iframe');
-	iframe.replaceWith(iframe.contents().find('img'));
+	var img = iframe.contents().find('img');
+	if (img.index() != -1) iframe.replaceWith(img);
 	parent.$('title').html('Okeebo');
 	image_wrap();
 }
@@ -1860,7 +1878,7 @@ function DisplayToCode(index,type) {
 			if (type == 'tex') MathMLtoTeX(index);
 		}
 	}
-	else console.log('none');
+	else return false;
 	return;
 }
 
@@ -2166,10 +2184,15 @@ function mathPublish() {
 
 function save(role) {
 	var text = '';
-	DisplayToCode();
+	var code = new Array();
+	var okeeboMath = $('.OkeeboMath').each(function(index) { 
+		code.push(DisplayToCode(index)); 
+	});
 	var $body = $('body').clone();
-	CodeToDisplay();
-	$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) });
+	okeeboMath.each(function(index) { 
+		if (code[index] !== false) CodeToDisplay(index);
+		insertMathLangButtons(index) 
+	});
 	
 	$body.find('.OkeeboMath').each(function(index) {
 		var _this = $(this);
@@ -2205,11 +2228,11 @@ function save(role) {
 	});
 	
 	if (role == 'autosave') {
-		$('#_save').val(text);
-		$('#_title').val($('.Z1 h3').html());
-		$('#_publish').val('autosave');
-		$.post('https://www.okeebo.com/beta/publish.php',$('form.save').serialize(),function(data) { console.log('Autosaved at ' + Date()); });
-		$('#_publish').val('');
+		$body.find('#_save').val(text);
+		$body.find('#_title').val($('.Z1 h3').html());
+		$body.find('#_publish').val('autosave');
+		$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Autosaved at ' + Date()); });
+		$body.find('#_publish').val('');
 	}
 	else {
 		$('#_save').val(text);
@@ -2234,4 +2257,52 @@ function flocka(event) {
 		sidebox.children('.full').hide();
 		button.html('+');
 	}
+}
+
+function mobile_drag() {
+	$('.handle').on('click',function(event) {
+		var handle = $(this);
+		var parentP = handle.parent('p[id]');
+		var outer = parentP.parent('.outer');
+		var p_set = outer.children('p[id]');
+		var first_p = p_set.first();
+		var last_p = p_set.last();
+		$('.upp,.dwn').remove();
+		if (!parentP.is(first_p)) {
+			handle.before('<div class="upp">&uArr;</div>');
+			$('.upp').on('click',function(event) {
+				var id = parentP.attr('id');
+				var letter = id.charAt(0);
+				var number = id.substr(1);
+				$('.' + letter + (number-1)).before(parentP);
+				parentP.before($('.'+id));
+				$('.upp,.dwn').remove();
+				arrange_links(':visible','a',1);
+				repair_links(':visible','a',1);
+				update_all_affected_links('a1');
+			}).css('top',handle.offset().top-99);//-99
+		}
+		if (!parentP.is(last_p)) {
+			handle.after('<div class="dwn">&dArr;</div>');
+			$('.dwn').on('click',function(event) {
+				var id = parentP.attr('id');
+				var letter = id.charAt(0);
+				var number = id.substr(1);
+				$('#' + letter + (++number)).after(parentP);
+				parentP.before($('.'+id));
+				$('.upp,.dwn').remove();
+				arrange_links(':visible','a',1);
+				repair_links(':visible','a',1);
+				update_all_affected_links('a1');
+			}).css('top',handle.offset().top-57);//-57
+		}
+		up_down();
+	});
+}
+
+function up_down() {
+	$(document).one('click',function(event) {
+		if ($(event.target).is('.upp,.dwn,.handle')) up_down();
+		else $('.upp,.dwn').remove();
+	});
 }
