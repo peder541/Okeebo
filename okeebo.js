@@ -636,10 +636,7 @@ function concept_zoom_in(id) {
 		if ($('#status').is(':visible')) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		$(window).scrollTop(0);
-		var old_obj = $('.outer').filter(':visible');
-		var a = old_obj.children('.in + p').first().attr('id');
-		a = a.substr(1);
-		var b = number - a + 1;
+		var old_obj = $('.' + id).parent('.outer');
 		
 		$('.' + letter + number).fadeIn();
 		old_obj.fadeOut();
@@ -675,9 +672,10 @@ function size_linear_buttons(obj) {
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (sidebar_width) _width -= sidebar_width;
 	$('.left,.right').width(_width);
-	$('.right').css('left',obj.outerWidth()+obj.offset().left-12);
+	var pos = obj.outerWidth()+obj.offset().left-12;
+	$('.right').css('left',pos);
 	$('.left').css('background-position',_width/2-6);
-	$('.right').css('background-position',$('.right').offset().left+_width/2-6);
+	$('.right').css('background-position',pos+_width/2-6);
 	var l = obj.attr('id').charAt(0);
 	var n = parseInt(obj.attr('id').substr(1),10);
 	if (!$('.'+l+(n-1)).html()) $('.left').css({'cursor':'default','background-image':'none'});
@@ -685,8 +683,8 @@ function size_linear_buttons(obj) {
 	if (!$('.'+l+(n+1)).html()) $('.right').css({'cursor':'default','background-image':'none'});
 	else $('.right').css({'cursor':'pointer','background-image':''});
 	if (mobile == 1) {
-		linear_buttons = $('.left,.right').css('background-image','none').detach();
-		setTimeout("$('body').append(linear_buttons.css('background-image','')); delete window.linear_buttons;",10);
+		var linear_buttons = $('.left,.right').css('background-image','none').detach();
+		$('body').append(linear_buttons.css('background-image',''));
 	}
 }
 
