@@ -817,25 +817,24 @@ function toggle_edit_one(obj) {
 
 /// Turns off edit for outer pages but leaves edit on for inner pages. Unsure if this would be expected behavior or if edit should be entirely off.
 /// If edit should be entirely off, other areas in the code will also need changing.
-function toggle_drag() {
-	if (!$('.outer p[id]').attr('draggable')) {
-		$('.outer p[id]').attr({'draggable':'true','ondragstart':'drag(event)'});
-		$('.outer').attr({'ondrop':'drop(event)','ondragover':'allowDrop(event)'});
-		
-		$('.outer').on('selectstart','p[id]',function(event){ 
+function toggle_drag(singlePage) {
+	var outer = $('.outer');
+	if (singlePage) outer = outer.filter(':visible');
+	var pID = outer.find('p[id]');
+	if (!pID.attr('draggable')) {
+		pID.attr({'draggable':'true','ondragstart':'drag(event)'});
+		outer.on('selectstart','p[id]',function(event){ 
 			_data = $(event.target).parent().attr('id');
 			if (this.dragDrop) this.dragDrop();
 			return false;
-		});
-		$('.outer p[id]').css('cursor','move').css('outline-color','');
+		}).attr({'ondrop':'drop(event)','ondragover':'allowDrop(event)'});
+		pID.css('cursor','move').css('outline-color','');
 		
 	}
 	else {
-		$('p[id]').removeAttr('draggable').removeAttr('ondragstart');
-		$('.inner,.outer').removeAttr('ondrop').removeAttr('ondragover');
-		
-		$('.inner,.outer').off('selectstart');
-		$('.outer p[id]').css('cursor','auto');
+		pID.removeAttr('draggable').removeAttr('ondragstart');
+		outer.add(singlePage ? '' : '.inner').removeAttr('ondrop').removeAttr('ondragover').off('selectstart');
+		pID.css('cursor','auto');
 		
 		/// For Touch Devices
 		$('#dragdrop').remove();
@@ -844,7 +843,7 @@ function toggle_drag() {
 	if (!_drag) {
 		_drag = 1;
 		if ($('#bold').is(':visible')) {
-			$('.outer').each(function(event) {
+			outer.each(function(event) {
 				toggle_edit_one($(this));
 			});
 			_edit = 1;
@@ -853,7 +852,7 @@ function toggle_drag() {
 	else {
 		_drag = 0;
 		if (_edit) {
-			$('.outer').each(function(event) {
+			outer.each(function(event) {
 				toggle_edit_one($(this));
 			});
 			_edit = 0;
@@ -884,7 +883,7 @@ function drop(event) {
 	if (event.type == 'drop') data = event.dataTransfer.getData("Text");
 	if (!data && typeof(_data) !== 'undefined') data = _data;
 	if (typeof(data) === 'undefined' || data.charCodeAt(1) > 57 || data == 'undefined' || !data) return false;
-	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul,.sidebox');
+	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul,.sidebox,table');
 	var first_p = set_p.first();
 	var first_id = set_p.filter('[id]').first().attr('id');
 	var letter = first_id.charAt(0);
@@ -1778,14 +1777,14 @@ function create_handles(id) {
 		.on('mousedown',function(event) {
 			clear_selected_text();
 			$('p[id]').css('outline','');
-			toggle_drag();
+			toggle_drag(1);
 			$(document).on('mouseout mouseup',function(event) {
-				toggle_drag();
+				toggle_drag(1);
 				$(document).off('mouseout mouseup');
 				if (event.type == 'mouseup') $(event.target).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'});
 			});
 			//$('.inner p').css('outline','dashed 1px #ccc'); 
-			$('.outer').attr('ondrop','drop(event); toggle_drag(); $(document).off("mouseout mouseup");');
+			$('.outer').attr('ondrop','drop(event); toggle_drag(1); $(document).off("mouseout mouseup");');
 			
 			color_dragging(event,$(this).parent('p[id]').attr('id'));
 		})
