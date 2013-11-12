@@ -305,8 +305,10 @@ $(document).ready(function(event) {
 			_this.addClass('active-img');
 			// Removes Blinking Caret (except for outer pages). Not sure if necessary.
 			if (!$('.outer').is(':visible') && !_this.is('table')) {
-				toggle_edit();
-				toggle_edit();
+				var sel = document.getSelection();
+				if (sel.empty) sel.empty();  // Chrome
+				else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+				else if (document.selection) document.selection.empty(); // IE
 			}
 			_this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
 			
@@ -1533,7 +1535,7 @@ function create_sidebar() {
 		var text = '';
 		
 		$('video').replaceWith(function(index) { return $(this).children('object'); });
-		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
+		$('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
 		
 		$('.handle,.delete').remove();
 		$('.inner,.outer').each(function(index) {
@@ -1662,6 +1664,18 @@ function insert_video() {
 			$('#' + id).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
 		});
 	}
+	// Additional Support for Vimeo
+	else if (yt_url.search('vimeo') != -1) {
+		var vimeo = yt_url.match(/[0-9]{8}/)[0];	
+		var id = "newVid" + String(Math.random()).replace(/\./g,'');
+		insertAfter('<video id="' + id + '" width="640" height="360"></video>');
+		$.get('https://www.okeebo.com/video/vimeo.php?id=' + vimeo + '&html5',function(data) {
+			$('#' + id).replaceWith(data);
+		}).fail(function(data) {
+			var flash = 'https://vimeo.com/moogaloop.swf?clip_id=' + vimeo;			
+			$('#' + id).replaceWith('<object id="' + vimeo + '" type="application/x-shockwave-flash" width="640" height="360" data="' + flash + '">\n			<param name="flashvars" value="clip_id=' + vimeo + '&amp;js_getConfig=getConfig&amp;js_setConfig=setConfig&amp;js_onLoad=onMoogaloopLoaded' + '&amp;api=1' + '&amp;moogaloop_type=moogaloop">' + '\n			<param name="movie" value="' + flash + '">\n			<param name="allowfullscreen" value="true">\n			<param name="allowscriptaccess" value="always">\n			<param name="wmode" value="opaque">\n			<param name="quality" value="high">\n			<param name="scalemode" value="noscale">\n		</object>');
+		});
+	}
 }
 
 function insertEq() {
@@ -1673,7 +1687,7 @@ function insertEq() {
 
 function insertTable(row,col) {
 	if (typeof(row) === 'number' && typeof(col) === 'number') {
-		var html = '<table border=1 id="newtable">';
+		var html = '<table border=1>';
 		for (var i=0; i<row; ++i) {
 			html += '<tr>';
 			for (var j=0; j<col; ++j) html += '<td><br></td>';
@@ -1914,11 +1928,11 @@ function MathMLtoTeX(index,change) {
 		if (change) container = index;
 		else container = index.clone();
 	}
-	else if (index instanceof HTMLElement) {
+	else if (typeof(HTMLElement) !== 'undefined' && index instanceof HTMLElement) {
 		MathMLtoTeX($().add(index),change);
 		return;	
 	}
-	else if (index instanceof HTMLCollection) {
+	else if (typeof(HTMLCollection) !== 'undefined' && index instanceof HTMLCollection) {
 		var length = index.length;
 		for (var i=0; i<length; ++i) MathMLtoTeX(index[i],change);
 		return;	
@@ -2204,7 +2218,7 @@ function save(role) {
 	improve_formatting($body);
 	
 	$body.find('video').replaceWith(function(index) { return $(this).children('object'); });
-	$body.find('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
+	$body.find('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
 	
 	$body.find('.handle,.delete').remove();
 	$body.find('.inner,.outer').each(function(index) {
