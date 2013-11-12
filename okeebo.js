@@ -176,9 +176,16 @@ $(document).ready(function() {
 				if (_target) $('#info').html($('.' + _target + ' > .in + p').eq(n1-1).children('span').html());
 				else if (target) $('#info').html($('.' + target + ' > h3').html());
 			}
-			$('#info').css({'top':7,'left':'auto','right':10});
+			$('#info').css({'top':7,'left':'auto','padding-right':10,'right':0});
 			info_timer = setTimeout("$('#info').show()",500);
-			if ($('#info').height() + 7 > $(this).offset().top) $('#info').css('top',$(this).offset().top + 24);
+			var scrollTop = $(window).scrollTop();
+			var pos = $(this).offset();
+			var $info = $('#info');
+			$info.show();
+			var $info_left = $info.offset().left;
+			$info.hide();
+			var left_test = pos.left + 12 > $info_left || $info_left == 0;
+			if ($('#info').height() + 7 + scrollTop > pos.top && left_test) $('#info').css('top',pos.top + 24 - scrollTop);
 		}
 		else {
 			$('.node').mouseleave();						// Clear Tooltip
@@ -971,7 +978,7 @@ function loadVideos() {
 		}).fail(function() {
 			yt.eq(i).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
 		});
-	});	
+	});
 }
 function flashToHTML5() {
 	$('object[data*="youtube"]').not('video object').each(function(i,e) {
@@ -1133,4 +1140,141 @@ function mathResize() {
 			}); 
 		} while (m > f - l);
 	});
+}
+
+function spanTable() {
+	$('.span-td').replaceWith(function() { return '<td height>' + $(this).html() + '</td>'; });
+	$('.span-tr').replaceWith(function() { return '<tr>' + $(this).html() + '</tr>'; });
+	$('.span-table').replaceWith(function() { return '<table border="1">' + $(this).html() + '</table>'; });	
+}
+function tableSpan() {
+	$('td').replaceWith(function() { return '<span class="span-td">' + $(this).html() + '</span>' });
+	$('tr').replaceWith(function() { return '<span class="span-tr">' + $(this).html() + '</span>' });
+	$('table').replaceWith(function() { return '<span class="span-table">' + $(this).html() + '</span>' });	
+}
+
+function hilite() {
+	var sel = document.getSelection();
+	var str = sel.toString();
+	
+	var $anchor = $(sel.anchorNode).parent();
+	var $focus = $(sel.focusNode).parent();
+	
+	var anchorOffsetAdjust = 0;
+	var anchorPrev = sel.anchorNode.previousSibling;
+	if ($anchor.is('span,a,b,i,u')) {
+		var t = $anchor[0].outerHTML;
+		/*if ($anchor.is('.note')) /**/anchorOffsetAdjust = -sel.anchorOffset;
+		//else anchorOffsetAdjust = t.indexOf('>') + 1;		// Uncomment to let inline elements be split by highlight
+		$anchor = $anchor.parent();
+		anchorOffsetAdjust += $anchor.html().indexOf(t);
+	}
+	else while (anchorPrev) {
+		anchorOffsetAdjust += (anchorPrev.outerHTML || anchorPrev.textContent).length;
+		anchorPrev = anchorPrev.previousSibling;
+	}
+	
+	var focusOffsetAdjust = 0;
+	var focusPrev = sel.focusNode.previousSibling;
+	if ($focus.is('span,a,b,i,u')) {
+		var t = $focus[0].outerHTML;
+		/*if ($focus.is('.note')) /**/focusOffsetAdjust = -sel.focusOffset;
+		//else focusOffsetAdjust = t.indexOf('>') + 1;		// Uncomment to let inline elements be split by highlight
+		$focus = $focus.parent();
+		focusOffsetAdjust += $focus.html().indexOf(t);
+	}
+	else while (focusPrev) {	
+		focusOffsetAdjust += (focusPrev.outerHTML || focusPrev.textContent).length;
+		focusPrev = focusPrev.previousSibling;
+	}
+	
+	var $parent = $anchor.parent('.inner,.outer');
+	var $children = $parent.children();
+	
+	var anchorIndex = $children.index($anchor);
+	var focusIndex = $children.index($focus);
+	
+	if (anchorIndex <= focusIndex) {
+		var startIndex = anchorIndex;
+		var stopIndex = focusIndex;
+		var startPos = sel.anchorOffset + anchorOffsetAdjust;
+		var stopPos = sel.focusOffset + focusOffsetAdjust;
+	}
+	else {
+		var startIndex = focusIndex;
+		var stopIndex = anchorIndex;
+		var startPos = sel.focusOffset + focusOffsetAdjust;
+		var stopPos = sel.anchorOffset + anchorOffsetAdjust;
+	}
+	
+	var newHTML = '';
+	
+	$children.each(function(i,e) {
+		var html = e.outerHTML;
+		var text = e.innerHTML;
+		
+		var tagPos = html.indexOf(text);
+		var openTag = html.substr(0,tagPos);
+		var closeTag = html.substr(tagPos + text.length);
+		
+		if (tagPos == -1) console.log('Error: "' + text.substr(0,4) + '" not found.');
+		
+		if (i == startIndex) {
+			if (startIndex == stopIndex) {
+				if (startPos > stopPos) {
+					tempPos = startPos;
+					startPos = stopPos;
+					stopPos = tempPos;
+				}
+				newHTML += openTag + text.substr(0,startPos) + '<span class="note">' + text.substring(startPos,stopPos) + '</span>' + text.substr(stopPos) + closeTag;
+			}
+			else newHTML += openTag + text.substr(0,startPos) + '<span class="note">' + text.substr(startPos) + '</span>' + closeTag;
+		}
+		else if (i == stopIndex) newHTML += openTag + '<span class="note">' + text.substr(0,stopPos) + '</span>' + text.substr(stopPos) + closeTag;
+		else if (i > startIndex && i < stopIndex) newHTML += openTag + '<span class="note">' + text + '</span>' + closeTag;
+		else newHTML += html;
+	});
+	
+	$parent.html(newHTML);
+	
+	$('.note').css('background-color','#ff8');
+	
+	while ($('.note .note').index() != -1) $('.note .note').replaceWith(function() { return this.innerHTML; });
+	$('.note').html(function() { return this.innerHTML; });
+	
+	// Clears Selection
+	if (sel.empty) sel.empty();  // Chrome
+	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	else if (document.selection) document.selection.empty(); // IE
+}
+
+$(document).ready(function(event) {
+	$(document).on('keydown',function(event) {
+		if (event.which == 113) {
+			if (IE) hiliteIE();
+			else hilite2();
+			return false;	
+		}
+	});
+});
+
+function hiliteIE() {
+	$('strong').replaceWith(function() { return '<b>' + this.innerHTML + '</b>'; });
+	document.execCommand('bold',false,null);
+	$('strong').replaceWith(function() { return '<span class="note">' + this.innerHTML + '</span>'; });
+	$('.note').css('background-color','#ff8');
+	document.selection.empty();
+}
+
+function hilite2() {
+	var page = $('.inner,.outer').filter(':visible');
+	page.attr('contenteditable','true')
+	document.execCommand('hiliteColor',false,'#ff8')
+	page.removeAttr('contenteditable');
+	var sel = document.getSelection();
+	if (sel.empty) sel.empty();  // Chrome
+	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	$('span[style*="background-color"]')
+		.filter('[style*="rgb(255, 255, 136)"],[style*="rgb(255,255,136)"],[style*="#ff8"],[style*="#FF8"],[style*="#ffff88"],[style*="#FFFF8*"]')
+		.addClass('note');
 }
