@@ -420,3 +420,43 @@ function d3_get_parent_tag(id) {
 	}
 	return false;
 }
+
+function sqrColor(l) {
+	var r=0,g=0,b=0;
+	if (l > 765) return sqrColor(l-765);
+	else if (l <= 255) {
+		b = Math.ceil(Math.sqrt(Math.max(0,65025-l*l))); 
+		g = Math.floor(Math.sqrt(Math.max(0,65025-Math.pow(l-255,2))));
+	}
+	else if (l <= 510) {
+		l -= 255;
+		g = Math.ceil(Math.sqrt(Math.max(0,65025-l*l))); 
+		r = Math.floor(Math.sqrt(Math.max(0,65025-Math.pow(l-255,2))));
+	}
+	else {
+		l -= 510;
+		r = Math.ceil(Math.sqrt(Math.max(0,65025-l*l))); 
+		b = Math.floor(Math.sqrt(Math.max(0,65025-Math.pow(l-255,2))));
+	}
+	return 'rgb('+r+','+g+','+b+')';
+}
+
+function logColor(l) {
+	var r=0,g=0,b=0;
+	if (l > 765) return sqrColor(l-765);
+	else if (l <= 255) {
+		b = Math.ceil(46*Math.log(Math.max(1,255-l)));
+		g = Math.ceil(46*Math.log(Math.max(1,l))); 
+	}
+	else if (l <= 510) {
+		l -= 255;
+		g = Math.ceil(46*Math.log(Math.max(1,255-l)));
+		r = Math.ceil(46*Math.log(Math.max(1,l)));
+	}
+	else {
+		l -= 510;
+		r = Math.ceil(46*Math.log(Math.max(1,255-l)));
+		b = Math.ceil(46*Math.log(Math.max(1,l)));
+	}
+	return 'rgb('+r+','+g+','+b+')';
+}
