@@ -390,6 +390,7 @@ function draw_lines() {
 						.style('display',
 							(darkColor.indexOf(color) != -1 || pos[parent][3] == 'none' || pos[id][3] == 'none')
 								? 'none' : 'inline');
+								
 				}
 			}
 		}
@@ -399,7 +400,7 @@ function draw_lines() {
 		edge = d3.select($(this)[0]).data()[0];
 	}).on('mouseout',function(event) {
 		edge = null;
-	});
+	}).insertBefore($('circle').eq(0));
 	
 	var d2 = new Date();
 	
