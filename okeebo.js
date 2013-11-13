@@ -1153,107 +1153,17 @@ function tableSpan() {
 	$('table').replaceWith(function() { return '<span class="span-table">' + $(this).html() + '</span>' });	
 }
 
-function hilite() {
-	var sel = document.getSelection();
-	var str = sel.toString();
-	
-	var $anchor = $(sel.anchorNode).parent();
-	var $focus = $(sel.focusNode).parent();
-	
-	var anchorOffsetAdjust = 0;
-	var anchorPrev = sel.anchorNode.previousSibling;
-	if ($anchor.is('span,a,b,i,u')) {
-		var t = $anchor[0].outerHTML;
-		/*if ($anchor.is('.note')) /**/anchorOffsetAdjust = -sel.anchorOffset;
-		//else anchorOffsetAdjust = t.indexOf('>') + 1;		// Uncomment to let inline elements be split by highlight
-		$anchor = $anchor.parent();
-		anchorOffsetAdjust += $anchor.html().indexOf(t);
-	}
-	else while (anchorPrev) {
-		anchorOffsetAdjust += (anchorPrev.outerHTML || anchorPrev.textContent).length;
-		anchorPrev = anchorPrev.previousSibling;
-	}
-	
-	var focusOffsetAdjust = 0;
-	var focusPrev = sel.focusNode.previousSibling;
-	if ($focus.is('span,a,b,i,u')) {
-		var t = $focus[0].outerHTML;
-		/*if ($focus.is('.note')) /**/focusOffsetAdjust = -sel.focusOffset;
-		//else focusOffsetAdjust = t.indexOf('>') + 1;		// Uncomment to let inline elements be split by highlight
-		$focus = $focus.parent();
-		focusOffsetAdjust += $focus.html().indexOf(t);
-	}
-	else while (focusPrev) {	
-		focusOffsetAdjust += (focusPrev.outerHTML || focusPrev.textContent).length;
-		focusPrev = focusPrev.previousSibling;
-	}
-	
-	var $parent = $anchor.parent('.inner,.outer');
-	var $children = $parent.children();
-	
-	var anchorIndex = $children.index($anchor);
-	var focusIndex = $children.index($focus);
-	
-	if (anchorIndex <= focusIndex) {
-		var startIndex = anchorIndex;
-		var stopIndex = focusIndex;
-		var startPos = sel.anchorOffset + anchorOffsetAdjust;
-		var stopPos = sel.focusOffset + focusOffsetAdjust;
-	}
-	else {
-		var startIndex = focusIndex;
-		var stopIndex = anchorIndex;
-		var startPos = sel.focusOffset + focusOffsetAdjust;
-		var stopPos = sel.anchorOffset + anchorOffsetAdjust;
-	}
-	
-	var newHTML = '';
-	
-	$children.each(function(i,e) {
-		var html = e.outerHTML;
-		var text = e.innerHTML;
-		
-		var tagPos = html.indexOf(text);
-		var openTag = html.substr(0,tagPos);
-		var closeTag = html.substr(tagPos + text.length);
-		
-		if (tagPos == -1) console.log('Error: "' + text.substr(0,4) + '" not found.');
-		
-		if (i == startIndex) {
-			if (startIndex == stopIndex) {
-				if (startPos > stopPos) {
-					tempPos = startPos;
-					startPos = stopPos;
-					stopPos = tempPos;
-				}
-				newHTML += openTag + text.substr(0,startPos) + '<span class="note">' + text.substring(startPos,stopPos) + '</span>' + text.substr(stopPos) + closeTag;
-			}
-			else newHTML += openTag + text.substr(0,startPos) + '<span class="note">' + text.substr(startPos) + '</span>' + closeTag;
-		}
-		else if (i == stopIndex) newHTML += openTag + '<span class="note">' + text.substr(0,stopPos) + '</span>' + text.substr(stopPos) + closeTag;
-		else if (i > startIndex && i < stopIndex) newHTML += openTag + '<span class="note">' + text + '</span>' + closeTag;
-		else newHTML += html;
-	});
-	
-	$parent.html(newHTML);
-	
-	$('.note').css('background-color','#ff8');
-	
-	while ($('.note .note').index() != -1) $('.note .note').replaceWith(function() { return this.innerHTML; });
-	$('.note').html(function() { return this.innerHTML; });
-	
-	// Clears Selection
-	if (sel.empty) sel.empty();  // Chrome
-	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
-	else if (document.selection) document.selection.empty(); // IE
-}
-
 $(document).ready(function(event) {
 	$(document).on('keydown',function(event) {
+		// F2
 		if (event.which == 113) {
 			if (IE) hiliteIE();
 			else hilite2();
 			return false;	
+		}
+		// F8
+		if (event.which == 119) {
+			unhilite();	
 		}
 	});
 });
@@ -1275,6 +1185,25 @@ function hilite2() {
 	if (sel.empty) sel.empty();  // Chrome
 	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
 	$('span[style*="background-color"]')
-		.filter('[style*="rgb(255, 255, 136)"],[style*="rgb(255,255,136)"],[style*="#ff8"],[style*="#FF8"],[style*="#ffff88"],[style*="#FFFF8*"]')
+		.filter('[style*="rgb(255, 255, 136)"],[style*="rgb(255,255,136)"],[style*="#ff8"],[style*="#FF8"],[style*="#ffff88"],[style*="#FFFF88"]')
 		.addClass('note');
+		
+	$('.in > .note').replaceWith(function() { return this.innerHTML; });
+	$('.note > .in').unwrap();
+}
+
+function unhilite() {
+	var page = $('.inner,.outer').filter(':visible');
+	page.attr('contenteditable','true')
+	document.execCommand('hiliteColor',false,'#fcfcfc')
+	page.removeAttr('contenteditable');
+	var sel = document.getSelection();
+	if (sel.empty) sel.empty();  // Chrome
+	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	$('span[style*="background-color"]')
+		.filter('[style*="rgb(252, 252, 252)"],[style*="rgb(252,252,252)"],[style*="#fcfcfc"],[style*="#FCFCFC"]')
+		.addClass('blank');
+		
+	$('.blank .note').replaceWith(function() { return this.innerHTML; });
+	$('.blank').replaceWith(function() { return this.innerHTML; });
 }
