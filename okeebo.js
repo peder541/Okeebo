@@ -45,11 +45,11 @@ function resize_windows(){
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
 	$('img,video,object,table').width(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		if (IE && this.removeEventListener) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
-		_mod = (_this.parents('p').prev('.in').html()) ? 50 : 0;
-		var new_width = Math.min(max_img_width - _mod,_this.attr('width'))
-		if (_this.attr('height')) _this.height(new_width/_this.attr('width') * _this.attr('height'));
+		_mod = ($this.parents('p').prev('.in').html()) ? 50 : 0;
+		var new_width = Math.min(max_img_width - _mod,$this.attr('width'))
+		if ($this.attr('height')) $this.height(new_width/$this.attr('width') * $this.attr('height'));
 		return new_width;
 	});
 	if (IE) $('img').each(function(index) {
@@ -60,9 +60,9 @@ function resize_windows(){
 
 // Makes IE Resize images using Attributes instead of CSS.
 function dom_attr_mod(ev) {
-	var _this = $(this);
-	_this.attr('width',_this.width());
-	_this.attr('height',_this.height());
+	var $this = $(this);
+	$this.attr('width',$this.width());
+	$this.attr('height',$this.height());
 }
 
 function get_scrollbar_width() {
@@ -1127,14 +1127,14 @@ function createIndex(word,times,and) {
 function mathResize() {
 	var f = $(window).width() - 24;
 	$('.OkeeboMath').each(function(index) {
-		var _this = $(this);
-		var l = _this.offset().left;
+		var $this = $(this);
+		var l = $this.offset().left;
 		var s = 1.05;
 		do {
 			s -= 0.05;
-			_this.css('font-size',s+'em');
+			$this.css('font-size',s+'em');
 			var m = 0;
-			_this.find('span').each(function(index) { 
+			$this.find('span').each(function(index) { 
 				var w = $(this).width(); 
 				if (w > m) m = w; 
 			}); 
