@@ -81,35 +81,35 @@ $(document).ready(function(event) {
 		}
 	});
 	$(document).on('mousedown mousemove','td',function(event) {
-		var _this = $(this);
-		var left = _this.offset().left;
-		var top = _this.offset().top;
-		var width = _this.outerWidth();
-		var height = _this.outerHeight();
+		var $this = $(this);
+		var left = $this.offset().left;
+		var top = $this.offset().top;
+		var width = $this.outerWidth();
+		var height = $this.outerHeight();
 		if (event.type == 'mousemove') {
-			if (Math.ceil(left) == event.pageX || Math.floor(width + left) - 3 <= event.pageX) _this.css('cursor','ew-resize');
-			else if (Math.ceil(top) + 1 >= event.pageY || Math.floor(height + top) - 3 <= event.pageY) _this.css('cursor','ns-resize');
-			else _this.css('cursor','');
+			if (Math.ceil(left) == event.pageX || Math.floor(width + left) - 3 <= event.pageX) $this.css('cursor','ew-resize');
+			else if (Math.ceil(top) + 1 >= event.pageY || Math.floor(height + top) - 3 <= event.pageY) $this.css('cursor','ns-resize');
+			else $this.css('cursor','');
 		}
 		if (event.type == 'mousedown') {
-			if (_this.css('cursor') == 'ew-resize') {
-				if (Math.ceil(left) == event.pageX) _this = $('td').eq($('td').index(_this)-1);
-				ew_resize_table = [_this,event.pageX,_this.width()];
+			if ($this.css('cursor') == 'ew-resize') {
+				if (Math.ceil(left) == event.pageX) $this = $('td').eq($('td').index($this)-1);
+				ew_resize_table = [$this,event.pageX,$this.width()];
 				$(document).one('mouseup',function(event) {
 					delete ew_resize_table;
 				});
 			}
-			if (_this.css('cursor') == 'ns-resize') {
-				_this = _this.parent('tr');
-				var table = _this.parents('table');
+			if ($this.css('cursor') == 'ns-resize') {
+				$this = $this.parent('tr');
+				var table = $this.parents('table');
 				console.log(table.css('border-width'));
 				table.find('tr').each(function(index) {
 					var tr = $(this);
 					tr.attr('height',tr.height());
 				});
 				table.removeAttr('height');
-				if (Math.ceil(top)+1>= event.pageY) _this = $('tr').eq($('tr').index(_this)-1);
-				ns_resize_table = [_this,event.pageY,_this.height()];
+				if (Math.ceil(top)+1>= event.pageY) $this = $('tr').eq($('tr').index($this)-1);
+				ns_resize_table = [$this,event.pageY,$this.height()];
 				$(document).one('mouseup',function(event) {
 					delete ns_resize_table;
 				});
@@ -165,8 +165,8 @@ $(document).ready(function(event) {
 					document.execCommand('insertHTML',false,'<br>');
 				}
 				catch (e) {
-					var _this = $(this);
-					var spans = _this.parent().children('span');
+					var $this = $(this);
+					var spans = $this.parent().children('span');
 					spans.eq(0).append('<br id="hook">' + spans.eq(1).detach().html());
 					
 					spans.eq(0).focus();
@@ -299,18 +299,18 @@ $(document).ready(function(event) {
 	// Resizable Images in Chrome, Opera, and Safari
 	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
 		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
-			var _this = $(this);
+			var $this = $(this);
 			$('.active-img').removeClass('active-img');
 			$('.resize_handle').remove();
-			_this.addClass('active-img');
+			$this.addClass('active-img');
 			// Removes Blinking Caret (except for outer pages). Not sure if necessary.
-			if (!$('.outer').is(':visible') && !_this.is('table')) {
+			if (!$('.outer').is(':visible') && !$this.is('table')) {
 				var sel = document.getSelection();
 				if (sel.empty) sel.empty();  // Chrome
 				else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
 				else if (document.selection) document.selection.empty(); // IE
 			}
-			_this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
+			$this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
 			
 			$('body')
 				.append('<div class="resize_handle" id="nw"> </div>')
@@ -322,10 +322,10 @@ $(document).ready(function(event) {
 				.append('<div class="resize_handle" id="sw"> </div>')
 				.append('<div class="resize_handle" id="w"> </div>');
 				
-			var _top = _this.offset().top;
-			var _left = _this.offset().left;
-			var _width = _this.width();
-			var _height = _this.height();
+			var _top = $this.offset().top;
+			var _left = $this.offset().left;
+			var _width = $this.width();
+			var _height = $this.height();
 			
 			$('#nw,#n,#ne').css('top', _top - 3);
 			$('#w,#e').css('top', _top + _height/2 - 3);
@@ -708,11 +708,11 @@ function improve_formatting($obj) {
 	
 	// Plain-text cuts inline elements out of paragraphs. Fixing with this.
 	$obj.find('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
-		var _this = $(this);
-		var prev_p = _this.prev('p');
-		if (prev_p.html()) _this.prev('p').append(_this);
-		else _this.wrap('<p>');
-		var new_parent = _this.parent('p');
+		var $this = $(this);
+		var prev_p = $this.prev('p');
+		if (prev_p.html()) $this.prev('p').append($this);
+		else $this.wrap('<p>');
+		var new_parent = $this.parent('p');
 		new_parent.append(new_parent.next('p').detach().html());
 	});
 	
@@ -739,20 +739,20 @@ function toggle_edit() {
 	}
 	else {
 		$('body').on('click mousedown focus','[contenteditable="true"]',function(event) {
-			var _this = $(this);
+			var $this = $(this);
 			/*
 			if ($(event.target).is('.OkeeboMath span')) {
-				var page = _this.closest('div[contenteditable="true"]');
+				var page = $this.closest('div[contenteditable="true"]');
 				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				_this.one('blur',function(event) {
+				$this.one('blur',function(event) {
 					page.css({'outline':'','outline-offset':''});
 				});
 			}
-			else */if (!_this.is(':focus')) {
-				//_this.focus();
-				var page = _this.closest('div[contenteditable="true"]');
+			else */if (!$this.is(':focus')) {
+				//$this.focus();
+				var page = $this.closest('div[contenteditable="true"]');
 				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				_this.one('blur',function(event) {
+				$this.one('blur',function(event) {
 					page.css({'outline':'','outline-offset':''});
 				});
 			}
@@ -771,15 +771,16 @@ function toggle_edit_one(obj) {
 		
 		var h3 = obj.children('h3');
 		var div = h3.next('div[contenteditable]');
+		var data = div.html();
+		improve_formatting(obj);
 		if (div.html()) {
 			var data = div.children();
 			if (!data.html()) data = '<p>' + div.html() + '</p>';
-			h3.after(data);
 		}
-		else if (!obj.hasClass('outer') && !h3.next().is('.sidebox')) {
-			var data = '<p>Content</p>';
-			h3.after(data);
-		}
+		else if (!obj.hasClass('outer') && !h3.next().is('.sidebox')) data = '<p>Content</p>';
+		else if (data) data = '<p><br></p>';
+		h3.after(data);
+		
 		div.remove();
 		h3.removeAttr('contenteditable');
 		obj.children('p[id],.sidebox').each(function(index) {
@@ -1215,8 +1216,8 @@ function delete_page(target_id,quick) {
 		/// Might want to record these tangents in the undo delete stack.
 		var tangent = $('.tangent._' + current_keys[j]);
 		tangent.each(function(index) {
-			var _this = $(this);
-			_this.before(_this.html()).remove();
+			var $this = $(this);
+			$this.before($this.html()).remove();
 		});
 	
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
@@ -1319,14 +1320,14 @@ function delete_edge(edge,quick) {
 				if (recursion) new_number = recursion;
 				*/
 				page.children('.in + p[id]').each(function(index) {
-					var _this = $(this);
+					var $this = $(this);
 					var old_child_letter = String.fromCharCode(this.id.charCodeAt(0) + 1);
 					var old_number = parseInt(this.id.substr(1));
 					++new_number;
 					// Avoid identity crises
 					while ($('.' + new_child_letter + new_number).html()) ++new_number;
-					_this.prev('.in').removeClass(this.id).addClass(new_link_letter + new_number);
-					_this.attr('id',new_link_letter + new_number);
+					$this.prev('.in').removeClass(this.id).addClass(new_link_letter + new_number);
+					$this.attr('id',new_link_letter + new_number);
 					var child_page = $('.' + old_child_letter + old_number);
 					child_page.removeClass(old_child_letter + old_number).addClass(new_child_letter + new_number);
 					if (child_page.hasClass('outer')) slinky(child_page,new_number);
@@ -1382,9 +1383,9 @@ function modify_arrange_buttons(create,not) {
 	var visible_div = $('.inner,.outer').filter(':visible').not(not);
 	visible_div.children('p[id]').not(':last').each(function(index) {
 		var id = this.id;
-		var _this = $(this);
-		_thisLeft = _this.offset().left;
-		_thisWidth = _this.outerWidth();
+		var $this = $(this);
+		$thisLeft = $this.offset().left;
+		$thisWidth = $this.outerWidth();
 		
 		if (create) $('body').append('<button class="switch">&nbsp;&darr;&nbsp;&uarr;&nbsp;</button>');
 		var _switch = $('.switch').eq(index);
@@ -1402,7 +1403,7 @@ function modify_arrange_buttons(create,not) {
 						'height' : 24,
 						'position' : 'absolute'
 		}).css({		'top' : (_inTop + _in.outerHeight() + _inNextTop - _switch.outerHeight())*0.5,
-						'left': _thisLeft + _thisWidth - _switch.outerWidth()*2
+						'left': $thisLeft + $thisWidth - _switch.outerWidth()*2
 		});
 		
 	});
@@ -1539,26 +1540,26 @@ function create_sidebar() {
 		
 		$('.handle,.delete').remove();
 		$('.inner,.outer').each(function(index) {
-			var _this = $(this);
-			_this.children('form.linear').remove();
+			var $this = $(this);
+			$this.children('form.linear').remove();
 			
 			// Remove excess <br> from titles
-			_this.find('h3 br').remove();
-			_this.find('p[id] .italic br').remove();
+			$this.find('h3 br').remove();
+			$this.find('p[id] .italic br').remove();
 			
 			// To work with htmlPurifier
-			_this.children('.in,.out').empty();
-			_this.find('.tangent').replaceWith(function() { 
+			$this.children('.in,.out').empty();
+			$this.find('.tangent').replaceWith(function() { 
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
 			
-			if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
-			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+			if ($this.hasClass('inner')) text += '<div class="' + $this.attr('class') + '">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
+			else text += '<div class="' + $this.attr('class') + '" id="Z1">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
 			
 			// Illusion
-			_this.children('.in').html('+');
-			_this.children('.out').html('-');
-			_this.find('a.tangent').replaceWith(function() { 
+			$this.children('.in').html('+');
+			$this.children('.out').html('-');
+			$this.find('a.tangent').replaceWith(function() { 
 				return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
 			});
 		});
@@ -1763,9 +1764,9 @@ function make_iframe() {
 }
 function iframe_trigger() {
 	$('iframe').load(function() {
-		var _this = parent.$(this);
-		_this.height(_this.contents().find('html').height());
-		iframe_to_image(_this);
+		var $this = parent.$(this);
+		$this.height($this.contents().find('html').height());
+		iframe_to_image($this);
 	});
 }
 function iframe_to_image(iframe) {
@@ -1816,10 +1817,10 @@ function color_dragging(event,data) {
 	if (!y) y = $('#dragdrop').offset().top + 25;
 	var set_p = $('.outer').filter(':visible').children('p');
 	set_p.each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		if (this.id != data) {
-			if (y < _this.offset().top + _this.height()/2) _this.css('outline-color','#00FF80');
-			else _this.css('outline-color','#FF8000');
+			if (y < $this.offset().top + $this.height()/2) $this.css('outline-color','#00FF80');
+			else $this.css('outline-color','#FF8000');
 		}
 	});
 }
@@ -1993,7 +1994,7 @@ function processMathML(tag,string) {
 	}
 	//string = string.replace(/\|\\begin{array}{c}$/,'\\begin{vmatrix}');
 	tag.children().each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		if (tagName == 'mfrac' && index == 0) string += '\\frac{';
 		if (tagName == 'mfrac' && index == 1) string += '}{';
 		if (tagName == 'msub' && index == 1) string += '_';
@@ -2030,19 +2031,19 @@ function processMathML(tag,string) {
 		if (tagName == 'munderover' && index == 2) string += '}^{';
 		if (this.tagName.toLowerCase() == 'mo') {
 			// Special operators
-			if (_this.text() == 'lim') string += '\\';
-			if (_this.attr('linebreak') == 'newline') string += '\\\\';
-			if (_this.text() == '(' || _this.text() == '[' || _this.text() == '{') string += '\\left';
-			if (_this.text() == ')' || _this.text() == ']' || _this.text() == '}') string += '\\right';
-			if (_this.text() == String.fromCharCode(10216)) {
+			if ($this.text() == 'lim') string += '\\';
+			if ($this.attr('linebreak') == 'newline') string += '\\\\';
+			if ($this.text() == '(' || $this.text() == '[' || $this.text() == '{') string += '\\left';
+			if ($this.text() == ')' || $this.text() == ']' || $this.text() == '}') string += '\\right';
+			if ($this.text() == String.fromCharCode(10216)) {
 				string += '\\left';
-				_this.text('<');
+				$this.text('<');
 			}
-			if (_this.text() == String.fromCharCode(10217)) {
+			if ($this.text() == String.fromCharCode(10217)) {
 				string += '\\right';
-				_this.text('>');
+				$this.text('>');
 			}
-			if (_this.text() == "|") {
+			if ($this.text() == "|") {
 				count = string.match(/\|/g);
 				if (count && count.length % 2 == 1) string += '\\right';
 				else string += '\\left';
@@ -2054,10 +2055,10 @@ function processMathML(tag,string) {
 			string += '{';	
 		}
 		if (tagName == 'mtable' && index != 0) string += '\\\\';
-		if (_this.attr('mathvariant') == 'bold') string += '\\mathbf{';
+		if ($this.attr('mathvariant') == 'bold') string += '\\mathbf{';
 		if (this.tagName.toLowerCase() == 'mtext') string += '\\text{';
 		if (this.tagName.toLowerCase() == 'mspace') string += '\\quad ';
-		if (['sin','cos','tan'].indexOf(_this.text()) != -1) string += '\\';
+		if (['sin','cos','tan'].indexOf($this.text()) != -1) string += '\\';
 		if (tagName == 'mfenced') {
 			if (index == 0) string += /*tag.attr('open') || */'(';
 			else {
@@ -2067,11 +2068,11 @@ function processMathML(tag,string) {
 			}
 		}
 		
-		if (_this.children().length == 0) string += _this.text();
-		else string = processMathML(_this,string);
+		if ($this.children().length == 0) string += $this.text();
+		else string = processMathML($this,string);
 		
 		if (this.tagName.toLowerCase() == 'mtext') string += '}';
-		if (_this.attr('mathvariant') == 'bold') string += '}';
+		if ($this.attr('mathvariant') == 'bold') string += '}';
 		if (tagName == 'mfrac' && index == 1) string += '}';
 		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '}';
 		if (tagName == 'munderover' && index == 2) string += '}';
@@ -2188,10 +2189,10 @@ function mathPublish() {
 	DisplayToCode();
 	MathMLtoTeX();
 	$('.OkeeboMath').each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		var _class = 'center';
-		if (_this.parents('p').is('[id]')) _class = '';
-		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+		if ($this.parents('p').is('[id]')) _class = '';
+		$this.html($this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
 	});
 }
 
@@ -2208,11 +2209,11 @@ function save(role) {
 	});
 	
 	$body.find('.OkeeboMath').each(function(index) {
-		var _this = $(this);
-		MathMLtoTeX(_this,1);
+		var $this = $(this);
+		MathMLtoTeX($this,1);
 		var _class = 'center';
-		if (_this.parents('p').is('[id]')) _class = '';
-		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+		if ($this.parents('p').is('[id]')) _class = '';
+		$this.html($this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
 	});
 	
 	improve_formatting($body);
@@ -2222,22 +2223,22 @@ function save(role) {
 	
 	$body.find('.handle,.delete').remove();
 	$body.find('.inner,.outer').each(function(index) {
-		var _this = $(this);
-		toggle_edit_one(_this);
-		_this.children('form.linear').remove();
+		var $this = $(this);
+		toggle_edit_one($this);
+		$this.children('form.linear').remove();
 		
 		// Remove excess <br> from titles
-		_this.find('h3 br').remove();
-		_this.find('p[id] .italic br').remove();
+		$this.find('h3 br').remove();
+		$this.find('p[id] .italic br').remove();
 		
 		// To work with htmlPurifier
-		_this.children('.in,.out').empty();
-		_this.find('.tangent').replaceWith(function() { 
+		$this.children('.in,.out').empty();
+		$this.find('.tangent').replaceWith(function() { 
 			return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 		});
 		
-		if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
-		else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+		if ($this.hasClass('inner')) text += '<div class="' + $this.attr('class') + '">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
+		else text += '<div class="' + $this.attr('class') + '" id="Z1">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
 	});
 	
 	if (role == 'autosave') {
