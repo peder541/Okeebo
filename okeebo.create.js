@@ -1092,21 +1092,10 @@ function insert_page(summary,page,exists,reinsert,cut) {
 	}
 	var div_letter = String.fromCharCode(letter.charCodeAt(0) + 1);
 	if (cut) {
-		/*document.execCommand('insertHTML',false,'<button type="button" class="in ' + letter + '0">+</button>');
-		toggle_edit_one(current_div);
-		$('.' + letter + '0').unwrap();
-		toggle_edit_one(current_div);*/
-		/*document.execCommand('delete',false,null);/*
-		$('p').filter(function() { return ($(this).html()=='<br>'); }).replaceWith('<button type="button" class="in ' + letter + '0">+</button>');
-		toggle_edit_one(current_div);
-		toggle_edit_one(current_div);*/
-		
-		//insertAfter('<button type="button" class="in ' + letter + '0">+</button>');
 		if (getSelectionHtml()) document.execCommand('delete',false,null);
-		//toggle_edit_one(current_div);
-		//toggle_edit_one(current_div);
 	}
-	/*else */current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
+	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
+	//children('h3').after
 	if (summary) summary.attr('id',letter + '0');
 	else if (exists) {
 		summary = '<p id="' + letter + '0"><span class="italic">' + page.children('h3').html() + '</span><br /><span>Summary</span></p>';
