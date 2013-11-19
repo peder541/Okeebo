@@ -15,7 +15,7 @@ var return_page_id = 'Z1';
 var _hover = null, edge = null;
 var darkColor = ['rgb(44,67,116)','#2c4374','rgb(44,116,67)','#2c7443'];
 var liteColor = ['rgb(89,144,233)','#5990e9','rgb(89,233,144)','#59e990'];
-var continuous = false;
+var continuous = true;
 
 $(document).ready(function(event) {
 	
@@ -398,7 +398,56 @@ function draw_lines() {
 	 
 	$('path').on('mouseover',function(event) {
 		edge = d3.select($(this)[0]).data()[0];
+		
+		var circle = d3.selectAll('circle');
+		var path = d3.selectAll('path');
+		var parent = d3_get_parent_tag(edge);
+		if (parent == 'Z1') parent = '`1';
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge) return true; })
+			.style('stroke-width',2);
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+			.style('stroke-width',4)
+			.style('stroke','#F0C97D');
+		while (parent && event.shiftKey) {
+			path
+				.filter(function(data,index) { if (data == parent) return true; })
+				.style('stroke-width',1)
+				.style('stroke','#F0C97D');
+			parent = d3_get_parent_tag(parent);
+			if (parent == 'Z1') parent = '`1';
+			circle
+				.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+				.style('stroke-width',2)
+				.style('stroke','#F0C97D');
+		}
+		
 	}).on('mouseout',function(event) {
+		var circle = d3.selectAll('circle');
+		var path = d3.selectAll('path');
+		var parent = d3_get_parent_tag(edge);
+		if (parent == 'Z1') parent = '`1';
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge) return true; })
+			.style('stroke-width','');
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+			.style('stroke-width','')
+			.style('stroke','');
+		while (parent) {
+			path
+				.filter(function(data,index) { if (data == parent) return true; })
+				.style('stroke-width','')
+				.style('stroke','');
+			parent = d3_get_parent_tag(parent);
+			if (parent == 'Z1') parent = '`1';
+			circle
+				.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+				.style('stroke-width','')
+				.style('stroke','');
+		}
+		
 		edge = null;
 	}).insertBefore($('circle').eq(0));
 	
