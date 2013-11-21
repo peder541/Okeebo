@@ -140,6 +140,7 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
+			window.location('https://login.persona.org/sign_in#NATIVE');
 			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
 			return false;
 		}
