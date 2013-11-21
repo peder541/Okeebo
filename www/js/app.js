@@ -139,6 +139,10 @@ $(document).on('ready',function(event) {
 			});
 			return false;
 		}
+		else if ($url == "javascript:navigator.id.request()") {
+			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
+			return false;
+		}
 		else {
 			alert($url);
 			return false;
