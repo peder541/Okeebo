@@ -14,7 +14,7 @@
     <preference name="fullscreen" value="true" />
     <preference name="webviewbounce" value="true" />
     <preference name="prerendered-icon" value="true" />
-    <preference name="stay-in-webview" value="true" />
+    <preference name="stay-in-webview" value="false" />
     <preference name="ios-statusbarstyle" value="black-opaque" />
     <preference name="detect-data-types" value="true" />
     <preference name="exit-on-suspend" value="false" />
@@ -49,6 +49,5 @@
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
     <access origin="http://127.0.0.1*" />
 	<access origin="https://www.okeebo.com" subdomains="true"/>
-	<access origin="https://login.persona.com" subdomains="true"/>
 	<gap:platform name="android" />
 </widget>

@@ -140,6 +140,12 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
+			var ref = window.open('http://apache.org', '_blank', 'location=yes');
+         // close InAppBrowser after 5 seconds
+         setTimeout(function() {
+             ref.close();
+         }, 5000);
+			return false;
 			window.location('https://login.persona.org/sign_in#NATIVE');
 			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
 			return false;
