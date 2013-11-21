@@ -140,11 +140,9 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else {
-			/*
 			alert($url);
 			return false;
 			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
-			*/
 		}
 	});
 });
