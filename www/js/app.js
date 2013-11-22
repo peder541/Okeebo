@@ -149,6 +149,10 @@ $(document).on('ready',function(event) {
 			Persona.login();		
 			return false;
 		}
+		else if ($url == "javascript:navigator.id.logout()") {
+			Persona.logout();		
+			return false;
+		}
 		else {
 			alert($url);
 			return false;
@@ -158,7 +162,7 @@ $(document).on('ready',function(event) {
 
 var Persona = {
 	login: function(auto) {
-		var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no');
+		var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no' + (auto) ? ',hidden=yes' : '');
 		persona.addEventListener('loadstop',function(event) {
 			
 			var personaCode = "";
@@ -181,5 +185,9 @@ var Persona = {
 				});
 			}
 		});
+	},
+	logout: function() {
+		$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?logout=1" id="appLogout">Logout</a>');
+		$('#appLogout').click();
 	}
 }
