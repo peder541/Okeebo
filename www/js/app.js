@@ -147,19 +147,22 @@ $(document).on('ready',function(event) {
 			}
 			persona.addEventListener('loadstop',function(event) {
 				
+				alert(event.url);
+				
 				var personaCode = "";
 				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
-				personaCode += "var event;";
-				personaCode += "if (document.createEvent) {";
-				personaCode += "	event = document.createEvent('HTMLEvents');";
-				personaCode += "	event.initEvent('relay', true, true);";
-				personaCode += "}";
-				personaCode += "else {";
-				personaCode += "	event = document.createEventObject();";
-				personaCode += "	event.eventType = 'relay';";
-				personaCode += "}";
-				personaCode += "event.data = assertion;";
-				personaCode += "document.dispatchEvent(event);";
+				personaCode += "	var event;";
+				personaCode += "	if (document.createEvent) {";
+				personaCode += "		event = document.createEvent('HTMLEvents');";
+				personaCode += "		event.initEvent('relay', true, true);";
+				personaCode += "	}";
+				personaCode += "	else {";
+				personaCode += "		event = document.createEventObject();";
+				personaCode += "		event.eventType = 'relay';";
+				personaCode += "	}";
+				personaCode += "	event.data = assertion;";
+				personaCode += "	document.dispatchEvent(event);";
+				personaCode += "	window.location = 'http://www.okeebo.com';";
 				personaCode += "})";
 				
 				persona.executeScript({code: personaCode});
