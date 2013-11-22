@@ -146,7 +146,9 @@ $(document).on('ready',function(event) {
 				alert('test');	
 			}
 			persona.addEventListener('loadstop',function(event) {
-				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { document.body.fireEvent('relay',{data: assertion}); })"});
+				
+				persona.executeScript({file: 'persona_bridge.js'});
+				
 			});
 			persona.addEventListener('relay',function(event) {
 				persona.close();
