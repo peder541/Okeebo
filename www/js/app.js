@@ -147,7 +147,7 @@ $(document).on('ready',function(event) {
 			}
 			persona.addEventListener('loadstop',function(event) {
 				
-				persona.executeScript({file: 'persona_bridge.js'});
+				persona.executeScript({file: 'js/persona_bridge.js'});
 				
 			});
 			persona.addEventListener('relay',function(event) {
