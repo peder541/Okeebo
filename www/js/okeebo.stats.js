@@ -10,19 +10,24 @@ var read_path = ['Z1'];
 
 $(document).ready(function(event) {
 	
-	var _show = $.fn.show;
-	var _hide = $.fn.hide;
-	var _fadeOut = $.fn.fadeOut;
-	
-	$.fn.show = function(){
-    	_show.apply(this,arguments).trigger("show");
-	};
-	$.fn.hide = function(){
-    	_hide.apply(this,arguments).trigger("hide");
-	};
-	$.fn.fadeOut = function(){
-    	_fadeOut.apply(this,arguments).trigger("fadeOut");
-	};
+	if (typeof(_show) === 'undefined') {
+		_show = $.fn.show;
+		$.fn.show = function(){
+			_show.apply(this,arguments).trigger("show");
+		};
+	}
+	if (typeof(_hide) === 'undefined') {
+		_hide = $.fn.hide;
+		$.fn.hide = function(){
+			_hide.apply(this,arguments).trigger("hide");
+		};
+	}
+	if (typeof(_fadeOut) === 'undefined') {
+		_fadeOut = $.fn.fadeOut;
+		$.fn.fadeOut = function(){
+			_fadeOut.apply(this,arguments).trigger("fadeOut");
+		};
+	}
 	
 	$('body').on('fadeOut hide','.inner,.outer',function(event) {
 		recordStats($(this));

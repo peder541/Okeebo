@@ -24,12 +24,18 @@ function resize_writing_items(buffer) {
 
 $(document).ready(function(event) {
 		
-	var _fadeIn = $.fn.fadeIn;
-	var _show = $.fn.show;
-
-	$.fn.fadeIn = function(){
-    	_fadeIn.apply(this,arguments).trigger("fadeIn");
-	};
+	if (typeof(_fadeIn) === 'undefined') {
+		_fadeIn = $.fn.fadeIn;
+		$.fn.fadeIn = function(){
+			_fadeIn.apply(this,arguments).trigger("fadeIn");
+		};
+	}
+	if (typeof(_show) === 'undefined') {
+		_show = $.fn.show;
+		$.fn.show = function(){
+			_show.apply(this,arguments).trigger("show");
+		};
+	}
 	
 	resize_writing_items();
 	
