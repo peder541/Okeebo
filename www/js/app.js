@@ -140,7 +140,12 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
-			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_system','locaiton=yes');
+			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=yes');
+			persona.addEventListener('loadStart',function(event) {
+				BrowserID.internal.get('https://www.okeebo.com', function(assertion) { 
+					persona.close(); 
+				});
+			});
 			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
 				parent.$('html').html(data);
