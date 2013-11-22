@@ -147,7 +147,22 @@ $(document).on('ready',function(event) {
 			}
 			persona.addEventListener('loadstop',function(event) {
 				
-				persona.executeScript({file: 'js/persona_bridge.js'});
+				var personaCode = "";
+				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
+				personaCode += "var event;";
+				personaCode += "if (document.createEvent) {";
+				personaCode += "	event = document.createEvent('HTMLEvents');";
+				personaCode += "	event.initEvent('relay', true, true);";
+				personaCode += "}";
+				personaCode += "else {";
+				personaCode += "	event = document.createEventObject();";
+				personaCode += "	event.eventType = 'relay';";
+				personaCode += "}";
+				personaCode += "event.data = assertion;";
+				personaCode += "document.dispatchEvent(event);";
+				personaCode += "})";
+				
+				persona.executeScript({code: personaCode});
 				
 			});
 			persona.addEventListener('relay',function(event) {
