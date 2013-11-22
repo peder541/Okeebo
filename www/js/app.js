@@ -142,9 +142,10 @@ $(document).on('ready',function(event) {
 		else if ($url == "javascript:navigator.id.request()") {
 			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=yes');
 			persona.addEventListener('loadStop',function(event) {
-				persona.executeScript({
-					data: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.close(); })"
-				});
+				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.close(); })"});
+			});
+			persona.addEventListener('exit',function(event) {
+				alert(event);
 			});
 			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
