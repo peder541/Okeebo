@@ -30,9 +30,6 @@ $(document).ready(function(event) {
 	$.fn.fadeIn = function(){
     	_fadeIn.apply(this,arguments).trigger("fadeIn");
 	};
-	$.fn.show = function(){
-    	_show.apply(this,arguments).trigger("show");
-	};
 	
 	resize_writing_items();
 	
