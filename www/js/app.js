@@ -157,6 +157,9 @@ $(document).on('ready',function(event) {
 					persona.close();
 					$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
 					$('#appLogin').click();
+					$.post('https://verifier.login.persona.org/verify', { assertion: assertion, audience: 'https://www.okeebo.com:443' }).done(function(data) {
+						alert(data.email);
+					});
 				}
 			});
 			
