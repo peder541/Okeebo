@@ -141,10 +141,7 @@ $(document).on('ready',function(event) {
 		}
 		else if ($url == "javascript:navigator.id.request()") {
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
-				var d = $('<html />').html(data);
-				d.find('script,meta,link,title').remove();
-				d = d.html();
-				parent.$('body').html(d);
+				parent.$('html').html(data);
 			});
 			return false;
 			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
