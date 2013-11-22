@@ -162,7 +162,8 @@ $(document).on('ready',function(event) {
 
 var Persona = {
 	login: function(auto) {
-		var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no' + (auto) ? ',hidden=yes' : '');
+		var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no,hidden=yes');
+		if (!auto) persona.show();
 		persona.addEventListener('loadstop',function(event) {
 			
 			var personaCode = "";
