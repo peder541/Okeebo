@@ -140,6 +140,8 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
+			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','locaiton=yes');
+			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
 				parent.$('html').html(data);
 			});
