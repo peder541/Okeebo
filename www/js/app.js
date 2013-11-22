@@ -172,6 +172,7 @@ $(document).on('ready',function(event) {
 				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
 				personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
 				personaCode += "})";
+				personaCode += 'setTimeout("' + "$('#signInButton').click();" + '",1000)';
 				
 				persona.executeScript({code: personaCode});
 				
