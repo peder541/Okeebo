@@ -12,26 +12,7 @@ $(document).on('ready',function(event) {
 				
 				//////////
 				if ($('.persona_expired').index() != -1) {
-					var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no,hidden=yes');
-					persona.addEventListener('loadstop',function(event) {
-							
-						var personaCode = "";
-						personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
-						personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
-						personaCode += "});";
-						personaCode += "setTimeout(\"$('#signInButton').click();\",1000);";
-						
-						persona.executeScript({code: personaCode});
-						
-					});
-					persona.addEventListener('loadstart',function(event) {
-						if (event.url.substr(0,21) == 'http://www.okeebo.com') {
-							var assertion = event.url.substr(33);
-							persona.close();
-							$('body').append('<a style="display:none" id="appLogin">Login</a>');
-							$('#appLogin').attr('href','https://www.okeebo.com/beta/?assertion=' + assertion).click();
-						}
-					});
+					Persona.login(true);
 				}
 				//////////
 				
@@ -165,30 +146,7 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
-			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no');
-			persona.addEventListener('loadstop',function(event) {
-				
-				var personaCode = "";
-				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
-				personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
-				personaCode += "});";
-				personaCode += "setTimeout(\"$('#signInButton').click();\",1000);";
-				
-				persona.executeScript({code: personaCode});
-				
-			});
-			persona.addEventListener('loadstart',function(event) {
-				if (event.url.substr(0,21) == 'http://www.okeebo.com') {
-					var assertion = event.url.substr(33);
-					persona.close();
-					$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
-					$('#appLogin').click();
-					$.post('https://verifier.login.persona.org/verify', { assertion: assertion, audience: 'https://www.okeebo.com:443' }).done(function(data) {
-						window.localStorage.setItem('email',data.email);
-					});
-				}
-			});
-			
+			Persona.login();		
 			return false;
 		}
 		else {
@@ -197,3 +155,31 @@ $(document).on('ready',function(event) {
 		}
 	});
 });
+
+var Persona = {
+	login: function(auto) {
+		var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no');
+		persona.addEventListener('loadstop',function(event) {
+			
+			var personaCode = "";
+			personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
+			personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
+			personaCode += "});";
+			if (auto) personaCode += "setTimeout(\"$('#signInButton').click();\",1000);";
+			
+			persona.executeScript({code: personaCode});
+			
+		});
+		persona.addEventListener('loadstart',function(event) {
+			if (event.url.substr(0,21) == 'http://www.okeebo.com') {
+				var assertion = event.url.substr(33);
+				persona.close();
+				$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
+				$('#appLogin').click();
+				$.post('https://verifier.login.persona.org/verify', { assertion: assertion, audience: 'https://www.okeebo.com:443' }).done(function(data) {
+					window.localStorage.setItem('email',data.email);
+				});
+			}
+		});
+	}
+}
