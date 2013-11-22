@@ -14,7 +14,8 @@ $(document).on('ready',function(event) {
 					Persona.login(true);
 				}
 				
-				alert($url.substr(22,6));
+				if ($url.substr(22,11) == '/beta/edit/') $('script').last().after('<link rel="stylesheet" href="css/create.css" class="edit" />');
+				else $('.edit').remove();
 				
 				$('.inner').children('h3').not('.out + h3').before('<button class="out" type="button"></button>');
 				$('.outer').children('p[id]').not('.in + p[id]').before(function(index) { 
@@ -142,6 +143,8 @@ $(document).on('ready',function(event) {
 				
 				flashToHTML5();
 				loadVideos();
+				
+				if ($url.substr(22,11) == '/beta/edit/') $('link.edit').after('\n    <script type="text/javascript" src="js/okeebo.create.js" class="edit"></script>');
 			});
 			return false;
 		}
