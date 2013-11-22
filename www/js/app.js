@@ -140,7 +140,9 @@ $(document).on('ready',function(event) {
 			return false;
 		}
 		else if ($url == "javascript:navigator.id.request()") {
-			var persona = window.open('https://login.persona.org/sign_in','_self','location=yes');
+			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=yes');
+			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { alert(assertion); window.close(); })
+			/*
 			var $assertion;
 			persona.addEventListener('loadstop',function(event) {
 				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { $assertion = assertion; window.close(); })"});
@@ -148,6 +150,7 @@ $(document).on('ready',function(event) {
 			persona.addEventListener('exit',function(event) {
 				alert($assertion);
 			});
+			*/
 			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
 				parent.$('html').html(data);
