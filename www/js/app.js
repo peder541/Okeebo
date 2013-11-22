@@ -145,7 +145,7 @@ $(document).on('ready',function(event) {
 				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.close(); })"});
 			});
 			persona.addEventListener('exit',function(event) {
-				alert(event);
+				alert('done');
 			});
 			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
