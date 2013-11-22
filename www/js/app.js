@@ -153,9 +153,9 @@ $(document).on('ready',function(event) {
 			});
 			persona.addEventListener('loadstart',function(event) {
 				if (event.url.substr(0,21) == 'http://www.okeebo.com') {
-					var assertion = event.url.substr(32);
+					var assertion = event.url.substr(33);
 					persona.close();
-					$('body').append('<a style="display:none" href="http://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
+					$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
 					$('#appLogin').click();
 				}
 			});
