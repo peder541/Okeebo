@@ -146,10 +146,11 @@ $(document).on('ready',function(event) {
 				alert('test');	
 			}
 			persona.addEventListener('loadstop',function(event) {
-				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { alert(assertion); })"});
+				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { document.body.fireEvent('relay',{data: assertion}); })"});
 			});
-			persona.addEventListener('exit',function(event) {
-				alert($assertion);
+			persona.addEventListener('relay',function(event) {
+				persona.close();
+				alert(event.data);
 			});
 			return false;
 			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
