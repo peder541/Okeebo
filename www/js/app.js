@@ -170,9 +170,9 @@ $(document).on('ready',function(event) {
 				
 				var personaCode = "";
 				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
+				personaCode += "	window.localStorage.setItem('test',assertion);";
 				personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
 				personaCode += "})";
-				personaCode += "window.localStorage.setItem('test',assertion);";
 				
 				persona.executeScript({code: personaCode});
 				
