@@ -11,7 +11,7 @@ $(document).on('ready',function(event) {
 				parent.$('body').html(d);
 				
 				//////////
-				if ($('#persona_expired').index() != -1) {
+				if ($('.persona_expired').index() != -1) {
 					var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=no,hidden=yes');
 					persona.addEventListener('loadstop',function(event) {
 							
@@ -19,7 +19,7 @@ $(document).on('ready',function(event) {
 						personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
 						personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
 						personaCode += "})";
-						personaCode += "if ($('#signInButton').index() != -1) $('#signInButton').click();";
+						personaCode += 'setTimeout("' + "$('#signInButton').click();" + '",1000)';
 						
 						persona.executeScript({code: personaCode});
 						
@@ -170,7 +170,6 @@ $(document).on('ready',function(event) {
 				
 				var personaCode = "";
 				personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
-				personaCode += "	window.localStorage.setItem('test',assertion);";
 				personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
 				personaCode += "})";
 				
@@ -186,7 +185,6 @@ $(document).on('ready',function(event) {
 					$.post('https://verifier.login.persona.org/verify', { assertion: assertion, audience: 'https://www.okeebo.com:443' }).done(function(data) {
 						window.localStorage.setItem('email',data.email);
 					});
-					alert(window.locationStorage.getItem('test'));
 				}
 			});
 			
