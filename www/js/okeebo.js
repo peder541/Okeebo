@@ -44,12 +44,12 @@ function resize_windows(){
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
 	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
-	$('img,video,object').width(function(index) {
-		var _this = $(this);
+	$('img,video,object,table').width(function(index) {
+		var $this = $(this);
 		if (IE && this.removeEventListener) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
-		_mod = (_this.parents('p').prev('.in').html()) ? 50 : 0;
-		var new_width = Math.min(max_img_width - _mod,_this.attr('width'))
-		if (_this.attr('height')) _this.height(new_width/_this.attr('width') * _this.attr('height'));
+		_mod = ($this.parents('p').prev('.in').html()) ? 50 : 0;
+		var new_width = Math.min(max_img_width - _mod,$this.attr('width'))
+		if ($this.attr('height')) $this.height(new_width/$this.attr('width') * $this.attr('height'));
 		return new_width;
 	});
 	if (IE) $('img').each(function(index) {
@@ -60,9 +60,9 @@ function resize_windows(){
 
 // Makes IE Resize images using Attributes instead of CSS.
 function dom_attr_mod(ev) {
-	var _this = $(this);
-	_this.attr('width',_this.width());
-	_this.attr('height',_this.height());
+	var $this = $(this);
+	$this.attr('width',$this.width());
+	$this.attr('height',$this.height());
 }
 
 function get_scrollbar_width() {
@@ -176,9 +176,16 @@ $(document).ready(function() {
 				if (_target) $('#info').html($('.' + _target + ' > .in + p').eq(n1-1).children('span').html());
 				else if (target) $('#info').html($('.' + target + ' > h3').html());
 			}
-			$('#info').css({'top':7,'left':'auto','right':10});
+			$('#info').css({'top':7,'left':'auto','padding-right':10,'right':0});
 			info_timer = setTimeout("$('#info').show()",500);
-			if ($('#info').height() + 7 > $(this).offset().top) $('#info').css('top',$(this).offset().top + 24);
+			var scrollTop = $(window).scrollTop();
+			var pos = $(this).offset();
+			var $info = $('#info');
+			$info.show();
+			var $info_left = $info.offset().left;
+			$info.hide();
+			var left_test = pos.left + 12 > $info_left || $info_left == 0;
+			if ($('#info').height() + 7 + scrollTop > pos.top && left_test) $('#info').css('top',pos.top + 24 - scrollTop);
 		}
 		else {
 			$('.node').mouseleave();						// Clear Tooltip
@@ -534,6 +541,8 @@ function redraw_node_map(id,color) {
 		if (this.currentTime == 0) this.play();
 		/*var i = $('video').index($(this));
 		setTimeout("v = $('video').eq("+i+"); if (badVideo(v)) updateVideo($(v).children('object').attr('id'));",10);*/
+		// check readyState
+		// if (this.readyState == 0) $(this).children('object').unwrap();
 	});
 	setTimeout("pauseVideo();",0);
 	$('#map').empty();
@@ -634,10 +643,7 @@ function concept_zoom_in(id) {
 		if ($('#status').is(':visible')) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		$(window).scrollTop(0);
-		var old_obj = $('.outer').filter(':visible');
-		var a = old_obj.children('.in + p').first().attr('id');
-		a = a.substr(1);
-		var b = number - a + 1;
+		var old_obj = $('.' + id).parent('.outer');
 		
 		$('.' + letter + number).fadeIn();
 		old_obj.fadeOut();
@@ -673,9 +679,10 @@ function size_linear_buttons(obj) {
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (sidebar_width) _width -= sidebar_width;
 	$('.left,.right').width(_width);
-	$('.right').css('left',obj.outerWidth()+obj.offset().left-12);
+	var pos = obj.outerWidth()+obj.offset().left-12;
+	$('.right').css('left',pos);
 	$('.left').css('background-position',_width/2-6);
-	$('.right').css('background-position',$('.right').offset().left+_width/2-6);
+	$('.right').css('background-position',pos+_width/2-6);
 	var l = obj.attr('id').charAt(0);
 	var n = parseInt(obj.attr('id').substr(1),10);
 	if (!$('.'+l+(n-1)).html()) $('.left').css({'cursor':'default','background-image':'none'});
@@ -683,8 +690,8 @@ function size_linear_buttons(obj) {
 	if (!$('.'+l+(n+1)).html()) $('.right').css({'cursor':'default','background-image':'none'});
 	else $('.right').css({'cursor':'pointer','background-image':''});
 	if (mobile == 1) {
-		linear_buttons = $('.left,.right').css('background-image','none').detach();
-		setTimeout("$('body').append(linear_buttons.css('background-image','')); delete window.linear_buttons;",10);
+		var linear_buttons = $('.left,.right').css('background-image','none').detach();
+		$('body').append(linear_buttons.css('background-image',''));
 	}
 }
 
@@ -971,7 +978,7 @@ function loadVideos() {
 		}).fail(function() {
 			yt.eq(i).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
 		});
-	});	
+	});
 }
 function flashToHTML5() {
 	$('object[data*="youtube"]').not('video object').each(function(i,e) {
@@ -1115,4 +1122,88 @@ function createIndex(word,times,and) {
 	else explore_tangent('Z3');
 	$(window).resize();
 	return info;
+}
+
+function mathResize() {
+	var f = $(window).width() - 24;
+	$('.OkeeboMath').each(function(index) {
+		var $this = $(this);
+		var l = $this.offset().left;
+		var s = 1.05;
+		do {
+			s -= 0.05;
+			$this.css('font-size',s+'em');
+			var m = 0;
+			$this.find('span').each(function(index) { 
+				var w = $(this).width(); 
+				if (w > m) m = w; 
+			}); 
+		} while (m > f - l);
+	});
+}
+
+function spanTable() {
+	$('.span-td').replaceWith(function() { return '<td height>' + $(this).html() + '</td>'; });
+	$('.span-tr').replaceWith(function() { return '<tr>' + $(this).html() + '</tr>'; });
+	$('.span-table').replaceWith(function() { return '<table border="1">' + $(this).html() + '</table>'; });	
+}
+function tableSpan() {
+	$('td').replaceWith(function() { return '<span class="span-td">' + $(this).html() + '</span>' });
+	$('tr').replaceWith(function() { return '<span class="span-tr">' + $(this).html() + '</span>' });
+	$('table').replaceWith(function() { return '<span class="span-table">' + $(this).html() + '</span>' });	
+}
+
+$(document).ready(function(event) {
+	$(document).on('keydown',function(event) {
+		// F2
+		if (event.which == 113) {
+			if (IE) hiliteIE();
+			else hilite2();
+			return false;	
+		}
+		// F8
+		if (event.which == 119) {
+			unhilite();	
+		}
+	});
+});
+
+function hiliteIE() {
+	$('strong').replaceWith(function() { return '<b>' + this.innerHTML + '</b>'; });
+	document.execCommand('bold',false,null);
+	$('strong').replaceWith(function() { return '<span class="note">' + this.innerHTML + '</span>'; });
+	$('.note').css('background-color','#ff8');
+	document.selection.empty();
+}
+
+function hilite2() {
+	var page = $('.inner,.outer').filter(':visible');
+	page.attr('contenteditable','true')
+	document.execCommand('hiliteColor',false,'#ff8')
+	page.removeAttr('contenteditable');
+	var sel = document.getSelection();
+	if (sel.empty) sel.empty();  // Chrome
+	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	$('span[style*="background-color"]')
+		.filter('[style*="rgb(255, 255, 136)"],[style*="rgb(255,255,136)"],[style*="#ff8"],[style*="#FF8"],[style*="#ffff88"],[style*="#FFFF88"]')
+		.addClass('note');
+		
+	$('.in > .note').replaceWith(function() { return this.innerHTML; });
+	$('.note > .in').unwrap();
+}
+
+function unhilite() {
+	var page = $('.inner,.outer').filter(':visible');
+	page.attr('contenteditable','true')
+	document.execCommand('hiliteColor',false,'#fcfcfc')
+	page.removeAttr('contenteditable');
+	var sel = document.getSelection();
+	if (sel.empty) sel.empty();  // Chrome
+	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	$('span[style*="background-color"]')
+		.filter('[style*="rgb(252, 252, 252)"],[style*="rgb(252,252,252)"],[style*="#fcfcfc"],[style*="#FCFCFC"]')
+		.addClass('blank');
+		
+	$('.blank .note').replaceWith(function() { return this.innerHTML; });
+	$('.blank').replaceWith(function() { return this.innerHTML; });
 }

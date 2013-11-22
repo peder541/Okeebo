@@ -7,8 +7,8 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
-var writing_buttons = '#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page,#equation';
-var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay';
+var writing_buttons = '.writing';
+var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -16,7 +16,7 @@ function resize_writing_items(buffer) {
 	if (!sidebar_width) sidebar_width = 0;
 	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
 	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
-	$(writing_buttons).css('left',base_width-29);
+	$(writing_buttons).css('left',base_width-26);
 	//modify_arrange_buttons();
 	$('.delete').css('margin-left',base_width-89-64);
 	$('.OkeeboMath').each(function(index) { resizeMathLangButtons(index) });
@@ -61,7 +61,7 @@ $(document).ready(function(event) {
 	
 	toggle_edit();
 	
-	// Table
+	/*// Table
 	$(document).on('mousemove',function(event) {
 		if (typeof(ns_resize_table) !== 'undefined' && typeof(ns_resize_table[1]) !== 'undefined') {
 			clear_selected_text();
@@ -81,37 +81,59 @@ $(document).ready(function(event) {
 		}
 	});
 	$(document).on('mousedown mousemove','td',function(event) {
-		var _this = $(this);
-		var left = _this.offset().left;
-		var top = _this.offset().top;
-		var width = _this.outerWidth();
-		var height = _this.outerHeight();
+		var $this = $(this);
+		var left = $this.offset().left;
+		var top = $this.offset().top;
+		var width = $this.outerWidth();
+		var height = $this.outerHeight();
 		if (event.type == 'mousemove') {
-			if (Math.ceil(left) == event.pageX || Math.floor(width + left) - 3 <= event.pageX) _this.css('cursor','ew-resize');
-			else if (Math.ceil(top) + 1 >= event.pageY || Math.floor(height + top) - 3 <= event.pageY) _this.css('cursor','ns-resize');
-			else _this.css('cursor','');
+			if (Math.ceil(left) == event.pageX || Math.floor(width + left) - 3 <= event.pageX) $this.css('cursor','ew-resize');
+			else if (Math.ceil(top) + 1 >= event.pageY || Math.floor(height + top) - 3 <= event.pageY) $this.css('cursor','ns-resize');
+			else $this.css('cursor','');
 		}
 		if (event.type == 'mousedown') {
-			if (_this.css('cursor') == 'ew-resize') {
-				if (Math.ceil(left) == event.pageX) _this = $('td').eq($('td').index(_this)-1);
-				ew_resize_table = [_this,event.pageX,_this.width()];
+			if ($this.css('cursor') == 'ew-resize') {
+				if (Math.ceil(left) == event.pageX) $this = $('td').eq($('td').index($this)-1);
+				ew_resize_table = [$this,event.pageX,$this.width()];
 				$(document).one('mouseup',function(event) {
 					delete ew_resize_table;
 				});
 			}
-			if (_this.css('cursor') == 'ns-resize') {
-				_this = _this.parent('tr');
-				if (Math.ceil(top)+1>= event.pageY) _this = $('tr').eq($('tr').index(_this)-1);
-				ns_resize_table = [_this,event.pageY,_this.height()];
+			if ($this.css('cursor') == 'ns-resize') {
+				$this = $this.parent('tr');
+				var table = $this.parents('table');
+				console.log(table.css('border-width'));
+				table.find('tr').each(function(index) {
+					var tr = $(this);
+					tr.attr('height',tr.height());
+				});
+				table.removeAttr('height');
+				if (Math.ceil(top)+1>= event.pageY) $this = $('tr').eq($('tr').index($this)-1);
+				ns_resize_table = [$this,event.pageY,$this.height()];
 				$(document).one('mouseup',function(event) {
 					delete ns_resize_table;
 				});
 			}
 		}
-	});
+	});*/
 	
 	/// Document Events
-	$(document).on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
+	$(document).on('keydown',function(event) { 
+		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
+			switch (event.which) {
+				case 66:
+					$('#bold').click();
+					return false;
+				case 73:
+					$('#italic').click();
+					return false;
+				case 85:
+					$('#underline').click();
+					return false;
+			}
+		} 
+	})
+	.on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
 		if (event.which == 13) {
 			$(this).blur();
 			return false;
@@ -143,8 +165,8 @@ $(document).ready(function(event) {
 					document.execCommand('insertHTML',false,'<br>');
 				}
 				catch (e) {
-					var _this = $(this);
-					var spans = _this.parent().children('span');
+					var $this = $(this);
+					var spans = $this.parent().children('span');
 					spans.eq(0).append('<br id="hook">' + spans.eq(1).detach().html());
 					
 					spans.eq(0).focus();
@@ -241,9 +263,10 @@ $(document).ready(function(event) {
 			// Content
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
-		resize_windows();
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
+		var anchorNode = document.getSelection().anchorNode;
+		if (anchorNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -274,18 +297,20 @@ $(document).ready(function(event) {
 		setTimeout(keyup,10,$(this));
 	});
 	// Resizable Images in Chrome, Opera, and Safari
-	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object',function(event) {
+	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
 		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
-			var _this = $(this);
+			var $this = $(this);
 			$('.active-img').removeClass('active-img');
 			$('.resize_handle').remove();
-			_this.addClass('active-img');
+			$this.addClass('active-img');
 			// Removes Blinking Caret (except for outer pages). Not sure if necessary.
-			if (!$('.outer').is(':visible')) {
-				toggle_edit();
-				toggle_edit();
+			if (!$('.outer').is(':visible') && !$this.is('table')) {
+				var sel = document.getSelection();
+				if (sel.empty) sel.empty();  // Chrome
+				else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+				else if (document.selection) document.selection.empty(); // IE
 			}
-			_this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
+			$this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
 			
 			$('body')
 				.append('<div class="resize_handle" id="nw"> </div>')
@@ -297,10 +322,10 @@ $(document).ready(function(event) {
 				.append('<div class="resize_handle" id="sw"> </div>')
 				.append('<div class="resize_handle" id="w"> </div>');
 				
-			var _top = _this.offset().top;
-			var _left = _this.offset().left;
-			var _width = _this.width();
-			var _height = _this.height();
+			var _top = $this.offset().top;
+			var _left = $this.offset().left;
+			var _width = $this.width();
+			var _height = $this.height();
 			
 			$('#nw,#n,#ne').css('top', _top - 3);
 			$('#w,#e').css('top', _top + _height/2 - 3);
@@ -552,18 +577,20 @@ $(document).ready(function(event) {
 		}
 		else {
 			$(writing_buttons).css('position','fixed');
-			$('#bold').css('top',3);
-			$('#italic').css('top',27);
+			$('#bold').css('top',5);
+			$('#italic').css('top',28);
 			$('#underline').css('top',51);
-			$('#ul').css('top',85);
-			$('#ol').css('top',109);
-			$('#img').css('top',143);
-			$('#link').css('top',167);
-			$('#vid').css('top',191);
-			//$('#new_page').css('top',215);
-			$('#sup').css('top',225);
-			$('#sub').css('top',249);
-			$('#equation').css('top',273);
+			$('#sup').css('top',74);
+			$('#sub').css('top',97);
+			$('#ul').css('top',130);
+			$('#ol').css('top',153);
+			$('#al').css('top',176);
+			$('#img').css('top',209);
+			$('#link').css('top',232);
+			$('#vid').css('top',255);
+			$('#table').css('top',278);
+			$('#equation').css('top',301);
+			$('#new_page').css('top',324);
 		}
 	});
 	
@@ -590,6 +617,10 @@ $(document).ready(function(event) {
 	$('#ol').on('click',function(event) {
 		document.execCommand('insertOrderedList', false, null);
 	});
+	$('#al').on('click',function(event) {
+		document.execCommand('insertOrderedList', false, null);
+		$(document.getSelection().anchorNode).parents('ol').attr('type','a');
+	});
 	$('#img').on('click',function(event) {
 		make_iframe();
 	});
@@ -615,7 +646,17 @@ $(document).ready(function(event) {
 		insert_video();
 	});
 	$('#new_page').on('click',function(event) {
-		insert_page();
+		var page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
+		var string = getSelectionHtml();
+		if (string == '') string = '<p>Content</p>';
+		page.children('div').append(string);
+		insert_page(0,page,0,0,1);
+		improve_formatting();
+	});
+	$('#table').on('click',function(event) {
+		var row = parseInt(prompt('Number of Rows:'),10);
+		var col = parseInt(prompt('Number of Columns:'),10);
+		insertTable(row,col);
 	});
 	$('#sup').on('click',function(event) {
 		document.execCommand('superscript',false,null);
@@ -654,23 +695,24 @@ function handle_paste_glitch(obj) {
 }
 
 /// Fixes most of the execCommand discrepancies. Applied during toggle_edit() to maintain the undo stack as much as possible.
-function improve_formatting() {
-	$('p img').unwrap();
-	$('div[contenteditable] > p > div').unwrap();
-	var list = $('ol,ul');
+function improve_formatting($obj) {
+	if (typeof($obj) === 'undefined') $obj = $('body');
+	$obj.find('p img').unwrap();
+	$obj.find('div[contenteditable] > p > div').unwrap();
+	var list = $obj.find('ol,ul');
 	if (list.parent().is('p')) list.unwrap();
 		
-	var div_contenteditable = $('div[contenteditable]');
+	var div_contenteditable = $obj.find('div[contenteditable]');
 	var plainText = div_contenteditable.contents().filter(function() { return this.nodeType === 3; });
 	plainText.wrap('<p />');
 	
 	// Plain-text cuts inline elements out of paragraphs. Fixing with this.
-	$('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
-		var _this = $(this);
-		var prev_p = _this.prev('p');
-		if (prev_p.html()) _this.prev('p').append(_this);
-		else _this.wrap('<p>');
-		var new_parent = _this.parent('p');
+	$obj.find('div[contenteditable]').children('a,b,i,u,sub,sup,strong,em').each(function() { 
+		var $this = $(this);
+		var prev_p = $this.prev('p');
+		if (prev_p.html()) $this.prev('p').append($this);
+		else $this.wrap('<p>');
+		var new_parent = $this.parent('p');
 		new_parent.append(new_parent.next('p').detach().html());
 	});
 	
@@ -697,20 +739,20 @@ function toggle_edit() {
 	}
 	else {
 		$('body').on('click mousedown focus','[contenteditable="true"]',function(event) {
-			var _this = $(this);
+			var $this = $(this);
 			/*
 			if ($(event.target).is('.OkeeboMath span')) {
-				var page = _this.closest('div[contenteditable="true"]');
+				var page = $this.closest('div[contenteditable="true"]');
 				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				_this.one('blur',function(event) {
+				$this.one('blur',function(event) {
 					page.css({'outline':'','outline-offset':''});
 				});
 			}
-			else */if (!_this.is(':focus')) {
-				//_this.focus();
-				var page = _this.closest('div[contenteditable="true"]');
+			else */if (!$this.is(':focus')) {
+				//$this.focus();
+				var page = $this.closest('div[contenteditable="true"]');
 				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				_this.one('blur',function(event) {
+				$this.one('blur',function(event) {
 					page.css({'outline':'','outline-offset':''});
 				});
 			}
@@ -725,23 +767,24 @@ function toggle_edit_one(obj) {
 	if (obj.children('h3').attr('contenteditable') == 'true') {
 		obj.children('h3').removeAttr('contenteditable');
 		obj.children('h4').children('p[id]').children('span').removeAttr('contenteditable');	// Placeholder for Unlinked Page Summary 
-		obj.children('p[id]').children('span').removeAttr('contenteditable');
+		obj.children('p[id],.sidebox').children('span,.sum,.full').removeAttr('contenteditable');
 		
 		var h3 = obj.children('h3');
 		var div = h3.next('div[contenteditable]');
+		var data = div.html();
+		improve_formatting(obj);
 		if (div.html()) {
 			var data = div.children();
 			if (!data.html()) data = '<p>' + div.html() + '</p>';
-			h3.after(data);
 		}
-		else if (!obj.hasClass('outer')) {
-			var data = '<p>Content</p>';
-			h3.after(data);
-		}
+		else if (!obj.hasClass('outer') && !h3.next().is('.sidebox')) data = '<p>Content</p>';
+		else if (data) data = '<p><br></p>';
+		h3.after(data);
+		
 		div.remove();
 		h3.removeAttr('contenteditable');
-		obj.children('p[id]').each(function(index) {
-			var p = obj.children('p[id]').eq(index);
+		obj.children('p[id],.sidebox').each(function(index) {
+			var p = obj.children('p[id],.sidebox').eq(index);
 			div = p.next('div[contenteditable]');
 			if (div.html()) {
 				var data = div.children();
@@ -755,18 +798,18 @@ function toggle_edit_one(obj) {
 	else {
 		obj.children('h3').attr('contenteditable','true');
 		obj.children('h4').children('p[id]').children('span').attr('contenteditable','true');	// Placeholder for Unlinked Page Summary
-		obj.children('p[id]').children('span').attr('contenteditable','true');
+		obj.children('p[id],.sidebox').children('span,.sum,.full').attr('contenteditable','true');
 		
 		obj.children('img').wrap('<p>');
 		
-		var data = obj.children('h3').nextUntil('.in').not('form.linear');
+		var data = obj.children('h3').nextUntil('.in,.sidebox').not('form.linear');
 		if (data.html()) {
 			obj.children('h3').after('<div contenteditable="true"></div>');
 			obj.children('div[contenteditable]').html(data);
 		}
-		obj.children('p[id]').each(function(index) {
-			var p = obj.children('p[id]').eq(index);
-			data = p.nextUntil('.in').not('form.linear,.insert');
+		obj.children('p[id],.sidebox').each(function(index) {
+			var p = obj.children('p[id],.sidebox').eq(index);
+			data = p.nextUntil('.in,.sidebox').not('form.linear,.insert');
 			if (data.html()) {
 				p.after('<div contenteditable="true"></div>');
 				p.next('div[contenteditable]').html(data);
@@ -777,25 +820,24 @@ function toggle_edit_one(obj) {
 
 /// Turns off edit for outer pages but leaves edit on for inner pages. Unsure if this would be expected behavior or if edit should be entirely off.
 /// If edit should be entirely off, other areas in the code will also need changing.
-function toggle_drag() {
-	if (!$('.outer p[id]').attr('draggable')) {
-		$('.outer p[id]').attr({'draggable':'true','ondragstart':'drag(event)'});
-		$('.outer').attr({'ondrop':'drop(event)','ondragover':'allowDrop(event)'});
-		
-		$('.outer').on('selectstart','p[id]',function(event){ 
+function toggle_drag(singlePage) {
+	var outer = $('.outer');
+	if (singlePage) outer = outer.filter(':visible');
+	var pID = outer.find('p[id]');
+	if (!pID.attr('draggable')) {
+		pID.attr({'draggable':'true','ondragstart':'drag(event)'});
+		outer.on('selectstart','p[id]',function(event){ 
 			_data = $(event.target).parent().attr('id');
 			if (this.dragDrop) this.dragDrop();
 			return false;
-		});
-		$('.outer p[id]').css('cursor','move').css('outline-color','');
+		}).attr({'ondrop':'drop(event)','ondragover':'allowDrop(event)'});
+		pID.css('cursor','move').css('outline-color','');
 		
 	}
 	else {
-		$('p[id]').removeAttr('draggable').removeAttr('ondragstart');
-		$('.inner,.outer').removeAttr('ondrop').removeAttr('ondragover');
-		
-		$('.inner,.outer').off('selectstart');
-		$('.outer p[id]').css('cursor','auto');
+		pID.removeAttr('draggable').removeAttr('ondragstart');
+		outer.add(singlePage ? '' : '.inner').removeAttr('ondrop').removeAttr('ondragover').off('selectstart');
+		pID.css('cursor','auto');
 		
 		/// For Touch Devices
 		$('#dragdrop').remove();
@@ -804,7 +846,7 @@ function toggle_drag() {
 	if (!_drag) {
 		_drag = 1;
 		if ($('#bold').is(':visible')) {
-			$('.outer').each(function(event) {
+			outer.each(function(event) {
 				toggle_edit_one($(this));
 			});
 			_edit = 1;
@@ -813,7 +855,7 @@ function toggle_drag() {
 	else {
 		_drag = 0;
 		if (_edit) {
-			$('.outer').each(function(event) {
+			outer.each(function(event) {
 				toggle_edit_one($(this));
 			});
 			_edit = 0;
@@ -844,7 +886,7 @@ function drop(event) {
 	if (event.type == 'drop') data = event.dataTransfer.getData("Text");
 	if (!data && typeof(_data) !== 'undefined') data = _data;
 	if (typeof(data) === 'undefined' || data.charCodeAt(1) > 57 || data == 'undefined' || !data) return false;
-	var set_p = $('.inner,.outer').filter(':visible').children('p');
+	var set_p = $('.inner,.outer').filter(':visible').children('p,ol,ul,.sidebox,table');
 	var first_p = set_p.first();
 	var first_id = set_p.filter('[id]').first().attr('id');
 	var letter = first_id.charAt(0);
@@ -981,7 +1023,7 @@ function update_all_affected_links(first_id) {
 }
 
 /// summary and page are null for a new page
-function insert_page(summary,page,exists,reinsert) {
+function insert_page(summary,page,exists,reinsert,cut) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
 	if (!reinsert) {
@@ -1049,7 +1091,11 @@ function insert_page(summary,page,exists,reinsert) {
 		}
 	}
 	var div_letter = String.fromCharCode(letter.charCodeAt(0) + 1);
+	if (cut) {
+		if (getSelectionHtml()) document.execCommand('delete',false,null);
+	}
 	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
+	//children('h3').after
 	if (summary) summary.attr('id',letter + '0');
 	else if (exists) {
 		summary = '<p id="' + letter + '0"><span class="italic">' + page.children('h3').html() + '</span><br /><span>Summary</span></p>';
@@ -1091,7 +1137,11 @@ function insert_page(summary,page,exists,reinsert) {
 	redraw_node_map(current_div_id);
 	//create_inserts();
 	
-	$(window).scrollTop($(document).height());
+	/*if (!cut) */$(window).scrollTop($(document).height());
+	/*else {
+		toggle_edit_one(current_div);
+		toggle_edit_one(current_div);
+	}*/
 }
 
 /// Handles pages with multiple keys
@@ -1155,8 +1205,8 @@ function delete_page(target_id,quick) {
 		/// Might want to record these tangents in the undo delete stack.
 		var tangent = $('.tangent._' + current_keys[j]);
 		tangent.each(function(index) {
-			var _this = $(this);
-			_this.before(_this.html()).remove();
+			var $this = $(this);
+			$this.before($this.html()).remove();
 		});
 	
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
@@ -1259,14 +1309,14 @@ function delete_edge(edge,quick) {
 				if (recursion) new_number = recursion;
 				*/
 				page.children('.in + p[id]').each(function(index) {
-					var _this = $(this);
+					var $this = $(this);
 					var old_child_letter = String.fromCharCode(this.id.charCodeAt(0) + 1);
 					var old_number = parseInt(this.id.substr(1));
 					++new_number;
 					// Avoid identity crises
 					while ($('.' + new_child_letter + new_number).html()) ++new_number;
-					_this.prev('.in').removeClass(this.id).addClass(new_link_letter + new_number);
-					_this.attr('id',new_link_letter + new_number);
+					$this.prev('.in').removeClass(this.id).addClass(new_link_letter + new_number);
+					$this.attr('id',new_link_letter + new_number);
 					var child_page = $('.' + old_child_letter + old_number);
 					child_page.removeClass(old_child_letter + old_number).addClass(new_child_letter + new_number);
 					if (child_page.hasClass('outer')) slinky(child_page,new_number);
@@ -1322,9 +1372,9 @@ function modify_arrange_buttons(create,not) {
 	var visible_div = $('.inner,.outer').filter(':visible').not(not);
 	visible_div.children('p[id]').not(':last').each(function(index) {
 		var id = this.id;
-		var _this = $(this);
-		_thisLeft = _this.offset().left;
-		_thisWidth = _this.outerWidth();
+		var $this = $(this);
+		$thisLeft = $this.offset().left;
+		$thisWidth = $this.outerWidth();
 		
 		if (create) $('body').append('<button class="switch">&nbsp;&darr;&nbsp;&uarr;&nbsp;</button>');
 		var _switch = $('.switch').eq(index);
@@ -1342,7 +1392,7 @@ function modify_arrange_buttons(create,not) {
 						'height' : 24,
 						'position' : 'absolute'
 		}).css({		'top' : (_inTop + _in.outerHeight() + _inNextTop - _switch.outerHeight())*0.5,
-						'left': _thisLeft + _thisWidth - _switch.outerWidth()*2
+						'left': $thisLeft + $thisWidth - _switch.outerWidth()*2
 		});
 		
 	});
@@ -1475,30 +1525,30 @@ function create_sidebar() {
 		var text = '';
 		
 		$('video').replaceWith(function(index) { return $(this).children('object'); });
-		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + $(this).attr('id') + '</span>'; });
+		$('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
 		
 		$('.handle,.delete').remove();
 		$('.inner,.outer').each(function(index) {
-			var _this = $(this);
-			_this.children('form.linear').remove();
+			var $this = $(this);
+			$this.children('form.linear').remove();
 			
 			// Remove excess <br> from titles
-			_this.find('h3 br').remove();
-			_this.find('p[id] .italic br').remove();
+			$this.find('h3 br').remove();
+			$this.find('p[id] .italic br').remove();
 			
 			// To work with htmlPurifier
-			_this.children('.in,.out').empty();
-			_this.find('.tangent').replaceWith(function() { 
+			$this.children('.in,.out').empty();
+			$this.find('.tangent').replaceWith(function() { 
 				return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
 			});
 			
-			if (_this.hasClass('inner')) text += '<div class="' + _this.attr('class') + '">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
-			else text += '<div class="' + _this.attr('class') + '" id="Z1">' + _this.html().replace(/\\/g,'\\\\') + '</div>';
+			if ($this.hasClass('inner')) text += '<div class="' + $this.attr('class') + '">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
+			else text += '<div class="' + $this.attr('class') + '" id="Z1">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
 			
 			// Illusion
-			_this.children('.in').html('+');
-			_this.children('.out').html('-');
-			_this.find('a.tangent').replaceWith(function() { 
+			$this.children('.in').html('+');
+			$this.children('.out').html('-');
+			$this.find('a.tangent').replaceWith(function() { 
 				return '<button class="' + $(this).attr('class') + '">' + $(this).text() + '</button>';
 			});
 		});
@@ -1604,6 +1654,18 @@ function insert_video() {
 			$('#' + id).replaceWith('<object style="height: 360px; width: 640px;" id="' + yt_id + '" type="application/x-shockwave-flash" data="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0" height="360" width="640">\n			<param name="movie" value="https://www.youtube.com/v/' + yt_id + '?hl=en_US&amp;version=3&amp;enablejsapi=1&amp;playerapiid=ytplayer&amp;rel=0">\n			<param name="allowFullScreen" value="true">\n			<param name="allowScriptAccess" value="always">\n		</object>');
 		});
 	}
+	// Additional Support for Vimeo
+	else if (yt_url.search('vimeo') != -1) {
+		var vimeo = yt_url.match(/[0-9]{8}/)[0];	
+		var id = "newVid" + String(Math.random()).replace(/\./g,'');
+		insertAfter('<video id="' + id + '" width="640" height="360"></video>');
+		$.get('https://www.okeebo.com/video/vimeo.php?id=' + vimeo + '&html5',function(data) {
+			$('#' + id).replaceWith(data);
+		}).fail(function(data) {
+			var flash = 'https://vimeo.com/moogaloop.swf?clip_id=' + vimeo;			
+			$('#' + id).replaceWith('<object id="' + vimeo + '" type="application/x-shockwave-flash" width="640" height="360" data="' + flash + '">\n			<param name="flashvars" value="clip_id=' + vimeo + '&amp;js_getConfig=getConfig&amp;js_setConfig=setConfig&amp;js_onLoad=onMoogaloopLoaded' + '&amp;api=1' + '&amp;moogaloop_type=moogaloop">' + '\n			<param name="movie" value="' + flash + '">\n			<param name="allowfullscreen" value="true">\n			<param name="allowscriptaccess" value="always">\n			<param name="wmode" value="opaque">\n			<param name="quality" value="high">\n			<param name="scalemode" value="noscale">\n		</object>');
+		});
+	}
 }
 
 function insertEq() {
@@ -1611,6 +1673,63 @@ function insertEq() {
 	var math = $('#newMath');
 	MathJax.Hub.Queue(['Typeset',MathJax.Hub,math[0]]);
 	insertMathLangButtons($('.OkeeboMath').index(math.removeAttr('id').attr('contenteditable','false')));
+}
+
+function insertTable(row,col) {
+	if (typeof(row) === 'number' && typeof(col) === 'number') {
+		var html = '<table border=1>';
+		for (var i=0; i<row; ++i) {
+			html += '<tr>';
+			for (var j=0; j<col; ++j) html += '<td><br></td>';
+			html += '</tr>';
+		}
+		insertAfter(html);
+	}
+}
+
+function insertCol(place) {
+	var td = $(document.getSelection().anchorNode.parentNode);
+	var i = td.parent('tr').children('td').index(td);
+	var col = $('table').find('tr').children('td:nth-child(' + (i+1) + ')');
+	if (place == 'before') col.before('<td></td>');
+	else col.after('<td></td>');
+}
+
+function insertRow(place) {
+	var td = $(document.getSelection().anchorNode.parentNode);
+	var row = td.parent('tr');
+	var num = row.children('td').index(row.children('td').last()) + 1;
+	var html = '<tr>';
+	for (var i=0; i<num; ++i) html += '<td><br></td>';
+	html += '</tr>';
+	if (place == 'before') row.before(html);
+	else row.after(html);
+}
+
+function deleteCol(table,colNum) {
+	if (table instanceof jQuery && table.is('table')) {
+		var col = table.find('tr').children('td:nth-child(' + (colNum) + ')');
+		col.remove();
+	}
+}
+function deleteRow(table,rowNum) {
+	if (table instanceof jQuery && table.is('table')) {
+		var row = $('table').find('tr').eq(rowNum - 1);
+		row.remove();
+	}
+	else if (typeof(rowNum) === 'undefined') {
+		if (typeof(table) === 'number') {
+			rowNum = table;
+			var td = $(document.getSelection().anchorNode.parentNode);
+			var table = td.parents('table');
+			deleteRow(table,rowNum);
+		}
+		else if (typeof(table) === 'undefined') {
+			var td = $(document.getSelection().anchorNode.parentNode);
+			var row = td.parent('tr');
+			row.remove();
+		}
+	}
 }
 
 function insertAfter(html) {
@@ -1634,14 +1753,15 @@ function make_iframe() {
 }
 function iframe_trigger() {
 	$('iframe').load(function() {
-		var _this = parent.$(this);
-		_this.height(_this.contents().find('html').height());
-		iframe_to_image(_this);
+		var $this = parent.$(this);
+		$this.height($this.contents().find('html').height());
+		iframe_to_image($this);
 	});
 }
 function iframe_to_image(iframe) {
 	if (!iframe) iframe = parent.$('iframe');
-	iframe.replaceWith(iframe.contents().find('img'));
+	var img = iframe.contents().find('img');
+	if (img.index() != -1) iframe.replaceWith(img);
 	parent.$('title').html('Okeebo');
 	image_wrap();
 }
@@ -1661,14 +1781,14 @@ function create_handles(id) {
 		.on('mousedown',function(event) {
 			clear_selected_text();
 			$('p[id]').css('outline','');
-			toggle_drag();
+			toggle_drag(1);
 			$(document).on('mouseout mouseup',function(event) {
-				toggle_drag();
+				toggle_drag(1);
 				$(document).off('mouseout mouseup');
 				if (event.type == 'mouseup') $(event.target).parent('p[id]').css({'outline':'dashed 1px #ccc','outline-offset':'-2px'});
 			});
 			//$('.inner p').css('outline','dashed 1px #ccc'); 
-			$('.outer').attr('ondrop','drop(event); toggle_drag(); $(document).off("mouseout mouseup");');
+			$('.outer').attr('ondrop','drop(event); toggle_drag(1); $(document).off("mouseout mouseup");');
 			
 			color_dragging(event,$(this).parent('p[id]').attr('id'));
 		})
@@ -1686,10 +1806,10 @@ function color_dragging(event,data) {
 	if (!y) y = $('#dragdrop').offset().top + 25;
 	var set_p = $('.outer').filter(':visible').children('p');
 	set_p.each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		if (this.id != data) {
-			if (y < _this.offset().top + _this.height()/2) _this.css('outline-color','#00FF80');
-			else _this.css('outline-color','#FF8000');
+			if (y < $this.offset().top + $this.height()/2) $this.css('outline-color','#00FF80');
+			else $this.css('outline-color','#FF8000');
 		}
 	});
 }
@@ -1761,7 +1881,7 @@ function DisplayToCode(index,type) {
 			if (type == 'tex') MathMLtoTeX(index);
 		}
 	}
-	else console.log('none');
+	else return false;
 	return;
 }
 
@@ -1798,11 +1918,11 @@ function MathMLtoTeX(index,change) {
 		if (change) container = index;
 		else container = index.clone();
 	}
-	else if (index instanceof HTMLElement) {
+	else if (typeof(HTMLElement) !== 'undefined' && index instanceof HTMLElement) {
 		MathMLtoTeX($().add(index),change);
 		return;	
 	}
-	else if (index instanceof HTMLCollection) {
+	else if (typeof(HTMLCollection) !== 'undefined' && index instanceof HTMLCollection) {
 		var length = index.length;
 		for (var i=0; i<length; ++i) MathMLtoTeX(index[i],change);
 		return;	
@@ -1863,7 +1983,7 @@ function processMathML(tag,string) {
 	}
 	//string = string.replace(/\|\\begin{array}{c}$/,'\\begin{vmatrix}');
 	tag.children().each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		if (tagName == 'mfrac' && index == 0) string += '\\frac{';
 		if (tagName == 'mfrac' && index == 1) string += '}{';
 		if (tagName == 'msub' && index == 1) string += '_';
@@ -1900,19 +2020,19 @@ function processMathML(tag,string) {
 		if (tagName == 'munderover' && index == 2) string += '}^{';
 		if (this.tagName.toLowerCase() == 'mo') {
 			// Special operators
-			if (_this.text() == 'lim') string += '\\';
-			if (_this.attr('linebreak') == 'newline') string += '\\\\';
-			if (_this.text() == '(' || _this.text() == '[' || _this.text() == '{') string += '\\left';
-			if (_this.text() == ')' || _this.text() == ']' || _this.text() == '}') string += '\\right';
-			if (_this.text() == String.fromCharCode(10216)) {
+			if ($this.text() == 'lim') string += '\\';
+			if ($this.attr('linebreak') == 'newline') string += '\\\\';
+			if ($this.text() == '(' || $this.text() == '[' || $this.text() == '{') string += '\\left';
+			if ($this.text() == ')' || $this.text() == ']' || $this.text() == '}') string += '\\right';
+			if ($this.text() == String.fromCharCode(10216)) {
 				string += '\\left';
-				_this.text('<');
+				$this.text('<');
 			}
-			if (_this.text() == String.fromCharCode(10217)) {
+			if ($this.text() == String.fromCharCode(10217)) {
 				string += '\\right';
-				_this.text('>');
+				$this.text('>');
 			}
-			if (_this.text() == "|") {
+			if ($this.text() == "|") {
 				count = string.match(/\|/g);
 				if (count && count.length % 2 == 1) string += '\\right';
 				else string += '\\left';
@@ -1924,10 +2044,10 @@ function processMathML(tag,string) {
 			string += '{';	
 		}
 		if (tagName == 'mtable' && index != 0) string += '\\\\';
-		if (_this.attr('mathvariant') == 'bold') string += '\\mathbf{';
+		if ($this.attr('mathvariant') == 'bold') string += '\\mathbf{';
 		if (this.tagName.toLowerCase() == 'mtext') string += '\\text{';
 		if (this.tagName.toLowerCase() == 'mspace') string += '\\quad ';
-		if (['sin','cos','tan'].indexOf(_this.text()) != -1) string += '\\';
+		if (['sin','cos','tan'].indexOf($this.text()) != -1) string += '\\';
 		if (tagName == 'mfenced') {
 			if (index == 0) string += /*tag.attr('open') || */'(';
 			else {
@@ -1937,11 +2057,11 @@ function processMathML(tag,string) {
 			}
 		}
 		
-		if (_this.children().length == 0) string += _this.text();
-		else string = processMathML(_this,string);
+		if ($this.children().length == 0) string += $this.text();
+		else string = processMathML($this,string);
 		
 		if (this.tagName.toLowerCase() == 'mtext') string += '}';
-		if (_this.attr('mathvariant') == 'bold') string += '}';
+		if ($this.attr('mathvariant') == 'bold') string += '}';
 		if (tagName == 'mfrac' && index == 1) string += '}';
 		if (this.tagName == 'mrow' && (tagName == 'msup' || tagName == 'msub' || tagName == 'msubsup')) string += '}';
 		if (tagName == 'munderover' && index == 2) string += '}';
@@ -2058,9 +2178,134 @@ function mathPublish() {
 	DisplayToCode();
 	MathMLtoTeX();
 	$('.OkeeboMath').each(function(index) {
-		var _this = $(this);
+		var $this = $(this);
 		var _class = 'center';
-		if (_this.parents('p').is('[id]')) _class = '';
-		_this.html(_this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+		if ($this.parents('p').is('[id]')) _class = '';
+		$this.html($this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+	});
+}
+
+function save(role) {
+	var text = '';
+	var code = new Array();
+	var okeeboMath = $('.OkeeboMath').each(function(index) { 
+		code.push(DisplayToCode(index)); 
+	});
+	var $body = $('body').clone();
+	okeeboMath.each(function(index) { 
+		if (code[index] !== false) CodeToDisplay(index);
+		insertMathLangButtons(index) 
+	});
+	
+	$body.find('.OkeeboMath').each(function(index) {
+		var $this = $(this);
+		MathMLtoTeX($this,1);
+		var _class = 'center';
+		if ($this.parents('p').is('[id]')) _class = '';
+		$this.html($this.children('.lang').html()).removeAttr('contenteditable').addClass(_class);
+	});
+	
+	improve_formatting($body);
+	
+	$body.find('video').replaceWith(function(index) { return $(this).children('object'); });
+	$body.find('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
+	
+	$body.find('.handle,.delete').remove();
+	$body.find('.inner,.outer').each(function(index) {
+		var $this = $(this);
+		toggle_edit_one($this);
+		$this.children('form.linear').remove();
+		
+		// Remove excess <br> from titles
+		$this.find('h3 br').remove();
+		$this.find('p[id] .italic br').remove();
+		
+		// To work with htmlPurifier
+		$this.children('.in,.out').empty();
+		$this.find('.tangent').replaceWith(function() { 
+			return '<a class="' + $(this).attr('class') + '">' + $(this).text() + '</a>';
+		});
+		
+		if ($this.hasClass('inner')) text += '<div class="' + $this.attr('class') + '">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
+		else text += '<div class="' + $this.attr('class') + '" id="Z1">' + $this.html().replace(/\\/g,'\\\\') + '</div>';
+	});
+	
+	if (role == 'autosave') {
+		$body.find('#_save').val(text);
+		$body.find('#_title').val($('.Z1 h3').html());
+		$body.find('#_publish').val('autosave');
+		$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Autosaved at ' + Date()); });
+		$body.find('#_publish').val('');
+	}
+	else {
+		$('#_save').val(text);
+		$('#_title').val($('.Z1 h3').html());
+		if (role == 'publish') $('#_publish').val('true');
+		$('form.save').submit();
+	}
+}
+
+setInterval('save("autosave");',60000);
+
+function flocka(event) {
+	var button = $(event.target);
+	var sidebox = button.parent('.sidebox');
+	if (button.html() == '+') {
+		sidebox.children('.sum').hide();
+		sidebox.children('.full').show();
+		button.html('-');
+	}
+	else {
+		sidebox.children('.sum').show();
+		sidebox.children('.full').hide();
+		button.html('+');
+	}
+}
+
+function mobile_drag() {
+	$('.handle').on('click',function(event) {
+		var handle = $(this);
+		var parentP = handle.parent('p[id]');
+		var outer = parentP.parent('.outer');
+		var p_set = outer.children('p[id]');
+		var first_p = p_set.first();
+		var last_p = p_set.last();
+		$('.upp,.dwn').remove();
+		if (!parentP.is(first_p)) {
+			handle.before('<div class="upp">&uArr;</div>');
+			$('.upp').on('click',function(event) {
+				var id = parentP.attr('id');
+				var letter = id.charAt(0);
+				var number = id.substr(1);
+				$('.' + letter + (number-1)).before(parentP);
+				parentP.before($('.'+id));
+				$('.upp,.dwn').remove();
+				arrange_links(':visible','a',1);
+				repair_links(':visible','a',1);
+				update_all_affected_links('a1');
+			}).css('top',handle.offset().top-99);//-99
+		}
+		if (!parentP.is(last_p)) {
+			handle.after('<div class="dwn">&dArr;</div>');
+			$('.dwn').on('click',function(event) {
+				var id = parentP.attr('id');
+				var letter = id.charAt(0);
+				var number = id.substr(1);
+				$('#' + letter + (++number)).after(parentP);
+				parentP.before($('.'+id));
+				$('.upp,.dwn').remove();
+				arrange_links(':visible','a',1);
+				repair_links(':visible','a',1);
+				update_all_affected_links('a1');
+			}).css('top',handle.offset().top-57);//-57
+		}
+		up_down();
+	});
+}
+
+function up_down() {
+	$(document).one('click',function(event) {
+		if ($(event.target).is('.upp,.dwn,.handle')) up_down();
+		else $('.upp,.dwn').remove();
 	});
 }

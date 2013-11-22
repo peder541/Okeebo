@@ -30,76 +30,112 @@
 }
 */
 
-#bold,#italic,#underline,#ul,#ol,#img,#link,#vid,#sub,#sup,#new_page,#equation {
+.inner,.outer {
+	min-height: 350px;	
+}
+
+.inner > div[contenteditable] {
+	min-height: 265px;
+}
+
+.outer > div[contenteditable] {
+	min-height: 0;
+}
+
+.writing {
 	position: absolute;
-	left: 871px;
+	left: 874px;
 	height: 23px;
 	width: 26px;
 	margin-left: 181.5px;
 	display: none;
-	border-color: rgb(214, 214, 214);
+	/*border-color: rgb(214, 214, 214);*/
+	border: 1px solid #888;
+	cursor: pointer;
+	background: no-repeat center rgb(214, 214, 214);
+	border-right: 0;
+}
+
+.writing:hover {
+	background-color: #EEE;	
+}
+.writing:active {
+	background-color: #f4f4f4;
+	border-style: solid;
 }
 
 #bold {
-	top: 83px;
-	background: url('bold.png') no-repeat center rgb(214, 214, 214);
+	top: 85px;
+	background-image: url('bold.png');
 }
-
 #italic {
-	top: 107px;	
-	background: url('italic.png') no-repeat center rgb(214, 214, 214);
+	top: /*107px;*/ 108px;	
+	background-image: url('italic.png');
 }
-
 #underline {
-	top: 131px;
-	background: url('underline.png') no-repeat center rgb(214, 214, 214);
+	top: /*131px;*/131px;
+	background-image: url('underline.png');
+}
+#sup {
+	top: 154px;
+	background-image: url('sup.png');
+}
+#sub {
+	top: 177px;
+	background-image: url('sub.png');
 }
 
 #ul {
-	top: 165px;
-	background: url('ul.png') no-repeat center rgb(214, 214, 214);
+	top: /*165px;*/210px;
+	background-image: url('ul.png');
 }
-
 #ol {
-	top: 189px;
-	background: url('ol.png') no-repeat center rgb(214, 214, 214);
+	top: /*189px;*/233px;
+	background-image: url('ol.png');
+}
+#al {
+	top: 256px;
+	background-image: url('al.png');
 }
 
 #img {
-	top: 223px;
-	background: url('img.png') no-repeat center rgb(214, 214, 214);
+	top: /*223px;*/289px;
+	background-image: url('img.png');
 }
-
 #link {
-	top: 247px;
-	background: url('link.png') no-repeat center rgb(214, 214, 214);
+	top: 312px;
+	background-image: url('link.png');
 }
-
 #vid {
-	top: 271px;
-	background: url('vid.png') no-repeat center rgb(214, 214, 214);
+	top: 335px;
+	background-image: url('vid.png');
 }
-
-#sup {
-	top: 305px;
-	background: url('sup.png') no-repeat center rgb(214, 214, 214);
+#table {
+	top: 358px;
+	background-image: url('table.png');
 }
-
-#sub {
-	top: 329px;
-	background: url('sub.png') no-repeat center rgb(214, 214, 214);
-}
-
 #equation {
-	top: 353px;
-	background: url('equation.png') no-repeat center rgb(214, 214, 214);
+	top: 381px;
+	background-image: url('equation.png');
 }
-
 #new_page {
-	top: 295px;
-	background: url('new_page.png') no-repeat center rgb(214, 214, 214);
+	top: 404px;
+	background-image: url('new_page.png');
 }
 
+.writing.top {
+	border-radius: 5px 0 0 0;
+	border-bottom: 0;
+}
+.writing.mid {
+	border-radius: 0;
+	border-top: 0;
+	border-bottom: 0;	
+}
+.writing.bot {
+	border-radius: 0 0 0 5px;
+	border-top: 0;
+}
 
 #hud {
 	position: fixed;
@@ -154,10 +190,13 @@ form.linear input {
 	height: 29px;
 	margin: 0;
 	margin-left: 180px;
+	margin-left: calc(50% - 450px);
 	top: 38px;/*42px;*/
 	left: 24px;/*8px;*/
 	background: url('menu.png') no-repeat center rgb(89,144,233);
 	border-color: rgb(89,144,233);
+	/* Flat Buttons */
+	border-width: 1px;
 }
 
 #sidebar {
@@ -209,6 +248,12 @@ div[contenteditable] {
 	padding-left: 12px;
 	padding-right: 5px;
 	margin-bottom: 16px;
+	/* newer *//*
+	padding-top: 5px;
+}
+div[contenteditable] > :first-child {
+	margin-top: -5px;
+/**/
 }
 
 div[contenteditable] > br {
@@ -349,10 +394,23 @@ div[contenteditable] table p {
 	font-family: Optima, Corbel, sans-serif;
 	width: auto;
 	height: auto;
-	padding: 0.5px;
+	padding: 2px;
 	line-height: 110%;
 	position: absolute;	
 	-moz-user-select: none;
+	/* Flat Buttons */
+	border: 1px solid #AAA;
+}
+.OkeeboMathTeX {
+	border-right: 0;
+	border-radius: 5px 0 0 5px;
+}
+.OkeeboMathML {
+	border-radius: 0;
+	border-right: 0;
+}
+.OkeeboMathDisplay {
+	border-radius: 0 5px 5px 0;
 }
 .OkeeboMath span.lang {
 	display: inline-block;
@@ -362,4 +420,16 @@ div[contenteditable] table p {
 }
 p[id] span:nth-child(3) {
 	min-width: 90%;
+}
+
+.upp,.dwn {
+	position: absolute;
+	cursor: pointer;
+	background-color: rgb(223, 195, 255);
+	line-height: 18px;
+	width: 16px;
+	text-align: center;
+	border-radius: 10px;
+	height: 16px;
+	left: 67px;
 }

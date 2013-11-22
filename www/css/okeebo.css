@@ -343,6 +343,8 @@ h3 {
 	top: 38px;/*42px;*/
 	left: 24px;/*8px;*/
 	display: none;
+	/* Flat Buttons */
+	border-width: 1px;
 }
 
 .splitscreen {
@@ -411,8 +413,8 @@ h3 {
 	margin: 12px;
 	border-radius: 10px;
 	padding: 2px 2px 2px 36px;
-	box-shadow: 0 0 10px 0 #555;
-	-webkit-box-shadow: 0 0 10px 0 #555;
+	box-shadow: 0 0 4px 0 #555;
+	-webkit-box-shadow: 0 0 6px 0 #555;
 }
 
 .left,.right {
@@ -450,7 +452,7 @@ button:hover {
 }
 button:focus:hover {
 	box-shadow: 0 0 0 2px #FA0;
-}*/
+}/**/
 iframe {
 	border: 0;
 	width: 100%;
@@ -472,9 +474,9 @@ img + .in, iframe + .in {
 	margin-top: 16px;
 }
 
-/*	Flat Buttons	*//*
+/*	Flat Buttons	*//**/
 button {
-	border-width: 1px;
+	border-width: 0;
 	cursor: pointer;
 }
 .in:active {
@@ -508,9 +510,15 @@ button {
 #forum {
 	display: none;
 }
-
+.inner > table,.outer > table {
+	margin-right: 5px;	
+}
 table {
 	margin-left: 14px;	
+	margin-bottom: 16px;
+}
+.in + p[id] table {
+	margin: 8px 0;	
 }
 
 .Z3 .preview_window {
@@ -569,10 +577,54 @@ p[id] .MathJax_Display {
 	font-family: Calibri;
 	font-variant: small-caps;
 	text-decoration: none;
+	margin-left: calc(50% - 450px);
 }
 #home {
 	left: 24px;
 }
 #function {
 	left: 80px;
+}
+
+table {
+	border-collapse: collapse;
+}
+td {
+	padding: 5px;
+	vertical-align: middle;
+	min-width: 2em;
+}
+
+@media (max-width: 900px) {
+	.inner,.outer,.exit,.splitscreen,#meta-map,#forum,#home,#catalog,#function,#menu {
+		margin-left: 0px;
+	}
+}
+
+.sidebox {
+	margin-left: 12px; 
+	border: 1px solid rgb(204, 204, 204); 
+	background-color: rgb(244, 244, 244); 
+	border-radius: 5px 5px 5px 5px; 
+	padding: 5px 1px 0px 8px;
+	margin-bottom: 16px;
+	margin-right: 5px;
+}
+
+.sidebox > span {
+	padding: 4px
+}
+
+.sidebox > .full {
+	display: none;
+}
+
+.sideboxToggle {
+	background-color: rgb(204, 204, 204); 
+	border: 0px none; 
+	height: 30px; 
+	float: right; 
+	margin-top: -6px; 
+	margin-right: -2px;	
+	color: #555;
 }
