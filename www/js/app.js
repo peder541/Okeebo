@@ -141,7 +141,7 @@ $(document).on('ready',function(event) {
 		}
 		else if ($url == "javascript:navigator.id.request()") {
 			var persona = window.open('https://login.persona.org/sign_in#NATIVE','_self','location=yes');
-			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { alert(assertion); window.close(); })
+			persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { $assertion = assertion; window.close(); })"});
 			/*
 			var $assertion;
 			persona.addEventListener('loadstop',function(event) {
