@@ -28,6 +28,7 @@ $.post('https://verifier.login.persona.org/verify', { assertion: window.localSto
 			personaCode += "BrowserID.internal.get('https://www.okeebo.com', function(assertion) {";
 			personaCode += "	window.location = 'http://www.okeebo.com?assertion=' + assertion;";
 			personaCode += "})";
+			personaCode += "if ($('#signInButton').index() != -1) $('#signInButton').click();";
 			
 			persona.executeScript({code: personaCode});
 			
