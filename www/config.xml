@@ -50,8 +50,6 @@
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
     <access origin="http://127.0.0.1*" />
 	<access origin="https://www.okeebo.com" subdomains="true"/>
-	<access origin="https://login.persona.org" subdomains="true"/>
-	<access origin="https://static.login.persona.org" subdomains="true"/>
 	<gap:platform name="android" />
 	<gap:plugin name="org.apache.cordova.inappbrowser" />
 </widget>
