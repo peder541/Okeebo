@@ -158,23 +158,16 @@ $(document).on('ready',function(event) {
 					$('body').append('<a style="display:none" href="https://www.okeebo.com/beta/?assertion=' + assertion + '" id="appLogin">Login</a>');
 					$('#appLogin').click();
 					$.post('https://verifier.login.persona.org/verify', { assertion: assertion, audience: 'https://www.okeebo.com:443' }).done(function(data) {
-						window.localStorage.getItem('email') = data.email;
+						window.localStorage.setItem('email',data.email);
 					});
 				}
 			});
 			
 			return false;
-			$.get('https://login.persona.org/sign_in#NATIVE',function(data) {
-				parent.$('html').html(data);
-			});
-			return false;
-			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
-			return false;
 		}
 		else {
 			alert($url);
 			return false;
-			BrowserID.internal.get('https://www.okeebo.com', function(assertion) { window.location = 'https://www.okeebo.com/beta/'; });
 		}
 	});
 });
