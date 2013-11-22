@@ -146,7 +146,7 @@ $(document).on('ready',function(event) {
 				alert('test');	
 			}
 			persona.addEventListener('loadstop',function(event) {
-				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { test(); alert(assertion); })"});
+				persona.executeScript({code: "BrowserID.internal.get('https://www.okeebo.com', function(assertion) { alert(assertion); })"});
 			});
 			persona.addEventListener('exit',function(event) {
 				alert($assertion);
