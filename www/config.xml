@@ -50,4 +50,5 @@
     <access origin="http://127.0.0.1*" />
 	<access origin="https://www.okeebo.com" subdomains="true"/>
 	<gap:platform name="android" />
+	<gap:plugin name="org.apache.cordova.inappbrowser" />
 </widget>
