@@ -24,15 +24,18 @@ function resize_writing_items(buffer) {
 
 $(document).ready(function(event) {
 		
-	var _fadeIn = $.fn.fadeIn;
-	var _show = $.fn.show;
-
-	$.fn.fadeIn = function(){
-    	_fadeIn.apply(this,arguments).trigger("fadeIn");
-	};
-	$.fn.show = function(){
-    	_show.apply(this,arguments).trigger("show");
-	};
+	if (typeof(_fadeIn) === 'undefined') {
+		_fadeIn = $.fn.fadeIn;
+		$.fn.fadeIn = function(){
+			_fadeIn.apply(this,arguments).trigger("fadeIn");
+		};
+	}
+	if (typeof(_show) === 'undefined') {
+		_show = $.fn.show;
+		$.fn.show = function(){
+			_show.apply(this,arguments).trigger("show");
+		};
+	}
 	
 	resize_writing_items();
 	
@@ -265,7 +268,8 @@ $(document).ready(function(event) {
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
-		var anchorNode = document.getSelection().anchorNode;
+		if (document.getSelection) var anchorNode = document.getSelection().anchorNode;
+		else if (document.selection.type == 'Text') var anchorNode = document.selection.createRange().parentElement().childNodes[0];
 		if (anchorNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
@@ -298,7 +302,7 @@ $(document).ready(function(event) {
 	});
 	// Resizable Images in Chrome, Opera, and Safari
 	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
-		if ($(this).attr('_moz_resizing') != 'true' && !IE) {
+		if ($(this).attr('_moz_resizing') != 'true' && (!IE || !document.getSelection)) {
 			var $this = $(this);
 			$('.active-img').removeClass('active-img');
 			$('.resize_handle').remove();
@@ -310,7 +314,7 @@ $(document).ready(function(event) {
 				else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
 				else if (document.selection) document.selection.empty(); // IE
 			}
-			$this.parents('div[contenteditable]').css({'outline': 'solid 2px #F0C97D', 'outline-offset': '-1px'});
+			$this.parents('div[contenteditable]').addClass('focus');
 			
 			$('body')
 				.append('<div class="resize_handle" id="nw"> </div>')
@@ -540,9 +544,8 @@ $(document).ready(function(event) {
 				return false;
 			});
 				
-			$(document).one('click',function(event) { 
-				$('.active-img').parents('div[contenteditable]').css({'outline': '', 'outline-offset': ''});
-				$('.active-img').removeClass('active-img');
+			$(document).one('click',function(event) {
+				$('.active-img').removeClass('active-img').parents('div[contenteditable]').removeClass('focus');
 				$('.resize_handle').remove();
 			});
 			event.preventDefault();
@@ -600,6 +603,15 @@ $(document).ready(function(event) {
 		if ($('#sidebar').outerWidth()) delete_sidebar();
 		else create_sidebar();
 	});
+	$('.writing').on('mousedown',function(event) {
+		if (document.getSelection) $(document.getSelection().anchorNode).closest('[contenteditable="true"]').addClass('focus');
+		else if (document.selection.type == 'Text') $(document.selection.createRange().parentElement()).closest('[contenteditable="true"]').addClass('focus');
+		$(this).one('mouseleave click',function(event) {
+			if (document.getSelection) $(document.getSelection().anchorNode).closest('[contenteditable="true"]').focus();
+			else if (document.selection.type == 'Text') $(document.selection.createRange().parentElement()).closest('[contenteditable="true"]').focus();
+			$('.focus').removeClass('focus');
+		});
+	})
 	$('#bold').on('click',function(event) {
     	document.execCommand('bold', false, null);
 		size_buttons($('.inner,.outer').filter(':visible'));
@@ -641,6 +653,7 @@ $(document).ready(function(event) {
 				}
 			}
 		}
+		console.log(url == '', url === false);
 	});
 	$('#vid').on('click',function(event) {
 		insert_video();
@@ -740,23 +753,14 @@ function toggle_edit() {
 	else {
 		$('body').on('click mousedown focus','[contenteditable="true"]',function(event) {
 			var $this = $(this);
-			/*
-			if ($(event.target).is('.OkeeboMath span')) {
-				var page = $this.closest('div[contenteditable="true"]');
-				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				$this.one('blur',function(event) {
-					page.css({'outline':'','outline-offset':''});
-				});
+			if (document.getSelection) {
+				var $focus = $(document.getSelection().anchorNode).closest('[contenteditable="true"]');
+				if ($(':focus').index() != -1 && !$this.is(':focus') && !$focus.is(':focus') && $focus.index() != -1) {
+					$(':focus').blur();
+					$focus.focus();
+					console.log('here');
+				}
 			}
-			else */if (!$this.is(':focus')) {
-				//$this.focus();
-				var page = $this.closest('div[contenteditable="true"]');
-				page.css({'outline': 'solid 2px #F0C97D','outline-offset': '-1px'});
-				$this.one('blur',function(event) {
-					page.css({'outline':'','outline-offset':''});
-				});
-			}
-			//console.log(this,event.target);
 		});
 		$(writing_buttons).show();
 		$('.OkeeboMath').each(function(index) { insertMathLangButtons(index) }).attr('contenteditable','false');
