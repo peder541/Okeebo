@@ -8,7 +8,7 @@ var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var _delete = new Array();
 var writing_buttons = '.writing';
-var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle';
+var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -1506,6 +1506,7 @@ function create_sidebar() {
 	});
 	$('#view_graph').on('click',function(event) {
 		if ($(this).hasClass('disabled')) return false;
+		$('#graphMode').html(mobile ? 'Info' : 'Collapse').attr('class',mobile ? 'info' : 'collapse');
 		toggle_graph();
 	});
 	$('#insert_existing_page').on('click',function(event) {
@@ -2249,7 +2250,7 @@ function save(role) {
 	}
 }
 
-setInterval('save("autosave");',60000);
+if (window.location.host) setInterval('save("autosave");',60000);
 
 function flocka(event) {
 	var button = $(event.target);
