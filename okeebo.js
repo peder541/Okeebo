@@ -1157,8 +1157,7 @@ $(document).ready(function(event) {
 	$(document).on('keydown',function(event) {
 		// F2
 		if (event.which == 113) {
-			if (IE) hiliteIE();
-			else hilite2();
+			hilite();
 			return false;	
 		}
 		// F8
@@ -1168,42 +1167,71 @@ $(document).ready(function(event) {
 	});
 });
 
-function hiliteIE() {
-	$('strong').replaceWith(function() { return '<b>' + this.innerHTML + '</b>'; });
-	document.execCommand('bold',false,null);
-	$('strong').replaceWith(function() { return '<span class="note">' + this.innerHTML + '</span>'; });
-	$('.note').css('background-color','#ff8');
-	document.selection.empty();
-}
-
-function hilite2() {
-	var page = $('.inner,.outer').filter(':visible');
-	page.attr('contenteditable','true')
-	document.execCommand('hiliteColor',false,'#ff8')
-	page.removeAttr('contenteditable');
-	var sel = document.getSelection();
-	if (sel.empty) sel.empty();  // Chrome
-	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+function hilite() {
+	// IE doesn't support 'hiliteColor' so have to test for feature and utilize <strong> instead.
+	if (document.selection) {
+		$('strong').replaceWith(function() { return '<b>' + this.innerHTML + '</b>'; });
+		document.execCommand('bold',false,null);
+		$('strong').replaceWith(function() { return '<span class="note">' + this.innerHTML + '</span>'; });
+		document.selection.empty();
+	}
+	else {
+		var page = $('.inner,.outer').filter(':visible');
+		page.attr('contenteditable','true')
+		document.execCommand('hiliteColor',false,'#ff8')
+		page.removeAttr('contenteditable');
+		var sel = document.getSelection();
+		if (sel.empty) sel.empty();  // Chrome
+		else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	}
 	$('span[style*="background-color"]')
 		.filter('[style*="rgb(255, 255, 136)"],[style*="rgb(255,255,136)"],[style*="#ff8"],[style*="#FF8"],[style*="#ffff88"],[style*="#FFFF88"]')
-		.addClass('note');
+		.addClass('note').removeAttr('style');
 		
 	$('.in > .note').replaceWith(function() { return this.innerHTML; });
 	$('.note > .in').unwrap();
+	for (var i=0; i<3; ++i) {
+		$('.note').filter(':visible').each(function() { 
+			var $next = $(this.nextSibling);
+			if ($next.is('.note')) $(this).append($next);
+		});
+		$('.note > .note').replaceWith(function() { return this.innerHTML; });
+	}
+	
+	$('p,.note').filter(':visible').each(function() { $(this).html($(this).html()) });
 }
 
 function unhilite() {
-	var page = $('.inner,.outer').filter(':visible');
-	page.attr('contenteditable','true')
-	document.execCommand('hiliteColor',false,'#fcfcfc')
-	page.removeAttr('contenteditable');
-	var sel = document.getSelection();
-	if (sel.empty) sel.empty();  // Chrome
-	else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	// IE doesn't support 'hiliteColor' so have to test for feature and utilize <strong> instead.
+	if (document.selection) {
+		$('strong').replaceWith(function() { return '<b>' + this.innerHTML + '</b>'; });
+		document.execCommand('bold',false,null);
+		$('strong').replaceWith(function() { return '<span class="blank">' + this.innerHTML + '</span>'; });
+		document.selection.empty();
+	}
+	else {
+		var page = $('.inner,.outer').filter(':visible');
+		page.attr('contenteditable','true')
+		document.execCommand('hiliteColor',false,'#fcfcfc')
+		page.removeAttr('contenteditable');
+		var sel = document.getSelection();
+		if (sel.empty) sel.empty();  // Chrome
+		else if (sel.removeAllRanges) sel.removeAllRanges();  // Firefox
+	}
 	$('span[style*="background-color"]')
 		.filter('[style*="rgb(252, 252, 252)"],[style*="rgb(252,252,252)"],[style*="#fcfcfc"],[style*="#FCFCFC"]')
 		.addClass('blank');
 		
 	$('.blank .note').replaceWith(function() { return this.innerHTML; });
+	$('.note .blank').each(function() {
+		var $this = $(this);
+		var $prev = $(this.previousSibling);
+		var $next = $(this.nextSibling);
+		$prev.wrap('<span class="note"></span>');
+		$next.wrap('<span class="note"></span>');
+		$this.unwrap();
+	});
 	$('.blank').replaceWith(function() { return this.innerHTML; });
+	
+	$('p,.note').filter(':visible').each(function() { $(this).html($(this).html()) });
 }
