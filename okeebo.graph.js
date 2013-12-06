@@ -73,6 +73,29 @@ $(document).ready(function(event) {
 		}
 	});
 	
+	$('body').prepend('<button id="graphMode" class="collapse">Collapse</button>');
+	$('#graphMode').on('click',function(event) {
+		var $this = $(this);
+		switch($this.attr('class')) {
+			case 'info':
+				$this.html('Collapse').attr('class','collapse');
+				break;
+			case 'collapse':
+				$this.html('Select').attr('class','select');
+				break;
+			case 'select':
+				$this.html('Connect').attr('class','connect');
+				break;
+			case 'connect':
+			//	$this.html('Delete').attr('class','remove');
+			//	break;
+			//case 'remove':
+				if (mobile) $this.html('Info').attr('class','info');
+				else $this.html('Collapse').attr('class','collapse');
+				break;
+		}
+	});
+	
 });
 
 function toggle_graph(flicker) {
@@ -82,6 +105,7 @@ function toggle_graph(flicker) {
 		$('svg').remove();
 		$('body').css('background-color','');
 		$('#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').show();
+		$('#graphMode').hide();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
@@ -94,6 +118,7 @@ function toggle_graph(flicker) {
 		$('.inner,.outer,#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white');
+		$('#graphMode').show();
 		
 		var sidebar = $('#sidebar');
 		if (sidebar.is(':visible')) s = sidebar.outerWidth();
@@ -169,21 +194,25 @@ function draw_graph() {
 	$('circle').on('mouseover',function(event) {
 		var $this = $(this);
 		_hover = $this;
+		if (mobile && $('#graphMode').attr('class') != 'info') return false;
 		var $this_id = d3.select($this[0]).data()[0];
 		if ($this_id) {
 			if ($this_id == '`1') $this_id = 'Z1';
 			if (info_timer) clearTimeout(info_timer);
 			$('#info').html($('.' + $this_id).children('h3').html());
 			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20});
-			info_timer = setTimeout("$('#info').fadeIn(200);",500);
+			if (mobile) $('#info').show();
+			else info_timer = setTimeout("$('#info').fadeIn(200);",500);
 		}
 	}).on('mouseout',function(event) {
 		if (info_timer) clearTimeout(info_timer);
-		$('#info').fadeOut(200);
+		if (mobile) $('#info').hide();
+		else $('#info').fadeOut(200);
 		_hover = null;
 	}).on('click',function(event) {
 		var $this = $(this);
-		if (event.shiftKey) {
+		var mode = $('#graphMode').attr('class');
+		if (event.shiftKey || mode == 'select') {
 			var $this_id = d3.select($this[0]).data()[0];
 			return_page_id = $this_id[0];
 			if (return_page_id == '`1') return_page_id = 'Z1';
@@ -191,7 +220,20 @@ function draw_graph() {
 			if (continuous) toggle_graph(1);
 			return;
 		}
-		handle_circle_click($this,0,$('path'));
+		else if (mode == 'connect') {
+			toggle_graph();
+			var page_id = d3.select(_hover[0]).data()[0][0];
+			var summary_id = String.fromCharCode(page_id.charCodeAt(0)-1) + page_id.substr(1);
+			insert_page($('#' + summary_id).clone(),$('.' + page_id),1);
+			if (continuous) toggle_graph(1);
+		}
+		else if (mode == 'remove') {
+			toggle_graph();
+			go_to(return_page_id,d3.select(_hover[0]).data()[0][0]);
+			delete_page();
+			if (continuous) toggle_graph(1);
+		}
+		else if (mode == 'collapse') handle_circle_click($this,0,$('path'));
 	});
 	
 	var d2 = new Date();
