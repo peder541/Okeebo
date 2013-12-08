@@ -73,7 +73,7 @@ $(document).ready(function(event) {
 		}
 	});
 	
-	$('body').prepend('<button id="graphMode" class="collapse">Collapse</button>');
+	$('body').prepend('<button id="graphMode" class="collapse">Collapse</button><button id="graphExit">&times;</button>');
 	$('#graphMode').on('click',function(event) {
 		var $this = $(this);
 		switch($this.attr('class')) {
@@ -95,6 +95,9 @@ $(document).ready(function(event) {
 				break;
 		}
 	});
+	$('#graphExit').on('click',function(event) {
+		toggle_graph();
+	});
 	
 });
 
@@ -105,7 +108,8 @@ function toggle_graph(flicker) {
 		$('svg').remove();
 		$('body').css('background-color','');
 		$('#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').show();
-		$('#graphMode').hide();
+		$('#new_page').removeClass('graph');
+		$('#graphMode,#graphExit').hide();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
@@ -118,7 +122,8 @@ function toggle_graph(flicker) {
 		$('.inner,.outer,#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white');
-		$('#graphMode').show();
+		$('#new_page').addClass('graph').show();
+		$('#graphMode,#graphExit').show();
 		
 		var sidebar = $('#sidebar');
 		if (sidebar.is(':visible')) s = sidebar.outerWidth();
@@ -202,12 +207,15 @@ function draw_graph() {
 			$('#info').html($('.' + $this_id).children('h3').html());
 			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20});
 			if (mobile) $('#info').show();
-			else info_timer = setTimeout("$('#info').fadeIn(200);",500);
+			else info_timer = setTimeout("$('#info').fadeIn(200);$('#new_page').fadeOut(200);",500);
 		}
 	}).on('mouseout',function(event) {
 		if (info_timer) clearTimeout(info_timer);
 		if (mobile) $('#info').hide();
-		else $('#info').fadeOut(200);
+		else {
+			$('#info').fadeOut(200);
+			$('#new_page').fadeIn(200);
+		}
 		_hover = null;
 	}).on('click',function(event) {
 		var $this = $(this);
