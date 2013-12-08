@@ -1235,3 +1235,30 @@ function unhilite() {
 	
 	$('p,.note').filter(':visible').each(function() { $(this).html($(this).html()) });
 }
+
+function grab_page(id) {
+	var url = 'https://www.okeebo.com' + window.location.pathname + '?show=' + id;
+		$.get(url,function(data) {
+		var d = $('<html />').html(data);
+		$('.' + id).html(d.find('.inner,.outer').html());
+		$('.inner').children('h3').not('.out + h3').before('<button class=\'out\' type=\'button\'></button>');
+		$('.outer').children('p[id]').not('.in + p[id]').before(function(index) {
+			return '<button class=\'in ' + this.id + '\' type=\'button\'></button>';
+		});
+		$('a.tangent').replaceWith(function() {
+			return '<button class=\'' + $(this).attr('class') + '\'>' + $(this).text() + '</button>';
+		});
+		$('.in').html('+');
+		$('.out').html('-');
+		
+		scrollbar_width = get_scrollbar_width();
+		
+		resize_windows();
+		size_buttons($('.' + id).filter(':visible'));
+		
+		$('.' + id).children('.in + p[id]').each(function() {
+			var new_id = String.fromCharCode(this.id.charCodeAt(0) + 1) + this.id.substr(1);
+			grab_page(new_id);
+		});
+	});
+}
