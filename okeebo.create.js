@@ -663,8 +663,13 @@ $(document).ready(function(event) {
 		var string = getSelectionHtml();
 		if (string == '') string = '<p>Content</p>';
 		page.children('div').append(string);
+		if ($('#new_page').hasClass('graph')) {
+			var graph = 1;
+			toggle_graph();	
+		}
 		insert_page(0,page,0,0,1);
 		improve_formatting();
+		if (graph == 1) toggle_graph(1);
 	});
 	$('#table').on('click',function(event) {
 		var row = parseInt(prompt('Number of Rows:'),10);
