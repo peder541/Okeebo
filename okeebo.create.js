@@ -1535,7 +1535,7 @@ function create_sidebar() {
 		var text = '';
 		
 		$('video').replaceWith(function(index) { return $(this).children('object'); });
-		$('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
+		$('object').replaceWith(function(index) { return '<span class="youtube-embed">' + this.id + '</span>'; });
 		
 		$('.handle,.delete').remove();
 		$('.inner,.outer').each(function(index) {
@@ -2218,7 +2218,7 @@ function save(role) {
 	improve_formatting($body);
 	
 	$body.find('video').replaceWith(function(index) { return $(this).children('object'); });
-	$body.find('object').replaceWith(function(index) { return '<span class=youtube-embed">' + this.id + '</span>'; });
+	$body.find('object').replaceWith(function(index) { return '<span class="youtube-embed">' + this.id + '</span>'; });
 	
 	$body.find('.handle,.delete').remove();
 	$body.find('.inner,.outer').each(function(index) {
