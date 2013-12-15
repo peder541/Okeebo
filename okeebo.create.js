@@ -689,6 +689,24 @@ $(document).ready(function(event) {
 	create_deletes();
 	//create_inserts();
 	
+	var title = $('.Z1 h3').text();
+	if (localStorage.getItem(title)) {
+		console.log('Recovery data found');
+		if (confirm('Recovery data has been found.\n\nClick OK to restore.')) {
+			$('.inner,.outer').remove();
+			$('#map').after(localStorage.getItem(title));
+			$('.in').html('+');
+			$('.out').html('-');
+			resize_windows();
+			var $page = $('.inner,.outer').filter(':visible');
+			redraw_node_map($page.attr('id'),0,1);
+			loadVideos();
+			toggle_edit();
+			create_handles();
+			create_deletes();
+		}
+	}
+	
 });
 
 function handle_insert_glitch(needle, subject) {
@@ -2242,10 +2260,13 @@ function save(role) {
 	
 	if (role == 'autosave') {
 		$body.find('#_save').val(text);
-		$body.find('#_title').val($('.Z1 h3').html());
+		$body.find('#_title').val($('.Z1 h3').text());
 		$body.find('#_publish').val('autosave');
-		$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Autosaved at ' + Date()); });
+		if (window.location.host)
+			$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Cloud Save at ' + Date()); });
 		$body.find('#_publish').val('');
+		localStorage.setItem($('.Z1 h3').text(),text);
+		console.log('Local Save at ' + Date());
 	}
 	else {
 		$('#_save').val(text);
@@ -2255,7 +2276,7 @@ function save(role) {
 	}
 }
 
-if (window.location.host) setInterval('save("autosave");',60000);
+setInterval('save("autosave");',60000);
 
 function flocka(event) {
 	var button = $(event.target);
