@@ -110,7 +110,7 @@ function toggle_graph(flicker) {
 		$('#menu,#map,' + writing_buttons + ',.left,.right,#map_helper,#home,#function').show();
 		$('#new_page').removeClass('graph');
 		$('#graphMode,#graphExit').hide();
-		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':''});
+		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':'','min-width':''});
 		if (info_timer) clearTimeout(info_timer);
 		$('#status').hide().css({'top':'','bottom':''});
 		if (status_timer) clearTimeout(status_timer);
@@ -205,7 +205,7 @@ function draw_graph() {
 			if ($this_id == '`1') $this_id = 'Z1';
 			if (info_timer) clearTimeout(info_timer);
 			$('#info').html($('.' + $this_id).children('h3').html());
-			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20});
+			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20,'min-width':75});
 			if (mobile) $('#info').show();
 			else info_timer = setTimeout("$('#info').fadeIn(200);$('#new_page').fadeOut(200);",500);
 		}
