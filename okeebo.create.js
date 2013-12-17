@@ -22,6 +22,25 @@ function resize_writing_items(buffer) {
 	$('.OkeeboMath').each(function(index) { resizeMathLangButtons(index) });
 }
 
+function add_checkboxes_for_continuous_reading() {
+	$('.outer.inner').each(function(index) {
+		$(this).append('<form class="linear"><input type="checkbox" name="linear" value="Allow">Allow Linear Reading</form>');
+		var last_id = $(this).children('p[id]').last().attr('id');
+		if (last_id) {
+			var last_letter = last_id.charAt(0);
+			var last_number = parseInt(last_id.substring(1),10);
+			if ($('#' + last_letter + (last_number + 1)).html()) {
+				$(this).children('form.linear').children('input').prop('checked',true);
+			}
+		}
+		$(this).find('.linear input').on('click',function(event) {
+			var parent_id = get_parent_tag($(this).parent().parent().attr('id'));
+			var first_id = $('.' + parent_id).children('p[id]').first().attr('id');
+			update_all_affected_links(first_id);
+		});
+	});
+}
+
 $(document).ready(function(event) {
 		
 	if (typeof(_fadeIn) === 'undefined') {
@@ -45,22 +64,7 @@ $(document).ready(function(event) {
 		$('#save').width(42);
 	}
 	
-	$('.outer.inner').each(function(index) {
-		$(this).append('<form class="linear"><input type="checkbox" name="linear" value="Allow">Allow Linear Reading</form>');
-		var last_id = $(this).children('p[id]').last().attr('id');
-		if (last_id) {
-			var last_letter = last_id.charAt(0);
-			var last_number = parseInt(last_id.substring(1),10);
-			if ($('#' + last_letter + (last_number + 1)).html()) {
-				$(this).children('form.linear').children('input').prop('checked',true);
-			}
-		}
-		$(this).find('.linear input').on('click',function(event) {
-			var parent_id = get_parent_tag($(this).parent().parent().attr('id'));
-			var first_id = $('.' + parent_id).children('p[id]').first().attr('id');
-			update_all_affected_links(first_id);
-		});
-	});
+	add_checkboxes_for_continuous_reading()
 	
 	toggle_edit();
 	
@@ -702,6 +706,7 @@ $(document).ready(function(event) {
 			size_buttons($page);
 			redraw_node_map($page.attr('id'),0,1);
 			loadVideos();
+			add_checkboxes_for_continuous_reading()
 			toggle_edit();
 			create_handles();
 			create_deletes();
