@@ -354,7 +354,7 @@ $(document).ready(function() {
 	flashToHTML5();
 	loadVideos();
 	
-	if (location.hash != '') hashChange();
+	if (location.hash != '') hashChange(1);
 	
 });
 
@@ -556,6 +556,11 @@ function redraw_node_map(id,color,initial) {
 	
 	/////  trackHistory code  ///  could go here, or combined with okeebo.stats.js  /////
 	if (trackHistory && !initial) {
+		var method = 'pushState';
+		if (typeof(window.initial) !== 'undefined' && window.initial) {
+			delete window.initial;
+			method = 'replaceState';
+		}
 		if (workspace.length > 1) {
 			var hash = '#';
 			var $node = $('#meta-map > div');
@@ -564,14 +569,15 @@ function redraw_node_map(id,color,initial) {
 					if ($node.eq(i).is('.meta-node')) hash += '*';
 					hash += workspace[i];
 			}
-			history.pushState(null,null,hash);
+			history[method](null,null,hash);
 		}
 		else if (id == 'Z1') {
-			if (location.href.search('#') != -1) history.pushState(null,null,' ');
+			if (location.href.search('#') != -1) history[method](null,null,' ');
 		}
-		else history.pushState(null,null,'#' + id);
+		else history[method](null,null,'#' + id);
+		$('title').html($('.'+id+' h3').text());
 	}
-	$('title').html($('.'+id+' h3').text());
+	else if (trackHistory) $('title').html($('.'+id+' h3').text());
 	/////     /////
 	
 	var a_color = '#555', a_brdr = '#2A2A2A', p_color = '#00F', p_brdr = '#008';
@@ -1343,19 +1349,15 @@ function make_note_from_cache(cache) {
 
 window.onhashchange = hashChange;
 
-function hashChange() {
+function hashChange(initial) {
 	$('.note').replaceWith(function() { return this.innerHTML; });
-	if (trackHistory) {
-		trackHistory = 0;
-		var trkHstry = 1;	
-	}
-	else trackHistory = 1;
+	if (initial) window.initial = true;
 	go_and_note(location.hash.substr(1));
-	if (typeof(trkHstry) !== 'undefined') trackHistory = 1;
 }
 
 function go_and_note(data) {
 	if (!data) data = 'Z1';
+	if (data == 'Z1' && typeof(window.initial) !== 'undefined' && window.initial) delete window.initial;
 	data = data.split('.');
 	var new_id = data.shift();
 	if (new_id.search(',') != -1) {
