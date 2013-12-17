@@ -1357,7 +1357,11 @@ function hashChange(initial) {
 
 function go_and_note(data) {
 	if (!data) data = 'Z1';
-	if (data == 'Z1' && typeof(window.initial) !== 'undefined' && window.initial) delete window.initial;
+	if (data == 'Z1' && typeof(window.initial) !== 'undefined' && window.initial) {
+		delete window.initial;
+		history.replaceState(null, null, ' ');	
+	}
+	var errorChars = /[^a-zA-Z0-9-_]/g;
 	data = data.split('.');
 	var new_id = data.shift();
 	if (new_id.search(',') != -1) {
@@ -1374,11 +1378,20 @@ function go_and_note(data) {
 		if (typeof(node) === 'undefined') $('._node').last().click();
 		else $('._node').eq(node).click();
 	}
-	else if ($('.' + new_id).index() != -1) go_to($('.inner,.outer').filter(':visible').attr('id'),new_id);
+	else {
+		if (workspace.length > 0) {
+			$('#meta-map').empty();
+			$('.exit').hide();
+			while (workspace.length > 0) workspace.pop();
+		}
+		new_id = new_id.replace(errorChars,'');
+		if ($('.' + new_id).index() != -1) go_to($('.inner,.outer').filter(':visible').attr('id'),new_id);
+	}
 	if (data.length > 0) {
 		for (var i in data) make_note_from_cache(data[i].split(','));
 		$(window).scrollTop($('.note').eq(0).offset().top - 80);
 	}
+	delete window.initial;
 }
 
 function woop() {
