@@ -690,7 +690,7 @@ $(document).ready(function(event) {
 	//create_inserts();
 	
 	var title = $('.Z1 h3').text();
-	if (localStorage.getItem(title)) {
+	if (localStorage.getItem(title) && !save('compare')) {
 		console.log('Recovery data found');
 		if (confirm('Recovery data has been found.\n\nClick OK to restore.')) {
 			$('.inner,.outer').remove();
@@ -699,11 +699,13 @@ $(document).ready(function(event) {
 			$('.out').html('-');
 			resize_windows();
 			var $page = $('.inner,.outer').filter(':visible');
+			size_buttons($page);
 			redraw_node_map($page.attr('id'),0,1);
 			loadVideos();
 			toggle_edit();
 			create_handles();
 			create_deletes();
+			if (location.hash != '') hashChange(1);
 		}
 	}
 	
@@ -2235,6 +2237,7 @@ function save(role) {
 	
 	improve_formatting($body);
 	
+	$body.find('*').removeAttr('style');
 	$body.find('video').replaceWith(function(index) { return $(this).children('object'); });
 	$body.find('object').replaceWith(function(index) { return '<span class="youtube-embed">' + this.id + '</span>'; });
 	
@@ -2267,6 +2270,10 @@ function save(role) {
 		$body.find('#_publish').val('');
 		localStorage.setItem($('.Z1 h3').text(),text);
 		console.log('Local Save at ' + Date());
+	}
+	else if (role == 'compare') {
+		if (localStorage.getItem($('.Z1 h3').text()) == text) return true;
+		else return false;
 	}
 	else {
 		$('#_save').val(text);
