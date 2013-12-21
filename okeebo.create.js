@@ -680,6 +680,7 @@ $(document).ready(function(event) {
 	$('#ul,#ol,#al').on('click',function(event) {
 		var sel = document.getSelection();
 		/// make something in span that looks like a list
+		/// currently using the kbd tag as a crutch. want to transition to just text
 		if ($(sel.anchorNode).parents('p[id]').index() != -1) {
 			var start = 'anchorNode';
 			var finish = 'focusNode';
@@ -693,12 +694,28 @@ $(document).ready(function(event) {
 				if (!list) break;
 				var node = sel[start];
 				while (node) {
+
+					/** /// using the kbd tag as a crutch
 					var $node = $(node);
 					if (!$node.is('br,kbd,p[id] span,div')) {
 						var type = ((event.target.id == 'ul') ? '-' : ((event.target.id == 'ol' ? ++count : String.fromCharCode(++count + 96)) + '.')) + ' ';
 						if ($node.prev('kbd').index() == -1 || $node.prev('kbd').attr('type') != type) list = 0;
 						$node.prev('kbd').remove();
 						if (i == 0) $node.before('<kbd class="li" type="' + type + '"></kbd>');
+					}
+					if ($(sel[finish]).is($node)) break;
+					node = node.nextSibling;
+					/**/
+					
+					/// just using text
+					var $node = $(node);
+					if (!$node.is('br,kbd,p[id] span,div')) {
+						var type = { ul: '- ', ol: ++count + '. ', al: String.fromCharCode(count + 96) + '. ' };
+						var pattern = /^\s*(-|[0-9]+\.|[a-z]\.)\s/g;
+						var partial_pattern = { ul: /^\s*-\s/g, ol: /^\s*[0-9]+\.\s/g, al: /^\s*[a-z]\.\s/g };
+						if (!$node.text().match(partial_pattern[event.target.id])) list = 0;
+						node.textContent = $node.text().replace(pattern,'');
+						if (i == 0) node.textContent = type[event.target.id] + $node.text();
 					}
 					if ($(sel[finish]).is($node)) break;
 					node = node.nextSibling;
