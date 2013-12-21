@@ -282,15 +282,65 @@ $(document).ready(function(event) {
 			var index = $('h3').index($(this));
 			setTimeout("$('h3').eq(" + index + ").keyup();",10);
 		}
-		else if ($(this).is('p[id] span:first-child')) {
-			var index = $('p[id] span').index($(this));
-			setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
-			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
-		}
 		else if ($(this).is('p[id] span')) {
-			var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
-			setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
-			if (event.type == 'paste') setTimeout(handle_paste_glitch,10,$(this).parent());
+			if ($(this).is('p[id] span:first-child')) {
+				var index = $('p[id] span').index($(this));
+				setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
+			}
+			else {
+				var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
+				setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
+			}
+			if (event.type == 'paste') {
+				event.preventDefault();
+				var clipboardData = event.originalEvent.clipboardData.getData('text/html');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+				var dummyDIV = $('<div id="dummy" />');
+				dummyDIV.html(clipboardData);
+				while (dummyDIV.find('*').not('br').index() != -1) {
+				dummyDIV.find('*').each(function(index) {
+					var $this = $(this);
+					if ($this.is('p')) {
+						if (index == 0) this.outerHTML = this.innerHTML;
+						else this.outerHTML = '<br><br>' + this.innerHTML;
+					}
+					else if ($this.is('ol')) {
+						$this.children('li').each(function(i) {
+							this.outerHTML = ((i==0) ? '' : '<br>') + (i+1) + '. ' + this.innerHTML;
+						});
+						this.outerHTML = this.innerHTML;
+					}
+					else if ($this.is('ul')) {
+						$this.children('li').each(function(i) {
+							this.outerHTML = ((i==0) ? '' : '<br>') + '- ' + this.innerHTML;
+						});
+						this.outerHTML = this.innerHTML;
+					}
+					else if ($this.is('br')) {
+						// leave alone
+					}
+					else if ($this.is('li')) {
+						try {
+							this.outerHTML = ((index==0) ? '' : '<br>') + '- ' + this.innerHTML;	
+						}
+						catch(e) {
+							console.log(e);	
+						}
+					}
+					else {
+						try {
+							this.outerHTML = this.innerHTML;
+						}
+						catch(e) {
+							console.log(e);	
+						}
+					}
+				});
+				}
+				document.execCommand('insertHTML',false,dummyDIV.html());
+				
+				setTimeout(handle_paste_glitch,10,$(this).parent());
+			}
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		resize_windows();
@@ -627,15 +677,50 @@ $(document).ready(function(event) {
 	$('#underline').on('click',function(event) {
 		document.execCommand('underline', false, null);
 	});
-	$('#ul').on('click',function(event) {
-		document.execCommand('insertUnorderedList', false, null);
-	});
-	$('#ol').on('click',function(event) {
-		document.execCommand('insertOrderedList', false, null);
-	});
-	$('#al').on('click',function(event) {
-		document.execCommand('insertOrderedList', false, null);
-		$(document.getSelection().anchorNode).parents('ol').attr('type','a');
+	$('#ul,#ol,#al').on('click',function(event) {
+		var sel = document.getSelection();
+		/// make something in span that looks like a list
+		if ($(sel.anchorNode).parents('p[id]').index() != -1) {
+			var start = 'anchorNode';
+			var finish = 'focusNode';
+			if ($(sel[start]).index() > $(sel[finish]).index()) {
+				start = 'focusNode';
+				finish = 'anchorNode';	
+			}
+			var list = 1;
+			for (var i=0; i<2; ++i) {
+				var count = 0;
+				if (!list) break;
+				var node = sel[start];
+				while (node) {
+					var $node = $(node);
+					if (!$node.is('br,kbd,p[id] span,div')) {
+						var type = ((event.target.id == 'ul') ? '-' : ((event.target.id == 'ol' ? ++count : String.fromCharCode(++count + 96)) + '.')) + ' ';
+						if ($node.prev('kbd').index() == -1 || $node.prev('kbd').attr('type') != type) list = 0;
+						$node.prev('kbd').remove();
+						if (i == 0) $node.before('<kbd class="li" type="' + type + '"></kbd>');
+					}
+					if ($(sel[finish]).is($node)) break;
+					node = node.nextSibling;
+				}
+			}
+			$(sel.anchorNode).parents('p[id] span').html(function() { return this.innerHTML; });
+		}
+		/// normal insert list functions
+		else {
+			switch (event.target.id) {
+				case 'ul':
+					document.execCommand('insertUnorderedList', false, null);
+				break;
+				case 'ol':
+					document.execCommand('insertOrderedList', false, null);
+				break;
+				case 'al':
+					document.execCommand('insertOrderedList', false, null);
+					$(document.getSelection().anchorNode).parents('ol').attr('type','a');
+				break;
+			}
+		}
 	});
 	$('#img').on('click',function(event) {
 		make_iframe();
@@ -734,6 +819,7 @@ function handle_paste_glitch(obj) {
 	if (obj.children('span').eq(2).is(':visible')) {
 		document.execCommand('undo',false,null);
 		if (typeof(_clip) !== 'undefined') document.execCommand('insertText',false,_clip);
+		console.log('glitch');
 	}
 }
 
