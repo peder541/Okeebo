@@ -293,7 +293,9 @@ $(document).ready(function(event) {
 			}
 			if (event.type == 'paste') {
 				event.preventDefault();
-				var clipboardData = event.originalEvent.clipboardData.getData('text/html');
+				var clipboardData = '';
+				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
 				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
 				var dummyDIV = $('<div id="dummy" />');
 				dummyDIV.html(clipboardData);
@@ -337,7 +339,8 @@ $(document).ready(function(event) {
 					}
 				});
 				}
-				document.execCommand('insertHTML',false,dummyDIV.html());
+				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
+				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
 				
 				setTimeout(handle_paste_glitch,10,$(this).parent());
 			}
@@ -722,6 +725,7 @@ $(document).ready(function(event) {
 				}
 			}
 			$(sel.anchorNode).parents('p[id] span').html(function() { return this.innerHTML; });
+			clear_selected_text();
 		}
 		/// normal insert list functions
 		else {
@@ -2455,3 +2459,76 @@ function up_down() {
 		else $('.upp,.dwn').remove();
 	});
 }
+
+/*	Theory for collaborative editing:
+	- get selection with "sel = document.getSelection();"
+	- get range with "range = sel.getRangeAt(0);"
+	
+	- sender is the computer that just made edit
+	- receiver is the computer that is getting the edit applied
+	
+	- send sender_range to receiver
+	- save receiver_range
+	- "sel.removeAllRanges();"
+	- "sel.addRange(sender_range);"
+	- "document.execCommand('insertText',false,sender_text);"
+	- "sel.removeAllRanges();"
+	- "sel.addRange(receiver_range);"
+	
+	- look into websockets and long polling
+	
+	- will need to deconstruct sender_range into components before sending and rebuild on receiver
+	
+*/
+
+function partner_insert(sender_range,sender_text) {
+	// Original Idea. Involves swapping cursor focus and using execCommand
+	/*
+	var sel = document.getSelection();
+	var receiver_range = sel.getRangeAt(0);
+	sel.removeAllRanges();
+	sel.addRange(sender_range);
+	//document.execCommand('insertText',false,sender_text);			// Puts sender text into receiver's undo history. Probably not desirable.
+	sender_range
+	sel.removeAllRanges();
+	sel.addRange(receiver_range);
+	*/
+	// Idea 2. Inserts a text node at the sender's range.
+	sender_range.insertNode(document.createTextNode(sender_text));
+}
+function ghost_type() {
+	$(document).on('keydown',function(event) {
+		//sender_range = deriveRange(getSenderRange());
+		partner_insert(sender_range,String.fromCharCode(event.which));
+	});
+}
+
+function getSenderRange() {
+	var sel = document.getSelection();	
+	var range = sel.getRangeAt(0);
+	var senderRange = {};
+	var pageID = $('.inner,.outer').filter(':visible').attr('id');
+	var miniDOM = [];
+	var node = range.startContainer;
+	while (node && !$(node).is('div[contenteditable]')) {
+		miniDOM.push($(node).index());
+		node = node.parentNode;
+	}
+	miniDOM.reverse();
+	senderRange.pageID = pageID;
+	senderRange.miniDOM = miniDOM;
+	senderRange.spot = range.startOffset;
+	return senderRange;
+}
+
+function deriveRange(senderRange) {
+	var range = document.createRange();
+	var node = $('.' + senderRange.pageID + ' div[contenteditable]')[0];
+	var DOM = senderRange.miniDOM;
+	for (var i in DOM) node = node.childNodes[DOM[i]];
+	range.setStart(node,senderRange.spot);
+	range.collapse(true);
+	return range;
+}
+
+// For 12/26/13: Use iframes to locally simulate two computers conversing.
