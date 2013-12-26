@@ -1304,25 +1304,30 @@ function grab_page(id) {
 }
 
 function cache_note() {
+	var multiple = false;
+	var $node = $('.note');
+	if ($node.index() == -1) return false;
+	if ($($node[0].parentNode.nextSibling).is('.note')) multiple = true;
 	var start = $('.inner,.outer').filter(':visible').html().search('<span class="note">');
-	var length = $('.note').eq(0).replaceWith(function() { return this.innerHTML; }).html().length;
-	return [start,length];
+	var length = $node.eq(0).replaceWith(function() { return this.innerHTML; }).html().length;
+	var array = [start,length]
+	if (multiple) for (var i=0; i<2; ++i) $.merge(array,cache_note());
+	return array;
 }
 
 function cache_specific_note(index) {
 	var notes = [];
-	var result = [];
-	$('.note').each(function(i) {
-		notes.push(cache_note());
-		if (i == index) {
-			result = notes.pop();
-			return;
-		}
-	});
+	var result = cache_note();
+	while (result) {
+		notes.push(result);
+		result = cache_note();
+	}
+	result = notes.splice(index,1)[0];
 	for (var j = notes.length - 1; j >= 0; --j) make_note_from_cache(notes[j]);
 	return result;
 }
 
+//// non-uniqueness of text values has the potential to make indexOf inaccurate. requires more testing. "else return false;" covers many test cases that would appear from actual UI highlighting.
 function make_note_from_cache(cache) {
 	var start = Number(cache[0]);
 	var length = Number(cache[1]);
@@ -1332,7 +1337,7 @@ function make_note_from_cache(cache) {
 		var spot = html.indexOf(this.outerHTML);
 		var len = this.outerHTML.length;
 		if (spot == -1) return false;
-		if (spot <= start + length) {
+		if (spot < start + length) {
 			if (spot < start && spot + len < start + 26) start += 26;
 			else {
 				this.outerHTML = this.innerHTML;
@@ -1343,8 +1348,10 @@ function make_note_from_cache(cache) {
 				length -= start;
 			}
 		}
+		else return false;
 	});
 	if (length != 0) $page.html(html.substr(0,start) + '<span class="note">' + html.substr(start,length) + '</span>' + html.substr(start+length));
+	if (cache.length > 2) make_note_from_cache(cache.slice(2));
 }
 
 window.onhashchange = hashChange;
@@ -1402,4 +1409,37 @@ function woop() {
 		history.replaceState(null,null,' ');
 	});
 	
+}
+
+function twitterLink(index) {
+	var webpage = 'https://twitter.com/intent/tweet';
+	var hash = cache_specific_note(index);
+	var page = $('.inner,.outer').filter(':visible').attr('id');
+	var url = location.href + '#' + page + '.' + hash;
+	var data = {
+		original_referer: url,
+		text: 'Okeebo Tweet',
+		//tw_p: 'tweetbutton',
+		url: url
+	}
+	for (var i in data) webpage += '&' + i + '=' + encodeURIComponent(data[i]);
+	console.log(url);
+	return webpage.replace('&','?');
+	//return 'javascript:window.open(&quot;' + webpage.replace('&','?') + '&quot;, &quot;NewWindow&quot;, &quot;width=100,height=100&quot;);';
+}
+
+function tweet(index) {
+	if (typeof(twttr) === 'undefined') $('head').append('<script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>');
+	$page = $('.inner,.outer').filter(':visible');
+	$page.append('<a href="' + twitterLink(index) + '" id="tweet">Tweet</a>');
+	$('#tweet').on('click',function() {
+		$(this).remove();
+	});
+}
+
+function share() {
+	if (typeof(twttr) === 'undefined') $('head').append('<script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>');
+	$page = $('.inner,.outer').filter(':visible');
+	$page.append('<a href="https://twitter.com/share" class="twitter-share-button" data-lang="en" data-count="none">Tweet</a>');
+	if (typeof(twttr) !== 'undefined') twttr.widgets.load();
 }
