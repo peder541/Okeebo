@@ -9,6 +9,7 @@ var arrange_timer, scroll_timer;
 var _delete = new Array();
 var writing_buttons = '.writing';
 var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
+var localsave = false;
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -138,7 +139,7 @@ $(document).ready(function(event) {
 					$('#underline').click();
 					return false;
 			}
-		} 
+		}
 	})
 	.on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
 		if (event.which == 13) {
@@ -210,6 +211,42 @@ $(document).ready(function(event) {
 		}
 	})
 	.on('keydown','div[contenteditable]',function(event) {
+		if (window.self !== window.top) {
+			if (!event.ctrlKey && !event.altKey) {
+				var text = '';
+				
+				if (event.which == 59) event.which = 186;
+				if (event.which == 61) event.which = 187;
+				if (event.which == 109 || event.which == 173) event.which = 189;
+				
+				if (event.which >= 65 && event.which <= 90) {
+					text = String.fromCharCode((event.shiftKey ? 0 : 32) + event.which);
+				}
+				else if (event.which >= 48 && event.which <= 57) {
+					text = event.which - 48;
+					if (event.shiftKey) text = ')!@#$%^&*('.charAt(text);	
+					else text += '';
+				}
+				else if (event.which >= 186 && event.which <= 192) {
+					text = event.which - 186;
+					if (event.shiftKey) text = ':+<_>?~'.charAt(text);
+					else text = ';=,-.\/`'.charAt(text);	
+				}
+				else if (event.which >= 219 && event.which <= 222) {
+					text = event.which - 219;
+					if (event.shiftKey) text = '{|}"'.charAt(text);
+					else text = '[\\]\''.charAt(text);
+					if (text == '"') text = '\\"';
+					if (text == '\\') text = '\\\\';
+				}
+				else if (event.which == 8) {
+					window.parent.postMessage('["backspace",' + JSON.stringify(getSenderRange()) + ']','*');
+				}
+				else if (event.which == 32) text = ' ';
+				else console.log(event.which);
+				if (text) window.parent.postMessage('["keydown","' + text + '",' + JSON.stringify(getSenderRange()) + ']','*');
+			}
+		}
 		if (event.which == 8 || event.which == 46) {
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
 			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
@@ -653,6 +690,22 @@ $(document).ready(function(event) {
 			$('#new_page').css('top',324);
 		}
 	});
+	if (window.self !== window.top) {
+		$(window).on('message',function(event) {
+			event = event.originalEvent;
+			var data = JSON.parse(event.data);
+			//console.log(event.data,data);
+			if (data[0] == 'keydown') {
+				var sender_range = deriveRange(data[2]);
+				var sender_text = data[1];
+				partner_insert(sender_range,sender_text);
+			}
+			else if (data[0] == 'backspace') {
+				var sender_range = deriveRange(data[1]);
+				partner_backspace(sender_range);
+			}
+		});
+	}
 	
 	
 	/// Button Events
@@ -800,7 +853,7 @@ $(document).ready(function(event) {
 	//create_inserts();
 	
 	var title = $('.Z1 h3').text();
-	if (localStorage.getItem(title) && !save('compare')) {
+	if (localsave && localStorage.getItem(title) && !save('compare')) {
 		console.log('Recovery data found');
 		if (confirm('Recovery data has been found.\n\nClick OK to restore.')) {
 			$('.inner,.outer').remove();
@@ -2380,8 +2433,10 @@ function save(role) {
 		if (window.location.host)
 			$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Cloud Save at ' + Date()); });
 		$body.find('#_publish').val('');
-		localStorage.setItem($('.Z1 h3').text(),text);
-		console.log('Local Save at ' + Date());
+		if (localsave) {
+			localStorage.setItem($('.Z1 h3').text(),text);
+			console.log('Local Save at ' + Date());
+		}
 	}
 	else if (role == 'compare') {
 		if (localStorage.getItem($('.Z1 h3').text()) == text) return true;
@@ -2495,7 +2550,33 @@ function partner_insert(sender_range,sender_text) {
 	*/
 	// Idea 2. Inserts a text node at the sender's range.
 	sender_range.insertNode(document.createTextNode(sender_text));
+	sender_range.startContainer.parentElement.normalize();
 }
+function partner_backspace(sender_range) {
+	var node = sender_range.startContainer;
+	var $node = $(node);
+	if ($node.is(sender_range.endContainer)) {
+		var index = sender_range.startOffset-1;
+		if ($node.is('p')) {
+			if (index >= 0) {
+				node = node.childNodes[index];
+				sender_range.setStart(node,node.textContent.length-1);
+				sender_range.setEnd(node,node.textContent.length);
+				sender_range.deleteContents();
+			}
+			else {
+				$node.prev('p').append($node.detach().html());
+				window.parent.r = sender_range;
+				console.log(sender_range);	
+			}
+		}
+		else {
+			sender_range.setStart(node,sender_range.startOffset-1);
+			sender_range.deleteContents();
+		}
+	}
+}
+
 function ghost_type() {
 	$(document).on('keydown',function(event) {
 		//sender_range = deriveRange(getSenderRange());
@@ -2506,12 +2587,13 @@ function ghost_type() {
 function getSenderRange() {
 	var sel = document.getSelection();	
 	var range = sel.getRangeAt(0);
+	range.startContainer.parentElement.normalize();
 	var senderRange = {};
 	var pageID = $('.inner,.outer').filter(':visible').attr('id');
 	var miniDOM = [];
 	var node = range.startContainer;
 	while (node && !$(node).is('div[contenteditable]')) {
-		miniDOM.push($(node).index());
+		miniDOM.push($(node.parentNode.childNodes).index(node));
 		node = node.parentNode;
 	}
 	miniDOM.reverse();
@@ -2526,9 +2608,18 @@ function deriveRange(senderRange) {
 	var node = $('.' + senderRange.pageID + ' div[contenteditable]')[0];
 	var DOM = senderRange.miniDOM;
 	for (var i in DOM) node = node.childNodes[DOM[i]];
+	if ($(node).is('p')) {
+		$(document).one('keyup keydown',function(event) {
+			var sel = document.getSelection();
+			var range = sel.getRangeAt(0);
+			var node = range.startContainer;
+			if ($(node).is('p')) node.normalize();
+			else node.parentElement.normalize();
+		});
+	}
 	range.setStart(node,senderRange.spot);
 	range.collapse(true);
 	return range;
 }
 
-// For 12/26/13: Use iframes to locally simulate two computers conversing.
+// For 12/26/13: Use iframes to locally simulate two computers conversing. Iframes will be computers. Parent window will be server.
