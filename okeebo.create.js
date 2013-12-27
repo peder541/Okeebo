@@ -746,7 +746,8 @@ $(document).ready(function(event) {
 			}
 			else if (data[0] == 'cursor') {
 				var sender_range = deriveRange(data[1]);
-				partner_cursor(sender_range);	
+				if ($('.'+data[1].pageID).is(':visible')) partner_cursor(sender_range);
+				else $('.cursor').remove();
 			}
 		});
 	}
@@ -2584,6 +2585,22 @@ function up_down() {
 function partner_cursor(sender_range) {
 	var rect = sender_range.getBoundingClientRect();
 	$('.cursor').remove();
+	if (rect.top == 0 && rect.left == 0 && rect.height == 0) {
+		try {
+			sender_range.setStart(sender_range.startContainer,sender_range.startOffset-1);
+			rect = sender_range.getBoundingClientRect();
+			rect = { 'left': rect.right, 'top': rect.top, 'height': rect.height };
+		}
+		catch(e) {
+			try {
+				sender_range.setEnd(sender_range.startContainer,sender_range.startOffset+1);
+				rect = sender_range.getBoundingClientRect();
+			}
+			catch(e) {
+				console.log(e);
+			}
+		}
+	}
 	$('body').append('<p class="cursor"> </p>');
 	$('.cursor').css({
 		'top': rect.top + $(window).scrollTop(),
@@ -2616,7 +2633,7 @@ function partner_insert(sender_range,sender_text) {
 	*/
 	// Idea 2. Inserts a text node at the sender's range.
 	sender_range.insertNode(document.createTextNode(sender_text));
-	sender_range.startContainer.parentElement.normalize();
+	sender_range.startContainer.parentNode.normalize();
 	//partner_cursor(sender_range);
 }
 function partner_backspace(sender_range) {
@@ -2686,7 +2703,7 @@ function partner_enter(sender_range) {
 	p.innerHTML = '<br>';
 	sender_range.insertNode(p);
 	var node = p.nextSibling;
-	if (node.nodeType == 3) {
+	if (node && node.nodeType == 3) {
 		if (!node.textContent == '') $(p).html(node);	
 	}
 	var $parent = $(p).parent('p');
@@ -2703,7 +2720,7 @@ function ghost_type() {
 function getSenderRange() {
 	var sel = document.getSelection();	
 	var range = sel.getRangeAt(0);
-	range.startContainer.parentElement.normalize();
+	range.startContainer.parentNode.normalize();
 	var senderRange = {};
 	var pageID = $('.inner,.outer').filter(':visible').attr('id');
 	var miniDOM = [];
@@ -2730,7 +2747,7 @@ function deriveRange(senderRange) {
 			var range = sel.getRangeAt(0);
 			var node = range.startContainer;
 			if ($(node).is('p')) node.normalize();
-			else node.parentElement.normalize();
+			else node.parentNode.normalize();
 		});
 	}
 	range.setStart(node,senderRange.spot);
