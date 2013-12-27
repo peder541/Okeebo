@@ -216,6 +216,7 @@ $(document).ready(function(event) {
 				var text = '';
 				var sender_range = JSON.stringify(getSenderRange());
 				
+				if (event.which != 32) nbsp = false;
 				if (event.which == 59) event.which = 186;
 				if (event.which == 61) event.which = 187;
 				if (event.which == 109 || event.which == 173) event.which = 189;
@@ -249,7 +250,17 @@ $(document).ready(function(event) {
 				else if (event.which == 46) {
 					window.parent.postMessage('["delete",' + sender_range + ']','*');	
 				}
-				else if (event.which == 32) text = ' ';
+				else if (event.which == 32) {
+					/// might want a distribution of &nbsp; to ' ' that's more similar to the native implementation
+					if (typeof(nbsp) !== 'undefined' && nbsp) {
+						text = String.fromCharCode(160);
+						nbsp = false;
+					}
+					else {
+						text = ' ';
+						nbsp = true;
+					}
+				}
 				else console.log(event.which);
 				if (text) window.parent.postMessage('["keydown","' + text + '",' + JSON.stringify(getSenderRange()) + ']','*');
 			}
@@ -280,6 +291,12 @@ $(document).ready(function(event) {
 		}
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
+		if (window.self !== window.top) {
+			if ($(this).is('div[contenteditable]')) {
+				var sender_range = JSON.stringify(getSenderRange());
+				window.parent.postMessage('["cursor",' + sender_range + ']','*');
+			}
+		}
 		if ($(this).is('h3')) {
 			// Title (page)
 			if ($(this).parent().hasClass('inner')) {
@@ -397,6 +414,14 @@ $(document).ready(function(event) {
 	})
 	.on('copy',function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
+	})
+	.on('mouseup','[contenteditable="true"]',function(event) {
+		if (window.self !== window.top) {
+			if ($(this).is('div[contenteditable]')) {
+				var sender_range = JSON.stringify(getSenderRange());
+				window.parent.postMessage('["cursor",' + sender_range + ']','*');
+			}
+		}
 	})
 	.on('input','[contenteditable="true"]',function(event) {
 		setTimeout(keyup,10,$(this));
@@ -718,6 +743,10 @@ $(document).ready(function(event) {
 			else if (data[0] == 'enter') {
 				var sender_range = deriveRange(data[1]);
 				partner_enter(sender_range);	
+			}
+			else if (data[0] == 'cursor') {
+				var sender_range = deriveRange(data[1]);
+				partner_cursor(sender_range);	
 			}
 		});
 	}
@@ -2549,8 +2578,30 @@ function up_down() {
 	
 	- will need to deconstruct sender_range into components before sending and rebuild on receiver
 	
+	- Use "rect = range.getBoundingClientRect();" to get coordinates for sender's cursor
+	
 */
-
+function partner_cursor(sender_range) {
+	var rect = sender_range.getBoundingClientRect();
+	$('.cursor').remove();
+	$('body').append('<p class="cursor"> </p>');
+	$('.cursor').css({
+		'top': rect.top + $(window).scrollTop(),
+		'left': rect.left,
+		'height': rect.height
+	});
+	//cursor_show();
+}
+function cursor_show() {
+	$('.cursor').show();
+	if (typeof(cursor_timeout)!=='undefined' && cursor_timeout) clearTimeout(cursor_timeout);
+	cursor_timeout = setTimeout(cursor_hide,500);	
+}
+function cursor_hide() {
+	$('.cursor').hide();
+	if (typeof(cursor_timeout)!=='undefined' && cursor_timeout) clearTimeout(cursor_timeout);
+	cursor_timeout = setTimeout(cursor_show,500);	
+}
 function partner_insert(sender_range,sender_text) {
 	// Original Idea. Involves swapping cursor focus and using execCommand
 	/*
@@ -2566,6 +2617,7 @@ function partner_insert(sender_range,sender_text) {
 	// Idea 2. Inserts a text node at the sender's range.
 	sender_range.insertNode(document.createTextNode(sender_text));
 	sender_range.startContainer.parentElement.normalize();
+	//partner_cursor(sender_range);
 }
 function partner_backspace(sender_range) {
 	// This and partner_delete are similar enough that they should probably be combined somehow.
