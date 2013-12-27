@@ -214,6 +214,7 @@ $(document).ready(function(event) {
 		if (window.self !== window.top) {
 			if (!event.ctrlKey && !event.altKey) {
 				var text = '';
+				var sender_range = JSON.stringify(getSenderRange());
 				
 				if (event.which == 59) event.which = 186;
 				if (event.which == 61) event.which = 187;
@@ -240,7 +241,13 @@ $(document).ready(function(event) {
 					if (text == '\\') text = '\\\\';
 				}
 				else if (event.which == 8) {
-					window.parent.postMessage('["backspace",' + JSON.stringify(getSenderRange()) + ']','*');
+					window.parent.postMessage('["backspace",' + sender_range + ']','*');
+				}
+				else if (event.which == 13) {
+					window.parent.postMessage('["enter",' + sender_range + ']','*');
+				}
+				else if (event.which == 46) {
+					window.parent.postMessage('["delete",' + sender_range + ']','*');	
 				}
 				else if (event.which == 32) text = ' ';
 				else console.log(event.which);
@@ -703,6 +710,14 @@ $(document).ready(function(event) {
 			else if (data[0] == 'backspace') {
 				var sender_range = deriveRange(data[1]);
 				partner_backspace(sender_range);
+			}
+			else if (data[0] == 'delete') {
+				var sender_range = deriveRange(data[1]);
+				partner_delete(sender_range);
+			}
+			else if (data[0] == 'enter') {
+				var sender_range = deriveRange(data[1]);
+				partner_enter(sender_range);	
 			}
 		});
 	}
@@ -2553,28 +2568,77 @@ function partner_insert(sender_range,sender_text) {
 	sender_range.startContainer.parentElement.normalize();
 }
 function partner_backspace(sender_range) {
+	// This and partner_delete are similar enough that they should probably be combined somehow.
 	var node = sender_range.startContainer;
 	var $node = $(node);
 	if ($node.is(sender_range.endContainer)) {
 		var index = sender_range.startOffset-1;
-		if ($node.is('p')) {
-			if (index >= 0) {
+		try {
+			if ($node.is('p')) {
 				node = node.childNodes[index];
 				sender_range.setStart(node,node.textContent.length-1);
 				sender_range.setEnd(node,node.textContent.length);
 				sender_range.deleteContents();
 			}
 			else {
-				$node.prev('p').append($node.detach().html());
-				window.parent.r = sender_range;
-				console.log(sender_range);	
+				sender_range.setStart(node,index);
+				sender_range.deleteContents();
 			}
 		}
-		else {
-			sender_range.setStart(node,sender_range.startOffset-1);
-			sender_range.deleteContents();
+		catch(e) {
+			$node = $node.closest('p');
+			$prev = $node.prev('p');
+			$last = $node.children('*').last();
+			if ($last.is('br')) $last.remove();
+			$last = $prev.children('*').last();
+			if ($last.is('br')) $last.remove();
+			$prev.append($node.detach().html());
+			$prev[0].normalize();
+			if ($prev.html() == '') $prev.html('<br>');
 		}
 	}
+}
+function partner_delete(sender_range) {
+	// This and partner_backspace are similar enough that they should probably be combined somehow.
+	var node = sender_range.startContainer;
+	var $node = $(node);
+	if ($node.is(sender_range.endContainer)) {
+		var index = sender_range.startOffset+1;
+		try {
+			if ($node.is('p')) {
+				node = node.childNodes[index];
+				sender_range.setStart(node,node.textContent.length);
+				sender_range.setEnd(node,node.textContent.length+1);
+				sender_range.deleteContents();
+			}
+			else {
+				sender_range.setEnd(node,index);
+				sender_range.deleteContents();
+			}
+		}
+		catch(e) {
+			$node = $node.closest('p');
+			$next = $node.next('p');
+			$last = $node.children('*').last();
+			if ($last.is('br')) $last.remove();
+			$last = $next.children('*').last();
+			if ($last.is('br')) $last.remove();
+			$next.prepend($node.detach().html());
+			$next[0].normalize();
+			if ($next.html() == '') $next.html('<br>');
+		}
+	}
+}
+function partner_enter(sender_range) {
+	var p = document.createElement('p');
+	p.innerHTML = '<br>';
+	sender_range.insertNode(p);
+	var node = p.nextSibling;
+	if (node.nodeType == 3) {
+		if (!node.textContent == '') $(p).html(node);	
+	}
+	var $parent = $(p).parent('p');
+	if ($parent.index() != -1) $parent.after(p);
 }
 
 function ghost_type() {
