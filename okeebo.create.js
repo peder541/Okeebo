@@ -749,6 +749,18 @@ $(document).ready(function(event) {
 				if ($('.'+data[1].pageID).is(':visible')) partner_cursor(sender_range);
 				else $('.cursor').remove();
 			}
+			else if (data[0] == 'insert_page') {
+				partner_insert_page(data[1]);	
+			}
+			else if (data[0] == 'delete_page') {
+				partner_delete_page(data[1]);	
+			}
+			else if (data[0] == 'undo_page_delete') {
+				partner_undo_page_delete();
+			}
+			else if (data[0] == 'rearrange') {
+				partner_rearrange(data[1],data[2],data[3],data[4]);	
+			}
 		});
 	}
 	
@@ -1147,6 +1159,13 @@ function drop(event) {
 			//// Wonder if this would actually be expected behavior
 			update_all_affected_links(first_id);
 		}
+		if (window.self !== window.top) {
+			var pageKeys = [];
+			var pIDs = [];
+			$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
+			$('p[id]').each(function() { pIDs.push(this.id); });
+			window.parent.postMessage('["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1]','*');	
+		}
 		//modify_arrange_buttons();
 		return true;
 	}
@@ -1162,6 +1181,13 @@ function drop(event) {
 				
 				//// Wonder if this would actually be expected behavior
 				update_all_affected_links(first_id);
+			}
+			if (window.self !== window.top) {
+				var pageKeys = [];
+				var pIDs = [];
+				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
+				$('p[id]').each(function() { pIDs.push(this.id); });
+				window.parent.postMessage('["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ']','*');	
 			}
 			//modify_arrange_buttons();
 			return true;
@@ -1262,11 +1288,22 @@ function update_all_affected_links(first_id) {
 }
 
 /// summary and page are null for a new page
-function insert_page(summary,page,exists,reinsert,cut) {
+function insert_page(summary,page,exists,reinsert,cut,ghost) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
+	if (window.self !== window.top && !ghost) {
+		var data = {
+			'pageID': current_div.attr('id'),
+			'summary': summary,
+			'page': false,				// Some issues here
+			'exists': exists,
+			'reinsert': reinsert,
+			'cut': cut
+		};
+		window.parent.postMessage('["insert_page",' + JSON.stringify(data) + ']','*');
+	}
 	if (!reinsert) {
-		if (typeof(page) !== 'undefined') {
+		if (typeof(page) !== 'undefined' && page instanceof jQuery) {
 			if (current_div.is(page)) {
 				console.log('self');
 				return 'self';
@@ -1331,7 +1368,12 @@ function insert_page(summary,page,exists,reinsert,cut) {
 	}
 	var div_letter = String.fromCharCode(letter.charCodeAt(0) + 1);
 	if (cut) {
-		if (getSelectionHtml()) document.execCommand('delete',false,null);
+		if (!ghost) {
+			if (getSelectionHtml()) document.execCommand('delete',false,null);
+		}
+		else {
+			// do stuff here for partner_insert_page(). Probably need sender_range
+		}
 	}
 	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
 	//children('h3').after
@@ -1384,12 +1426,17 @@ function insert_page(summary,page,exists,reinsert,cut) {
 }
 
 /// Handles pages with multiple keys
-function delete_page(target_id,quick) {
+function delete_page(target_id,quick,ghost) {
 	var current_page = $('.inner,.outer').filter(':visible');
 	if (typeof(target_id) !== 'undefined' && target_id) {
 		var old_id = current_page.attr('id');
 		go_to(old_id,target_id);
-		return delete_page(null,quick);
+		return delete_page(null,quick,ghost);
+	}
+	if (!ghost) {
+		if (window.self !== window.top) {
+			window.parent.postMessage('["delete_page","' + current_page.attr('id') + '"]','*');
+		}
 	}
 	if (current_page.hasClass('outer')) {
 		//alert('"' + current_page.children('h3').html() + '" has subsections.\nYou will have to delete them before you can delete it.');
@@ -1500,7 +1547,10 @@ function undo_page_delete() {
 		var current_page = $('.inner,.outer').filter(':visible');
 		var restore_parent_id = restore.parent[i].attr('class').split(' ').pop();
 		if (!current_page.hasClass(restore_parent_id)) go_to(current_page.attr('id'),restore_parent_id);
-		insert_page(restore.summary[i],restore.page,i,true);
+		insert_page(restore.summary[i],restore.page,i,true,false,true);
+	}
+	if (window.self !== window.top) {
+		window.parent.postMessage('["undo_page_delete"]','*');
 	}
 }
 
@@ -2708,6 +2758,57 @@ function partner_enter(sender_range) {
 	}
 	var $parent = $(p).parent('p');
 	if ($parent.index() != -1) $parent.after(p);
+}
+function partner_insert_page(data) {
+	var currentID = $('.inner,.outer').filter(':visible').attr('id');
+	var _top = $(window).scrollTop();
+	var sel = document.getSelection();
+	var range = false;
+	if (sel.toString() != '') range = sel.getRangeAt(0);
+	go_to(currentID,data.pageID);
+	insert_page(data.summary, data.page, data.exists, data.reinsert, data.cut, true);
+	go_to(data.pageID,currentID);
+	sel.removeAllRanges();
+	if (range) sel.addRange(range);
+	$(window).scrollTop(_top);
+}
+function partner_delete_page(pageID) {
+	var currentID = $('.inner,.outer').filter(':visible').attr('id');
+	delete_page(pageID,0,1);
+	go_to($('.inner,.outer').filter(':visible').attr('id'),currentID);
+}
+function partner_undo_page_delete() {
+	var currentID = $('.inner,.outer').filter(':visible').attr('id');
+	undo_page_delete();
+	go_to($('.inner,.outer').filter(':visible').attr('id'),currentID);	
+}
+function partner_rearrange(pageKeys,pIDs,movedID,destination) {
+	var $moved = $('#' + movedID);
+	var $dest = $('#' + movedID).parent().children('p[id]');
+	if (destination == -1) {
+		$dest = $dest.eq(0);
+		$dest.before($moved);
+	}
+	else {
+		$dest = $dest.eq(destination);
+		$dest.after($moved);
+	}
+	$moved.before($('.' + movedID));
+	$dest.before($('.' + $dest.attr('id')));
+	var $pages = $('.inner,.outer');
+	$pages.each(function(i) {
+		var $this = $(this);
+		var spot = $this.attr('class').split(' ').indexOf(this.id);
+		$this.attr('class',pageKeys[i]);
+		if (this.id) this.id = pageKeys[i].split(' ')[spot];
+	});
+	$('.in').each(function(i) {
+		$(this).attr('class','in ' + pIDs[i]);
+	});
+	$('p[id]').each(function(i) {
+		this.id = pIDs[i];
+	});
+	redraw_node_map($pages.filter(':visible').attr('id'));
 }
 
 function ghost_type() {
