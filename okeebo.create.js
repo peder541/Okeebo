@@ -262,7 +262,7 @@ $(document).ready(function(event) {
 					}
 				}
 				else console.log(event.which);
-				if (text) window.parent.postMessage('["keydown","' + text + '",' + JSON.stringify(getSenderRange()) + ']','*');
+				if (text) window.parent.postMessage('["keydown","' + text + '",' + sender_range + ']','*');
 			}
 		}
 		if (event.which == 8 || event.which == 46) {
@@ -361,49 +361,58 @@ $(document).ready(function(event) {
 				var dummyDIV = $('<div id="dummy" />');
 				dummyDIV.html(clipboardData);
 				while (dummyDIV.find('*').not('br').index() != -1) {
-				dummyDIV.find('*').each(function(index) {
-					var $this = $(this);
-					if ($this.is('p')) {
-						if (index == 0) this.outerHTML = this.innerHTML;
-						else this.outerHTML = '<br><br>' + this.innerHTML;
-					}
-					else if ($this.is('ol')) {
-						$this.children('li').each(function(i) {
-							this.outerHTML = ((i==0) ? '' : '<br>') + (i+1) + '. ' + this.innerHTML;
-						});
-						this.outerHTML = this.innerHTML;
-					}
-					else if ($this.is('ul')) {
-						$this.children('li').each(function(i) {
-							this.outerHTML = ((i==0) ? '' : '<br>') + '- ' + this.innerHTML;
-						});
-						this.outerHTML = this.innerHTML;
-					}
-					else if ($this.is('br')) {
-						// leave alone
-					}
-					else if ($this.is('li')) {
-						try {
-							this.outerHTML = ((index==0) ? '' : '<br>') + '- ' + this.innerHTML;	
+					dummyDIV.find('*').each(function(index) {
+						var $this = $(this);
+						if ($this.is('p')) {
+							if (index == 0) this.outerHTML = this.innerHTML;
+							else this.outerHTML = '<br><br>' + this.innerHTML;
 						}
-						catch(e) {
-							console.log(e);	
-						}
-					}
-					else {
-						try {
+						else if ($this.is('ol')) {
+							$this.children('li').each(function(i) {
+								this.outerHTML = ((i==0) ? '' : '<br>') + (i+1) + '. ' + this.innerHTML;
+							});
 							this.outerHTML = this.innerHTML;
 						}
-						catch(e) {
-							console.log(e);	
+						else if ($this.is('ul')) {
+							$this.children('li').each(function(i) {
+								this.outerHTML = ((i==0) ? '' : '<br>') + '- ' + this.innerHTML;
+							});
+							this.outerHTML = this.innerHTML;
 						}
-					}
-				});
+						else if ($this.is('br')) {
+							// leave alone
+						}
+						else if ($this.is('li')) {
+							try {
+								this.outerHTML = ((index==0) ? '' : '<br>') + '- ' + this.innerHTML;	
+							}
+							catch(e) {
+								console.log(e);	
+							}
+						}
+						else {
+							try {
+								this.outerHTML = this.innerHTML;
+							}
+							catch(e) {
+								console.log(e);	
+							}
+						}
+					});
 				}
 				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
 				
 				setTimeout(handle_paste_glitch,10,$(this).parent());
+			}
+		}
+		else if ($(this).is('div')) {
+			if (window.top !== window.self) {
+				var clipboardData = '';
+				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+				window.parent.postMessage('["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']','*');	
 			}
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
@@ -423,6 +432,11 @@ $(document).ready(function(event) {
 			}
 		}
 	})
+	/**/// Disallow Multiple Ranges for Selection, like Google Docs
+	.on('mousedown','[contenteditable="true"]',function(event) {
+		if (event.ctrlKey) document.getSelection().removeAllRanges();
+	})
+	/**/
 	.on('input','[contenteditable="true"]',function(event) {
 		setTimeout(keyup,10,$(this));
 	});
@@ -761,6 +775,9 @@ $(document).ready(function(event) {
 			else if (data[0] == 'rearrange') {
 				partner_rearrange(data[1],data[2],data[3],data[4]);	
 			}
+			else if (data[0] == 'format_text') {
+				partner_format_text(data[1],deriveRange(data[2]));	
+			}
 		});
 	}
 	
@@ -780,14 +797,26 @@ $(document).ready(function(event) {
 		});
 	})
 	$('#bold').on('click',function(event) {
+		if (window.top !== window.self) {
+			window.parent.postMessage('["format_text","b",' + JSON.stringify(getSenderRange()) + ']','*');	
+		}
     	document.execCommand('bold', false, null);
+		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		size_buttons($('.inner,.outer').filter(':visible'));
 	});
 	$('#italic').on('click',function(event) {
+		if (window.top !== window.self) {
+			window.parent.postMessage('["format_text","i",' + JSON.stringify(getSenderRange()) + ']','*');	
+		}
 		document.execCommand('italic', false, null);
+		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		size_buttons($('.inner,.outer').filter(':visible'));
 	});
 	$('#underline').on('click',function(event) {
+		if (window.top !== window.self) {
+			window.parent.postMessage('["format_text","u",' + JSON.stringify(getSenderRange()) + ']','*');	
+		}
+		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		document.execCommand('underline', false, null);
 	});
 	$('#ul,#ol,#al').on('click',function(event) {
@@ -2633,30 +2662,38 @@ function up_down() {
 	
 */
 function partner_cursor(sender_range) {
-	var rect = sender_range.getBoundingClientRect();
+	var endRange;
+	if (sender_range) endRange = sender_range.cloneRange();
+	sender_range.collapse(true);
+	endRange.collapse(false);
 	$('.cursor').remove();
-	if (rect.top == 0 && rect.left == 0 && rect.height == 0) {
-		try {
-			sender_range.setStart(sender_range.startContainer,sender_range.startOffset-1);
-			rect = sender_range.getBoundingClientRect();
-			rect = { 'left': rect.right, 'top': rect.top, 'height': rect.height };
-		}
-		catch(e) {
+	// change "i < 1" to "i < 2" to also show the end of a range
+	for (var i = 0; i < 1; ++i) {
+		var rect = sender_range.getBoundingClientRect();
+		if (rect.top == 0 && rect.left == 0 && rect.height == 0) {
 			try {
-				sender_range.setEnd(sender_range.startContainer,sender_range.startOffset+1);
+				sender_range.setStart(sender_range.startContainer,sender_range.startOffset-1);
 				rect = sender_range.getBoundingClientRect();
+				rect = { 'left': rect.right, 'top': rect.top, 'height': rect.height };
 			}
 			catch(e) {
-				console.log(e);
+				try {
+					sender_range.setEnd(sender_range.startContainer,sender_range.startOffset+1);
+					rect = sender_range.getBoundingClientRect();
+				}
+				catch(e) {
+					console.log(e);
+				}
 			}
 		}
+		$('body').append('<p class="cursor"> </p>');
+		$('.cursor').eq(i).css({
+			'top': rect.top + $(window).scrollTop(),
+			'left': rect.left,
+			'height': rect.height
+		});
+		sender_range = endRange;
 	}
-	$('body').append('<p class="cursor"> </p>');
-	$('.cursor').css({
-		'top': rect.top + $(window).scrollTop(),
-		'left': rect.left,
-		'height': rect.height
-	});
 	//cursor_show();
 }
 function cursor_show() {
@@ -2668,6 +2705,17 @@ function cursor_hide() {
 	$('.cursor').hide();
 	if (typeof(cursor_timeout)!=='undefined' && cursor_timeout) clearTimeout(cursor_timeout);
 	cursor_timeout = setTimeout(cursor_show,500);	
+}
+///// Needs more work.
+function partner_format_text(el,sender_range) {
+	var $parent = $(sender_range.startContainer.parentNode).closest(el);
+	if ($parent.index() != -1) {
+		$parent.replaceWith(function() { return this.innerHTML; });
+		console.log(el);
+	}
+	else sender_range.surroundContents(document.createElement(el));
+	var $p = $parent.closest('p')
+	if ($p.index() != -1) $p[0].normalize();
 }
 function partner_insert(sender_range,sender_text) {
 	// Original Idea. Involves swapping cursor focus and using execCommand
@@ -2682,6 +2730,7 @@ function partner_insert(sender_range,sender_text) {
 	sel.addRange(receiver_range);
 	*/
 	// Idea 2. Inserts a text node at the sender's range.
+	sender_range.deleteContents();
 	sender_range.insertNode(document.createTextNode(sender_text));
 	sender_range.startContainer.parentNode.normalize();
 	//partner_cursor(sender_range);
@@ -2691,6 +2740,10 @@ function partner_backspace(sender_range) {
 	var node = sender_range.startContainer;
 	var $node = $(node);
 	if ($node.is(sender_range.endContainer)) {
+		if (sender_range.startOffset != sender_range.endOffset) {
+			sender_range.deleteContents();
+			return true;	
+		}
 		var index = sender_range.startOffset-1;
 		try {
 			if ($node.is('p')) {
@@ -2722,7 +2775,12 @@ function partner_delete(sender_range) {
 	var node = sender_range.startContainer;
 	var $node = $(node);
 	if ($node.is(sender_range.endContainer)) {
+		if (sender_range.startOffset != sender_range.endOffset) {
+			sender_range.deleteContents();
+			return true;	
+		}
 		var index = sender_range.startOffset+1;
+		if (sender_range.startOffset != sender_range.endOffset) index = sender_range.endOffset;
 		try {
 			if ($node.is('p')) {
 				node = node.childNodes[index];
@@ -2834,6 +2892,22 @@ function getSenderRange() {
 	senderRange.pageID = pageID;
 	senderRange.miniDOM = miniDOM;
 	senderRange.spot = range.startOffset;
+	
+	// Code for Selections
+	if (range.startContainer != range.endContainer) {
+		miniDOM = [];
+		node = range.endContainer;
+		while (node && !$(node).is('div[contenteditable]')) {
+			miniDOM.push($(node.parentNode.childNodes).index(node));
+			node = node.parentNode;
+		}
+		miniDOM.reverse();	
+		senderRange.endDOM = miniDOM;
+		senderRange.end = range.endOffset;
+	}
+	else if (range.startOffset != range.endOffset) senderRange.end = range.endOffset;
+	//
+	
 	return senderRange;
 }
 
@@ -2853,6 +2927,23 @@ function deriveRange(senderRange) {
 	}
 	range.setStart(node,senderRange.spot);
 	range.collapse(true);
+	if (senderRange.end) {
+		if (senderRange.endDOM) {
+			node = $('.' + senderRange.pageID + ' div[contenteditable]')[0];
+			DOM = senderRange.endDOM;
+			for (var i in DOM) node = node.childNodes[DOM[i]];
+			if ($(node).is('p')) {
+				$(document).one('keyup keydown',function(event) {
+					var sel = document.getSelection();
+					var range = sel.getRangeAt(0);
+					var node = range.endContainer;
+					if ($(node).is('p')) node.normalize();
+					else node.parentNode.normalize();
+				});
+			}
+		}
+		range.setEnd(node,senderRange.end);
+	}
 	return range;
 }
 
