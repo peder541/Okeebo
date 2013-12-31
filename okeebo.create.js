@@ -10,6 +10,7 @@ var _delete = new Array();
 var writing_buttons = '.writing';
 var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
 var localsave = false;
+var caps = false;
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -138,6 +139,14 @@ $(document).ready(function(event) {
 				case 85:
 					$('#underline').click();
 					return false;
+				case 90:
+					function wacka() {
+						range1 = getSenderRange();
+						console.log(range1);
+						return range1;
+					}
+					range0 = wacka();
+					setTimeout(wacka,10);
 			}
 		}
 	})
@@ -210,6 +219,9 @@ $(document).ready(function(event) {
 			return false;
 		}
 	})
+	.on('keyup',function(event) {
+		if (event.which == 20) caps = !caps;
+	})
 	.on('keydown','div[contenteditable]',function(event) {
 		if (window.self !== window.top) {
 			if (!event.ctrlKey && !event.altKey) {
@@ -222,6 +234,7 @@ $(document).ready(function(event) {
 				if (event.which == 109 || event.which == 173) event.which = 189;
 				
 				if (event.which >= 65 && event.which <= 90) {
+					if (caps) event.shiftKey = !event.shiftKey;
 					text = String.fromCharCode((event.shiftKey ? 0 : 32) + event.which);
 				}
 				else if (event.which >= 48 && event.which <= 57) {
@@ -264,6 +277,17 @@ $(document).ready(function(event) {
 				else console.log(event.which);
 				if (text) window.parent.postMessage('["keydown","' + text + '",' + sender_range + ']','*');
 			}
+			/*else if (event.ctrlKey) {
+				if (event.which == 90) {
+					function wacka() {
+						var sel = document.getSelection();
+						var range = sel.getRangeAt(0);
+						console.log(range);
+					}
+					wacka();
+					setTimeout(wacka,10);
+				}
+			}*/
 		}
 		if (event.which == 8 || event.which == 46) {
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
@@ -778,6 +802,10 @@ $(document).ready(function(event) {
 			else if (data[0] == 'format_text') {
 				partner_format_text(data[1],deriveRange(data[2]));	
 			}
+			if (data[0] != 'cursor') {
+				var sender_range = JSON.stringify(getSenderRange());
+				if (sender_range != 'false') window.parent.postMessage('["cursor",' + sender_range + ']','*');	
+			}
 		});
 	}
 	
@@ -958,8 +986,23 @@ $(document).ready(function(event) {
 			if (location.hash != '') hashChange(1);
 		}
 	}
+	caps_detect();
 	
 });
+
+function caps_detect() {
+	$(document).one('keypress',function(event) {
+		if (event.which >= 65 && event.which <= 90) {
+			if (!event.shiftKey) caps = true;
+			else caps = false;
+		}
+		else if (event.which >= 97 && event.which <= 122) {
+			if (event.shiftKey) caps = true;
+			else caps = false;
+		}
+		else caps_detect();
+	});
+}
 
 function handle_insert_glitch(needle, subject) {
 	document.execCommand('undo',false,null);
@@ -1102,7 +1145,10 @@ function toggle_edit_one(obj) {
 /// If edit should be entirely off, other areas in the code will also need changing.
 function toggle_drag(singlePage) {
 	var outer = $('.outer');
-	if (singlePage) outer = outer.filter(':visible');
+	if (singlePage) {
+		if (singlePage instanceof jQuery) outer = outer.filter(singlePage);
+		else outer = outer.filter(':visible');
+	}
 	var pID = outer.find('p[id]');
 	if (!pID.attr('draggable')) {
 		pID.attr({'draggable':'true','ondragstart':'drag(event)'});
@@ -2708,14 +2754,35 @@ function cursor_hide() {
 }
 ///// Needs more work.
 function partner_format_text(el,sender_range) {
-	var $parent = $(sender_range.startContainer.parentNode).closest(el);
+	// Method 1. 10% done and have to esentially rebuild execCommand
+	/*var $parent = $(sender_range.startContainer.parentNode).closest(el);
 	if ($parent.index() != -1) {
 		$parent.replaceWith(function() { return this.innerHTML; });
 		console.log(el);
 	}
 	else sender_range.surroundContents(document.createElement(el));
 	var $p = $parent.closest('p')
-	if ($p.index() != -1) $p[0].normalize();
+	if ($p.index() != -1) $p[0].normalize();*/
+	
+	// Method 2 using execCommand and swapping cursor focus. Issue with undo history.
+	var sel = document.getSelection();
+	var swap = 0;
+	if (sel.rangeCount > 0) {
+		var range = sel.getRangeAt(0);
+		sel.removeAllRanges();
+		swap = 1;
+	}
+	sel.addRange(sender_range);
+	var command = {
+		'b': 'bold',
+		'i': 'italic',
+		'u': 'underline'
+	};
+	document.execCommand(command[el],false,null);
+	$(sel.anchorNode).closest('p')[0].normalize();
+	size_buttons($('.inner,.outer').filter(':visible'));
+	sel.removeAllRanges();
+	if (swap) sel.addRange(range);
 }
 function partner_insert(sender_range,sender_text) {
 	// Original Idea. Involves swapping cursor focus and using execCommand
@@ -2842,7 +2909,23 @@ function partner_undo_page_delete() {
 }
 function partner_rearrange(pageKeys,pIDs,movedID,destination) {
 	var $moved = $('#' + movedID);
-	var $dest = $('#' + movedID).parent().children('p[id]');
+	
+	// toggle drag and consistent cursor position
+	var sel = document.getSelection();
+	var range = sel.getRangeAt(0);
+	var $pageWithMoved = $moved.parents('.outer');
+	var temp_drag = 0;
+	var range_swap = 0;
+	if ($pageWithMoved.is(':visible')) {
+		range_swap = 1;
+		range = getSenderRange();
+	}
+	if ($pageWithMoved.has('[contenteditable="true"]')) {
+		temp_drag = 1;
+		toggle_drag($pageWithMoved);	
+	}
+	
+	var $dest = $('#' + movedID).parent().children('p');
 	if (destination == -1) {
 		$dest = $dest.eq(0);
 		$dest.before($moved);
@@ -2866,7 +2949,28 @@ function partner_rearrange(pageKeys,pIDs,movedID,destination) {
 	$('p[id]').each(function(i) {
 		this.id = pIDs[i];
 	});
+	
+	if (temp_drag) toggle_drag($pageWithMoved);
+	
 	redraw_node_map($pages.filter(':visible').attr('id'));
+	
+	// consistent cursor position
+	if (range_swap) {
+		var index = 0;
+		if (range.div) index = range.div;
+		console.log(destination,range.miniDOM[0]);
+		// handles 1 div to 2 div. need to make more robust.
+		if (destination < range.miniDOM[0]) {
+			++index;
+			range.miniDOM[0] -= destination + 1;	
+			console.log(destination,range.miniDOM[0]);
+		}
+		range = deriveRange(range,index);
+		$pages.filter(':visible').children('div[contenteditable]').eq(index).focus();
+		sel = document.getSelection();
+		sel.removeAllRanges();	
+	}
+	sel.addRange(range);
 }
 
 function ghost_type() {
@@ -2878,16 +2982,20 @@ function ghost_type() {
 
 function getSenderRange() {
 	var sel = document.getSelection();	
+	if (sel.rangeCount < 1) return false;
 	var range = sel.getRangeAt(0);
 	range.startContainer.parentNode.normalize();
 	var senderRange = {};
-	var pageID = $('.inner,.outer').filter(':visible').attr('id');
+	var $page = $('.inner,.outer').filter(':visible');
+	var pageID = $page.attr('id');
 	var miniDOM = [];
 	var node = range.startContainer;
 	while (node && !$(node).is('div[contenteditable]')) {
 		miniDOM.push($(node.parentNode.childNodes).index(node));
 		node = node.parentNode;
 	}
+	var index = $page.children('div[contenteditable]').index(node);
+	if (index != 0) senderRange.div = index;
 	miniDOM.reverse();
 	senderRange.pageID = pageID;
 	senderRange.miniDOM = miniDOM;
@@ -2911,9 +3019,13 @@ function getSenderRange() {
 	return senderRange;
 }
 
-function deriveRange(senderRange) {
+function deriveRange(senderRange,div) {
+	if (!div) {
+		if (senderRange.div) div = senderRange.div;
+		else div = 0;
+	}
 	var range = document.createRange();
-	var node = $('.' + senderRange.pageID + ' div[contenteditable]')[0];
+	var node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 	var DOM = senderRange.miniDOM;
 	for (var i in DOM) node = node.childNodes[DOM[i]];
 	if ($(node).is('p')) {
@@ -2929,7 +3041,7 @@ function deriveRange(senderRange) {
 	range.collapse(true);
 	if (senderRange.end) {
 		if (senderRange.endDOM) {
-			node = $('.' + senderRange.pageID + ' div[contenteditable]')[0];
+			node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 			DOM = senderRange.endDOM;
 			for (var i in DOM) node = node.childNodes[DOM[i]];
 			if ($(node).is('p')) {
@@ -2948,3 +3060,32 @@ function deriveRange(senderRange) {
 }
 
 // For 12/26/13: Use iframes to locally simulate two computers conversing. Iframes will be computers. Parent window will be server.
+
+function compare_ranges(range0,range1) {
+	var range0 = deriveRange(range0);
+	var range1 = deriveRange(range1);
+	var dif = [ range1.compareBoundaryPoints(Range.START_TO_START,range0),range1.compareBoundaryPoints(Range.END_TO_END,range0) ];
+	if (dif.indexOf(-1) != -1) {
+		// The undo action was an undoing of inserting text. In order to mirror, we have to delete text.
+		// Figure out what this text is on receiver.
+		var range = document.createRange();
+		range.setStart(range1.startContainer,range1.startOffset);
+		range.setEnd(range0.endContainer,range0.endOffset);
+		range.deleteContents();
+	}
+	if (dif.indexOf(1) != -1) {
+		// The undo action was an undoing of deleting text. In order to mirror, we have to reinsert deleted text.
+		// Figure out what this text is on sender.
+		if (range1.startOffset != range1.endOffset) {
+			var contents = range1.cloneContents();
+			console.log(contents.textContent);	
+		}
+		else {
+			var range = document.createRange();
+			range.setStart(range0.startContainer,range0.startOffset);
+			range.setEnd(range1.endContainer,range1.endOffset);
+			var contents = range.cloneContents();
+			console.log(contents.textContent);
+		}
+	}
+}
