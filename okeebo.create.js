@@ -431,6 +431,26 @@ $(document).ready(function(event) {
 			}
 		}
 		else if ($(this).is('div')) {
+			
+			var clipboardData = '';
+			if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+			if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
+			if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+			var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
+			dummyDIV.html(clipboardData);
+			dummyDIV.wrap('<div>');
+			improve_formatting(dummyDIV.parent());
+			dummyDIV.find('*').each(function() {
+				var $this = $(this);
+				$this.removeAttr('style class id');
+				if ($this.html().replace(/\s/g,'') == '') $this.remove();
+				console.log(this.tagName);
+				if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<b>' + $this.html() + '</b>');
+			});
+			if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
+			else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
+			event.preventDefault();
+			
 			if (window.top !== window.self) {
 				var clipboardData = '';
 				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
@@ -443,7 +463,7 @@ $(document).ready(function(event) {
 		resize_windows();
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
-		if (event.type == 'paste') setTimeout("$('p,a,b,i,u,sup,sub').removeAttr('style');",0);
+		//if (event.type == 'paste') setTimeout("$('p,a,b,i,u,sup,sub').removeAttr('style');",0);
 	})
 	.on('copy',function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -2889,7 +2909,7 @@ function partner_insert_page(data) {
 	var _top = $(window).scrollTop();
 	var sel = document.getSelection();
 	var range = false;
-	if (sel.toString() != '') range = sel.getRangeAt(0);
+	if (sel.rangeCount) range = sel.getRangeAt(0);
 	go_to(currentID,data.pageID);
 	insert_page(data.summary, data.page, data.exists, data.reinsert, data.cut, true);
 	go_to(data.pageID,currentID);
@@ -2912,7 +2932,7 @@ function partner_rearrange(pageKeys,pIDs,movedID,destination) {
 	
 	// toggle drag and consistent cursor position
 	var sel = document.getSelection();
-	var range = sel.getRangeAt(0);
+	var range = sel.rangeCount && sel.getRangeAt(0);
 	var $pageWithMoved = $moved.parents('.outer');
 	var temp_drag = 0;
 	var range_swap = 0;
@@ -2955,22 +2975,23 @@ function partner_rearrange(pageKeys,pIDs,movedID,destination) {
 	redraw_node_map($pages.filter(':visible').attr('id'));
 	
 	// consistent cursor position
-	if (range_swap) {
-		var index = 0;
-		if (range.div) index = range.div;
-		console.log(destination,range.miniDOM[0]);
-		// handles 1 div to 2 div. need to make more robust.
-		if (destination < range.miniDOM[0]) {
-			++index;
-			range.miniDOM[0] -= destination + 1;	
-			console.log(destination,range.miniDOM[0]);
+	if (range) {
+		if (range_swap) {
+			var index = 0;
+			if (range.div) index = range.div;
+			// handles 1 div to 2 div. need to make more robust.
+			if (destination < range.miniDOM[0]) {
+				++index;
+				range.miniDOM[0] -= destination + 1;	
+				console.log(destination,range.miniDOM[0]);
+			}
+			range = deriveRange(range,index);
+			$pages.filter(':visible').children('div[contenteditable]').eq(index).focus();
+			sel = document.getSelection();
+			sel.removeAllRanges();	
 		}
-		range = deriveRange(range,index);
-		$pages.filter(':visible').children('div[contenteditable]').eq(index).focus();
-		sel = document.getSelection();
-		sel.removeAllRanges();	
+		sel.addRange(range);
 	}
-	sel.addRange(range);
 }
 
 function ghost_type() {
