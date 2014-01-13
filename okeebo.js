@@ -1417,10 +1417,9 @@ function twitterLink(index) {
 	var page = $('.inner,.outer').filter(':visible').attr('id');
 	var url = location.href + '#' + page + '.' + hash;
 	var data = {
-		original_referer: url,
-		text: 'Okeebo Tweet',
-		//tw_p: 'tweetbutton',
-		url: url
+		screen_name: 'Ben_Pedersen',
+		url: url,
+		text: 'Comment or question here'
 	}
 	for (var i in data) webpage += '&' + i + '=' + encodeURIComponent(data[i]);
 	console.log(url);
