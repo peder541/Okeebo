@@ -365,69 +365,100 @@ $(document).ready(function(event) {
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
 		if ($(this).is('h3')) {
 			var index = $('h3').index($(this));
+			if (event.type == 'paste') {
+				var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
+				var clipboardData = '';
+				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain');
+				var words = clipboardData.toLowerCase().split(/\s+/);
+				for (var i=0; i<words.length; ++i) {
+					if (i == 0 || fluff.indexOf(words[i]) == -1 || i == words.length - 1) {
+						words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+					}
+				}
+				var text = words.join(' ');
+				document.execCommand('insertText',false,text);
+				event.preventDefault();
+			}
 			setTimeout("$('h3').eq(" + index + ").keyup();",10);
 		}
 		else if ($(this).is('p[id] span')) {
 			if ($(this).is('p[id] span:first-child')) {
 				var index = $('p[id] span').index($(this));
 				setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
+				if (event.type == 'paste') {
+					var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
+					var clipboardData = '';
+					if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain');
+					var words = clipboardData.toLowerCase().split(/\s+/);
+					for (var i=0; i<words.length; ++i) {
+						if (i == 0 || fluff.indexOf(words[i]) == -1 || i == words.length - 1) {
+							words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+						}
+					}
+					var text = words.join(' ');
+					document.execCommand('insertText',false,text);
+					event.preventDefault();
+					setTimeout(handle_paste_glitch,10,$(this).parent());
+				}
 			}
 			else {
 				var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
 				setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
-			}
-			if (event.type == 'paste') {
-				event.preventDefault();
-				var clipboardData = '';
-				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
-				var dummyDIV = $('<div id="dummy" />');
-				dummyDIV.html(clipboardData);
-				while (dummyDIV.find('*').not('br').index() != -1) {
-					dummyDIV.find('*').each(function(index) {
-						var $this = $(this);
-						if ($this.is('p')) {
-							if (index == 0) this.outerHTML = this.innerHTML;
-							else this.outerHTML = '<br><br>' + this.innerHTML;
-						}
-						else if ($this.is('ol')) {
-							$this.children('li').each(function(i) {
-								this.outerHTML = ((i==0) ? '' : '<br>') + (i+1) + '. ' + this.innerHTML;
-							});
-							this.outerHTML = this.innerHTML;
-						}
-						else if ($this.is('ul')) {
-							$this.children('li').each(function(i) {
-								this.outerHTML = ((i==0) ? '' : '<br>') + '- ' + this.innerHTML;
-							});
-							this.outerHTML = this.innerHTML;
-						}
-						else if ($this.is('br')) {
-							// leave alone
-						}
-						else if ($this.is('li')) {
-							try {
-								this.outerHTML = ((index==0) ? '' : '<br>') + '- ' + this.innerHTML;	
+				if (event.type == 'paste') {
+					event.preventDefault();
+					var clipboardData = '';
+					if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
+					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+					var dummyDIV = $('<div id="dummy" />');
+					dummyDIV.html(clipboardData);
+					while (dummyDIV.find('*').not('br').index() != -1) {
+						dummyDIV.find('*').each(function(index) {
+							var $this = $(this);
+							if ($this.is('p')) {
+								if (index == 0) this.outerHTML = this.innerHTML;
+								else this.outerHTML = '<br><br>' + this.innerHTML;
 							}
-							catch(e) {
-								console.log(e);	
-							}
-						}
-						else {
-							try {
+							else if ($this.is('ol')) {
+								$this.children('li').each(function(i) {
+									this.outerHTML = ((i==0) ? '' : '<br>') + (i+1) + '. ' + this.innerHTML;
+								});
 								this.outerHTML = this.innerHTML;
 							}
-							catch(e) {
-								console.log(e);	
+							else if ($this.is('ul')) {
+								$this.children('li').each(function(i) {
+									this.outerHTML = ((i==0) ? '' : '<br>') + '- ' + this.innerHTML;
+								});
+								this.outerHTML = this.innerHTML;
 							}
-						}
-					});
+							else if ($this.is('br')) {
+								// leave alone
+							}
+							else if ($this.is('li')) {
+								try {
+									this.outerHTML = ((index==0) ? '' : '<br>') + '- ' + this.innerHTML;	
+								}
+								catch(e) {
+									console.log(e);	
+								}
+							}
+							else {
+								try {
+									this.outerHTML = this.innerHTML;
+								}
+								catch(e) {
+									console.log(e);	
+								}
+							}
+						});
+					}
+					if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
+					else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
+					
+					setTimeout(handle_paste_glitch,10,$(this).parent());
 				}
-				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
-				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
-				
-				setTimeout(handle_paste_glitch,10,$(this).parent());
 			}
 		}
 		else if ($(this).is('div')) {
