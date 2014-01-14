@@ -362,46 +362,18 @@ $(document).ready(function(event) {
 		if (anchorNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
+		var title_paste;
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
 		if ($(this).is('h3')) {
 			var index = $('h3').index($(this));
-			if (event.type == 'paste') {
-				var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
-				var clipboardData = '';
-				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain');
-				var words = clipboardData.toLowerCase().split(/\s+/);
-				for (var i=0; i<words.length; ++i) {
-					if (i == 0 || fluff.indexOf(words[i]) == -1 || i == words.length - 1) {
-						words[i] = words[i][0].toUpperCase() + words[i].substr(1);
-					}
-				}
-				var text = words.join(' ');
-				document.execCommand('insertText',false,text);
-				event.preventDefault();
-			}
 			setTimeout("$('h3').eq(" + index + ").keyup();",10);
+			if (event.type == 'paste') title_paste = 1;
 		}
 		else if ($(this).is('p[id] span')) {
 			if ($(this).is('p[id] span:first-child')) {
 				var index = $('p[id] span').index($(this));
 				setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
-				if (event.type == 'paste') {
-					var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
-					var clipboardData = '';
-					if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
-					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain');
-					var words = clipboardData.toLowerCase().split(/\s+/);
-					for (var i=0; i<words.length; ++i) {
-						if (i == 0 || fluff.indexOf(words[i]) == -1 || i == words.length - 1) {
-							words[i] = words[i][0].toUpperCase() + words[i].substr(1);
-						}
-					}
-					var text = words.join(' ');
-					document.execCommand('insertText',false,text);
-					event.preventDefault();
-					setTimeout(handle_paste_glitch,10,$(this).parent());
-				}
+				if (event.type == 'paste') title_paste = 1;
 			}
 			else {
 				var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
@@ -465,32 +437,51 @@ $(document).ready(function(event) {
 			
 			if (event.type == 'paste') {
 				var clipboardData = '';
+				var cross_browser_paste;
 				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
 				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+				if (clipboardData == '') {
+					clipboardData = event.originalEvent.clipboardData.getData('text/plain');
+					cross_browser_paste = 1;
+				}
+				clipboardData = clipboardData.replace(/\n/g, '<br />').replace('<!--StartFragment-->','').replace('<!--EndFragment-->','');
 				var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
 				dummyDIV.html(clipboardData);
-				dummyDIV.wrap('<div>');
-				improve_formatting(dummyDIV.parent());
+				if (cross_browser_paste && dummyDIV.find('br').index() != -1) {
+					dummyDIV.wrap('<div>');
+					improve_formatting(dummyDIV.parent());
+				}
 				dummyDIV.find('*').each(function() {
 					var $this = $(this);
 					$this.removeAttr('style class id');
 					if ($this.html().replace(/\s/g,'') == '') $this.remove();
-					console.log(this.tagName);
-					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<b>' + $this.html() + '</b>');
+					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<p><b>' + $this.html() + '</b></p>');
 				});
+				if (window.top !== window.self) {
+					window.parent.postMessage('["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']','*');	
+				}
 				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
 				event.preventDefault();
 			}
-			
-			if (window.top !== window.self) {
-				var clipboardData = '';
-				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
-				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
-				window.parent.postMessage('["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']','*');	
+		}
+		if (title_paste) {
+			var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
+			var end_punctuation = [ ':', '.', '!', '?', ';' ];
+			var clipboardData = '';
+			if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+			if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain');
+			var words = clipboardData.toLowerCase().split(/\s+/);
+			var start_of_title = 0;
+			for (var i=0; i<words.length; ++i) {
+				if (words[i] && (i == start_of_title || fluff.indexOf(words[i]) == -1 || i == words.length - 1)) {
+					words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+				}
+				if (end_punctuation.indexOf(words[i][words[i].length-1]) != -1) start_of_title = i+1;
 			}
+			var text = words.join(' ');
+			document.execCommand('insertText',false,text);
+			event.preventDefault();
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		resize_windows();
