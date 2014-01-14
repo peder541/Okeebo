@@ -432,24 +432,26 @@ $(document).ready(function(event) {
 		}
 		else if ($(this).is('div')) {
 			
-			var clipboardData = '';
-			if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
-			if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
-			if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
-			var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
-			dummyDIV.html(clipboardData);
-			dummyDIV.wrap('<div>');
-			improve_formatting(dummyDIV.parent());
-			dummyDIV.find('*').each(function() {
-				var $this = $(this);
-				$this.removeAttr('style class id');
-				if ($this.html().replace(/\s/g,'') == '') $this.remove();
-				console.log(this.tagName);
-				if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<b>' + $this.html() + '</b>');
-			});
-			if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
-			else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
-			event.preventDefault();
+			if (event.type == 'paste') {
+				var clipboardData = '';
+				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
+				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
+				var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
+				dummyDIV.html(clipboardData);
+				dummyDIV.wrap('<div>');
+				improve_formatting(dummyDIV.parent());
+				dummyDIV.find('*').each(function() {
+					var $this = $(this);
+					$this.removeAttr('style class id');
+					if ($this.html().replace(/\s/g,'') == '') $this.remove();
+					console.log(this.tagName);
+					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<b>' + $this.html() + '</b>');
+				});
+				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
+				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
+				event.preventDefault();
+			}
 			
 			if (window.top !== window.self) {
 				var clipboardData = '';
