@@ -12,6 +12,7 @@ var info_timer, mobile_timer, status_timer;
 var different = -1, _adjust = 0;
 var badIE = false;
 var IE = false;
+var mapWidth = 100;
 
 function resize_windows(){
 	var w1 = $(window).width();
@@ -36,7 +37,7 @@ function resize_windows(){
 	forum.width($('#map').offset().left - forum.offset().left);
 	forum.css('top',75-Math.max(forum.height(),19));
 			
-	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-100);
+	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-mapWidth);
 	var map_left = $('#map').offset().left;
 	$('#search').css('left',map_left+71);
 	/*$('#search').css('left',0.88*(map_left-left_margin)+left_margin);
@@ -59,6 +60,17 @@ function resize_windows(){
     });
 };
 
+function get_map_width(obj) {
+	var pages = $('.outer');
+	if (obj instanceof jQuery) pages = pages.filter(jQuery);
+	pages.each(function() {
+		var $this = $(this);
+		var count = count_children($this);
+		if ((count+1)*10 > mapWidth) mapWidth = (count+1)*10;
+	});
+	$('#map,#map_helper').css('width',mapWidth);
+}
+
 // Makes IE Resize images using Attributes instead of CSS.
 function dom_attr_mod(ev) {
 	var $this = $(this);
@@ -77,6 +89,7 @@ function get_scrollbar_width() {
 }
 
 $(document).ready(function() {
+	get_map_width();
 	
 	// To work with htmlPurifier
 	$('.inner').children('h3').not('.out + h3').before('<button class="out" type="button"></button>');
