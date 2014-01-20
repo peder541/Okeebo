@@ -1121,7 +1121,6 @@ function toggle_edit() {
 				if ($(':focus').index() != -1 && !$this.is(':focus') && !$focus.is(':focus') && $focus.index() != -1) {
 					$(':focus').blur();
 					$focus.focus();
-					console.log('here');
 				}
 			}
 		});
@@ -1531,6 +1530,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 	// Could possibly be improved with more specific first_id
 	if (letter.charCodeAt(0) >= 97) update_all_affected_links('a1');
 	$('body').css('overflow','auto');
+	get_map_width(current_div);
 	resize_windows();
 	resize_writing_items();
 	current_div.attr('id',current_div_id);
@@ -1652,6 +1652,9 @@ function delete_page(target_id,quick,ghost) {
 	if (!quick) update_all_affected_links('a1');
 	active_parent.attr('id',active_parent_id);
 	if (!quick) {
+		mapWidth = 100;
+		get_map_width();
+		resize_windows();
 		size_buttons(active_parent);
 		redraw_node_map(active_parent_id);
 		enable_sidebar_option($('#undo_page_delete'));
