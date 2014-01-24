@@ -147,7 +147,7 @@ $(document).ready(function() {
 	.on('resize',function(event) {
 		$('body').css('overflow-x','hidden');
 		resize_windows();
-		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
+		if (!$('svg').is(':visible') && $('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 		
 		var current = $('.inner,.outer').filter(':visible');
 		size_buttons(current);
@@ -478,6 +478,11 @@ function linear_move(direction, redraw) {
 	var number = id.substr(1) - (38 - direction);
 	var letter = id.charAt(0);
 	if ($('.' + letter + number).html()) {
+		// Skip Hidden Pages
+		if ($('.' + letter + number).hasClass('hidden')) {
+			linear_move(direction + ((direction > 38) ? 1 : -1), redraw);
+			return false;
+		}
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		$(window).scrollTop(0);
