@@ -434,17 +434,18 @@ $(document).ready(function(event) {
 			}
 		}
 		else if ($(this).is('div')) {
-			
+			// Paste from Word to Chrome is being weird. There are random characters at the end.
+			/**/
 			if (event.type == 'paste') {
 				var clipboardData = '';
 				var cross_browser_paste;
 				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
 				if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/html');
 				if (clipboardData == '') {
-					clipboardData = event.originalEvent.clipboardData.getData('text/plain');
+					clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
 					cross_browser_paste = 1;
 				}
-				clipboardData = clipboardData.replace(/\n/g, '<br />').replace('<!--StartFragment-->','').replace('<!--EndFragment-->','');
+				clipboardData = clipboardData.replace('<!--StartFragment-->','').replace('<!--EndFragment-->','');
 				var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
 				dummyDIV.html(clipboardData);
 				if (cross_browser_paste && dummyDIV.find('br').index() != -1) {
@@ -464,6 +465,7 @@ $(document).ready(function(event) {
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
 				event.preventDefault();
 			}
+			/**/
 		}
 		if (title_paste) {
 			var fluff = [ 'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
@@ -961,6 +963,10 @@ $(document).ready(function(event) {
 		var url = prompt('To what URL should this link go?');
 		if (url) {
 			var display = url;
+			if (url == 'tangent') {
+				make_tangent();
+				return false;	
+			}
 			if (url.indexOf('https:') == -1 && url.indexOf('http:') == -1) url = 'http://' + url;
 			if (document.getSelection().toString()) document.execCommand('createLink',false,url);
 			else {
@@ -2011,6 +2017,7 @@ function delete_sidebar() {
 function make_tangent() {
 	document.execCommand('createLink',false,'#tangent');
 	toggle_graph();
+	$('#graphMode').attr('class','make_tangent').html('Tangent');
 }
 function link_tangent(target_page) {
 	$('a[href="#tangent"]').replaceWith(function() {
