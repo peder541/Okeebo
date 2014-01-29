@@ -127,7 +127,7 @@ $(document).ready(function(event) {
 	});*/
 	
 	/// Document Events
-	$(document).on('keydown',function(event) { 
+	$(document).on('keydown',function(event) {
 		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
 			switch (event.which) {
 				case 66:
@@ -149,8 +149,10 @@ $(document).ready(function(event) {
 					setTimeout(wacka,10);
 			}
 		}
+		if (event.which == 8 && !$(event.target).is('[contenteditable="true"]')) return false;
+		if ($('svg').is(':visible') && event.which == 40) return false;
 	})
-	.on('keydown','h3[contenteditable="true"],p[id] span:first-child[contenteditable="true"]',function(event) {
+	.on('keydown','h3[contenteditable="true"],p[id] > span:first-child[contenteditable="true"]',function(event) {
 		if (event.which == 13) {
 			$(this).blur();
 			return false;
@@ -222,7 +224,7 @@ $(document).ready(function(event) {
 	.on('keyup',function(event) {
 		if (event.which == 20) caps = !caps;
 	})
-	.on('keydown','div[contenteditable]',function(event) {
+	.on('keydown','[contenteditable="true"]',function(event) {
 		if (window.self !== window.top) {
 			if (!event.ctrlKey && !event.altKey) {
 				var text = '';
@@ -329,7 +331,7 @@ $(document).ready(function(event) {
 					var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
 					if (link_letter == '@') return false;
 					var number = classes[i].substr(1);
-					$('#' + link_letter + number + ' span:first-child').html($(this).html());
+					$('#' + link_letter + number + ' > span:first-child').html($(this).html());
 				}
 			}
 		}
@@ -345,10 +347,10 @@ $(document).ready(function(event) {
 				var link_letter = String.fromCharCode(classes[i].charCodeAt(0)-1);
 				if (link_letter == '@') return false;
 				var number = classes[i].substr(1);
-				if (link_letter + number != id) $('#' + link_letter + number + ' span:first-child').html($(this).html());
+				if (link_letter + number != id) $('#' + link_letter + number + ' > span:first-child').html($(this).html());
 			}
 		}
-		else if ($(this).is('p[id] span')) {
+		else if ($(this).is('p[id] > span')) {
 			// Summary
 		}
 		else {
@@ -369,10 +371,10 @@ $(document).ready(function(event) {
 			setTimeout("$('h3').eq(" + index + ").keyup();",10);
 			if (event.type == 'paste') title_paste = 1;
 		}
-		else if ($(this).is('p[id] span')) {
-			if ($(this).is('p[id] span:first-child')) {
-				var index = $('p[id] span').index($(this));
-				setTimeout("$('p[id] span').eq(" + index + ").keyup();",10);
+		else if ($(this).is('p[id] > span')) {
+			if ($(this).is('p[id] > span:first-child')) {
+				var index = $('p[id] > span').index($(this));
+				setTimeout("$('p[id] > span').eq(" + index + ").keyup();",10);
 				if (event.type == 'paste') title_paste = 1;
 			}
 			else {
@@ -814,7 +816,8 @@ $(document).ready(function(event) {
 			if (data[0] == 'keydown') {
 				var sender_range = deriveRange(data[2]);
 				var sender_text = data[1];
-				partner_insert(sender_range,sender_text);
+				var keyup = data[2].span >= 0 || data[2].h3;
+				partner_insert(sender_range,sender_text,keyup);
 			}
 			else if (data[0] == 'backspace') {
 				var sender_range = deriveRange(data[1]);
@@ -913,7 +916,7 @@ $(document).ready(function(event) {
 
 					/** /// using the kbd tag as a crutch
 					var $node = $(node);
-					if (!$node.is('br,kbd,p[id] span,div')) {
+					if (!$node.is('br,kbd,p[id] > span,div')) {
 						var type = ((event.target.id == 'ul') ? '-' : ((event.target.id == 'ol' ? ++count : String.fromCharCode(++count + 96)) + '.')) + ' ';
 						if ($node.prev('kbd').index() == -1 || $node.prev('kbd').attr('type') != type) list = 0;
 						$node.prev('kbd').remove();
@@ -925,7 +928,7 @@ $(document).ready(function(event) {
 					
 					/// just using text
 					var $node = $(node);
-					if (!$node.is('br,kbd,p[id] span,div')) {
+					if (!$node.is('br,kbd,p[id] > span,div')) {
 						var type = { ul: '- ', ol: ++count + '. ', al: String.fromCharCode(count + 96) + '. ' };
 						var pattern = /^\s*(-|[0-9]+\.|[a-z]\.)\s/g;
 						var partial_pattern = { ul: /^\s*-\s/g, ol: /^\s*[0-9]+\.\s/g, al: /^\s*[a-z]\.\s/g };
@@ -937,7 +940,7 @@ $(document).ready(function(event) {
 					node = node.nextSibling;
 				}
 			}
-			$(sel.anchorNode).parents('p[id] span').html(function() { return this.innerHTML; });
+			$(sel.anchorNode).parents('p[id] > span').html(function() { return this.innerHTML; });
 			clear_selected_text();
 		}
 		/// normal insert list functions
@@ -2854,6 +2857,7 @@ function partner_insert(sender_range,sender_text) {
 	sender_range.deleteContents();
 	sender_range.insertNode(document.createTextNode(sender_text));
 	sender_range.startContainer.parentNode.normalize();
+	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	//partner_cursor(sender_range);
 }
 function partner_backspace(sender_range) {
@@ -3045,12 +3049,19 @@ function getSenderRange() {
 	var pageID = $page.attr('id');
 	var miniDOM = [];
 	var node = range.startContainer;
-	while (node && !$(node).is('div[contenteditable]')) {
+	while (node && !$(node).is('[contenteditable="true"]')) {
 		miniDOM.push($(node.parentNode.childNodes).index(node));
 		node = node.parentNode;
 	}
 	var index = $page.children('div[contenteditable]').index(node);
-	if (index != 0) senderRange.div = index;
+	if (index > 0) senderRange.div = index;
+	else if (index < 0) {
+		index = $page.find('p[id] > span').index(node);
+		if (index != -1) {
+			senderRange.span = index;
+		}
+		else senderRange.h3 = 1;
+	}
 	miniDOM.reverse();
 	senderRange.pageID = pageID;
 	senderRange.miniDOM = miniDOM;
@@ -3060,7 +3071,7 @@ function getSenderRange() {
 	if (range.startContainer != range.endContainer) {
 		miniDOM = [];
 		node = range.endContainer;
-		while (node && !$(node).is('div[contenteditable]')) {
+		while (node && !$(node).is('[contenteditable="true"]')) {
 			miniDOM.push($(node.parentNode.childNodes).index(node));
 			node = node.parentNode;
 		}
@@ -3080,7 +3091,10 @@ function deriveRange(senderRange,div) {
 		else div = 0;
 	}
 	var range = document.createRange();
-	var node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
+	var node;
+	if (senderRange.h3) node = $('.' + senderRange.pageID + ' h3')[0];
+	else if (senderRange.span >= 0) node = $('.' + senderRange.pageID + ' > p[id] > span')[senderRange.span];
+	else node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 	var DOM = senderRange.miniDOM;
 	for (var i in DOM) node = node.childNodes[DOM[i]];
 	if ($(node).is('p')) {
@@ -3096,7 +3110,9 @@ function deriveRange(senderRange,div) {
 	range.collapse(true);
 	if (senderRange.end) {
 		if (senderRange.endDOM) {
-			node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
+			if (senderRange.h3) node = $('.' + senderRange.pageID + ' h3')[0];
+			else if (senderRange.pID >= 0) node = $('.' + senderRange.pageID + ' p[id]')[senderRange.pID];
+			else node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 			DOM = senderRange.endDOM;
 			for (var i in DOM) node = node.childNodes[DOM[i]];
 			if ($(node).is('p')) {
