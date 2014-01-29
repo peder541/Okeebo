@@ -167,7 +167,8 @@ function draw_graph() {
 						//return d3.max(array,function(data) { return data.charCodeAt(0) });
 					});
 					
-	var ghostRow = $('.inner').filter('[class*="' + String.fromCharCode(maxLetter + 2) + '"]').index() + 1;
+	var ghostRow = $('.inner').filter('[class*="' + String.fromCharCode(maxLetter + 2) + '"]').filter('[class*="r ' + String.fromCharCode(maxLetter) + '"]').index() + 1;
+									/* Selects items that are children of a bottom row item	*/			/*	Selects items that are in the bottom row	*/
 	
 	var yScale = d3.scale.linear()
 				.domain([96, maxLetter + ((ghostRow) ? 0.4 : 0)])
@@ -354,7 +355,7 @@ function update_graph() {
 						//return d3.max(array,function(data) { return data.charCodeAt(0) });
 					});
 					
-	var ghostRow = $('.inner').filter('[class*="' + String.fromCharCode(maxLetter + 2) + '"]').index() + 1;
+	var ghostRow = $('.inner').filter('[class*="' + String.fromCharCode(maxLetter + 2) + '"]').filter('[class*="r ' + String.fromCharCode(maxLetter) + '"]').index() + 1;
 	
 	var yScale = d3.scale.linear()
 				.domain([96, maxLetter + ((ghostRow) ? 0.4 : 0)])
