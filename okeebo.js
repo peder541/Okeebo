@@ -89,7 +89,6 @@ function get_scrollbar_width() {
 }
 
 $(document).ready(function() {
-	get_map_width();
 	
 	// To work with htmlPurifier
 	$('.inner').children('h3').not('.out + h3').before('<button class="out" type="button"></button>');
@@ -104,6 +103,7 @@ $(document).ready(function() {
 	
 	scrollbar_width = get_scrollbar_width();
 
+	get_map_width();
 	resize_windows();
 	
 	$('body').append('<div id="badIE"><!--[if lt IE 8]><script type="text/javascript">badIE = true;</script><![endif]--></div>');
