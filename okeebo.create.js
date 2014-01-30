@@ -6,11 +6,30 @@
 
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
+var collab_timer = 0;
+var line = 0;
 var _delete = new Array();
 var writing_buttons = '.writing';
 var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
 var localsave = false;
 var caps = false;
+
+var zoom_in = concept_zoom_in;
+var zoom_out = concept_zoom_out;
+function zoom_mod() {
+	$('.cursor').remove();
+}
+concept_zoom_in = function() {
+	zoom_in.apply(this,arguments);
+	zoom_mod();
+}
+concept_zoom_out = function() {
+	zoom_out.apply(this,arguments);
+	zoom_mod();
+}
+window.history.replaceState = null;
+window.history.pushState = null;
+
 
 function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
@@ -225,7 +244,7 @@ $(document).ready(function(event) {
 		if (event.which == 20) caps = !caps;
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
-		if (window.self !== window.top) {
+		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			if (!event.ctrlKey && !event.altKey) {
 				var text = '';
 				var sender_range = JSON.stringify(getSenderRange());
@@ -257,13 +276,19 @@ $(document).ready(function(event) {
 					if (text == '\\') text = '\\\\';
 				}
 				else if (event.which == 8) {
-					window.parent.postMessage('["backspace",' + sender_range + ']','*');
+					var msg = '["backspace",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');
 				}
 				else if (event.which == 13) {
-					window.parent.postMessage('["enter",' + sender_range + ']','*');
+					var msg = '["enter",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');
 				}
 				else if (event.which == 46) {
-					window.parent.postMessage('["delete",' + sender_range + ']','*');	
+					var msg = '["delete",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');	
 				}
 				else if (event.which == 32) {
 					/// might want a distribution of &nbsp; to ' ' that's more similar to the native implementation
@@ -277,7 +302,11 @@ $(document).ready(function(event) {
 					}
 				}
 				else console.log(event.which);
-				if (text) window.parent.postMessage('["keydown","' + text + '",' + sender_range + ']','*');
+				if (text) {
+					var msg = '["keydown","' + text + '",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');
+				}
 			}
 			/*else if (event.ctrlKey) {
 				if (event.which == 90) {
@@ -317,11 +346,13 @@ $(document).ready(function(event) {
 		}
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
-		if (window.self !== window.top) {
-			if ($(this).is('div[contenteditable]')) {
+		if (window.self !== window.top || typeof(nick) !== 'undefined') {
+			//if ($(this).is('div[contenteditable]')) {
 				var sender_range = JSON.stringify(getSenderRange());
-				window.parent.postMessage('["cursor",' + sender_range + ']','*');
-			}
+				var msg = '["cursor",' + sender_range + ']';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
+			//}
 		}
 		if ($(this).is('h3')) {
 			// Title (page)
@@ -460,8 +491,10 @@ $(document).ready(function(event) {
 					if ($this.html().replace(/\s/g,'') == '') $this.remove();
 					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<p><b>' + $this.html() + '</b></p>');
 				});
-				if (window.top !== window.self) {
-					window.parent.postMessage('["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']','*');	
+				if (window.top !== window.self || typeof(nick) !== 'undefined') {
+					var msg = '["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');	
 				}
 				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
@@ -497,11 +530,13 @@ $(document).ready(function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
 	})
 	.on('mouseup','[contenteditable="true"]',function(event) {
-		if (window.self !== window.top) {
-			if ($(this).is('div[contenteditable]')) {
+		if (window.self !== window.top || typeof(nick) !== 'undefined') {
+			//if ($(this).is('div[contenteditable]')) {
 				var sender_range = JSON.stringify(getSenderRange());
-				window.parent.postMessage('["cursor",' + sender_range + ']','*');
-			}
+				var msg = '["cursor",' + sender_range + ']';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
+			//}
 		}
 	})
 	/**/// Disallow Multiple Ranges for Selection, like Google Docs
@@ -808,11 +843,11 @@ $(document).ready(function(event) {
 			$('#new_page').css('top',324);
 		}
 	});
-	if (window.self !== window.top) {
+	if (window.self !== window.top || typeof(nick) !== 'undefined') {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
 			var data = JSON.parse(event.data);
-			//console.log(event.data,data);
+			console.log(event.data,data);
 			if (data[0] == 'keydown') {
 				var sender_range = deriveRange(data[2]);
 				var sender_text = data[1];
@@ -821,11 +856,13 @@ $(document).ready(function(event) {
 			}
 			else if (data[0] == 'backspace') {
 				var sender_range = deriveRange(data[1]);
-				partner_backspace(sender_range);
+				var keyup = data[1].span >= 0 || data[1].h3;
+				partner_backspace(sender_range,keyup);
 			}
 			else if (data[0] == 'delete') {
 				var sender_range = deriveRange(data[1]);
-				partner_delete(sender_range);
+				var keyup = data[1].span >= 0 || data[1].h3;
+				partner_delete(sender_range,keyup);
 			}
 			else if (data[0] == 'enter') {
 				var sender_range = deriveRange(data[1]);
@@ -853,7 +890,11 @@ $(document).ready(function(event) {
 			}
 			if (data[0] != 'cursor') {
 				var sender_range = JSON.stringify(getSenderRange());
-				if (sender_range != 'false') window.parent.postMessage('["cursor",' + sender_range + ']','*');	
+				if (sender_range != 'false') {
+					var msg = '["cursor",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');
+				}
 			}
 		});
 	}
@@ -874,24 +915,30 @@ $(document).ready(function(event) {
 		});
 	})
 	$('#bold').on('click',function(event) {
-		if (window.top !== window.self) {
-			window.parent.postMessage('["format_text","b",' + JSON.stringify(getSenderRange()) + ']','*');	
+		if (window.top !== window.self || typeof(nick) !== 'undefined') {
+			var msg = '["format_text","b",' + JSON.stringify(getSenderRange()) + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');	
 		}
     	document.execCommand('bold', false, null);
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		size_buttons($('.inner,.outer').filter(':visible'));
 	});
 	$('#italic').on('click',function(event) {
-		if (window.top !== window.self) {
-			window.parent.postMessage('["format_text","i",' + JSON.stringify(getSenderRange()) + ']','*');	
+		if (window.top !== window.self || typeof(nick) !== 'undefined') {
+			var msg = '["format_text","i",' + JSON.stringify(getSenderRange()) + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');	
 		}
 		document.execCommand('italic', false, null);
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		size_buttons($('.inner,.outer').filter(':visible'));
 	});
 	$('#underline').on('click',function(event) {
-		if (window.top !== window.self) {
-			window.parent.postMessage('["format_text","u",' + JSON.stringify(getSenderRange()) + ']','*');	
+		if (window.top !== window.self || typeof(nick) !== 'undefined') {
+			var msg = '["format_text","u",' + JSON.stringify(getSenderRange()) + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');	
 		}
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		document.execCommand('underline', false, null);
@@ -1040,7 +1087,7 @@ $(document).ready(function(event) {
 		}
 	}
 	caps_detect();
-	
+	if (typeof(window.nick) !== 'undefined') collab_updates();
 });
 
 function caps_detect() {
@@ -1286,12 +1333,14 @@ function drop(event) {
 			//// Wonder if this would actually be expected behavior
 			update_all_affected_links(first_id);
 		}
-		if (window.self !== window.top) {
+		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			var pageKeys = [];
 			var pIDs = [];
 			$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 			$('p[id]').each(function() { pIDs.push(this.id); });
-			window.parent.postMessage('["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1]','*');	
+			var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1]';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
 		}
 		//modify_arrange_buttons();
 		return true;
@@ -1309,12 +1358,14 @@ function drop(event) {
 				//// Wonder if this would actually be expected behavior
 				update_all_affected_links(first_id);
 			}
-			if (window.self !== window.top) {
+			if (window.self !== window.top || typeof(nick) !== 'undefined') {
 				var pageKeys = [];
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('p[id]').each(function() { pIDs.push(this.id); });
-				window.parent.postMessage('["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ']','*');	
+				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ']';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
 			}
 			//modify_arrange_buttons();
 			return true;
@@ -1418,7 +1469,7 @@ function update_all_affected_links(first_id) {
 function insert_page(summary,page,exists,reinsert,cut,ghost) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
-	if (window.self !== window.top && !ghost) {
+	if ((window.self !== window.top || typeof(nick) !== 'undefined') && !ghost) {
 		var data = {
 			'pageID': current_div.attr('id'),
 			'summary': summary,
@@ -1427,7 +1478,9 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 			'reinsert': reinsert,
 			'cut': cut
 		};
-		window.parent.postMessage('["insert_page",' + JSON.stringify(data) + ']','*');
+		var msg = '["insert_page",' + JSON.stringify(data) + ']';
+		if (typeof(nick) !== 'undefined') collab_send(msg);
+		else window.parent.postMessage(msg,'*');
 	}
 	if (!reinsert) {
 		if (typeof(page) !== 'undefined' && page instanceof jQuery) {
@@ -1562,8 +1615,10 @@ function delete_page(target_id,quick,ghost) {
 		return delete_page(null,quick,ghost);
 	}
 	if (!ghost) {
-		if (window.self !== window.top) {
-			window.parent.postMessage('["delete_page","' + current_page.attr('id') + '"]','*');
+		if (window.self !== window.top || typeof(nick) !== 'undefined') {
+			var msg = '["delete_page","' + current_page.attr('id') + '"]';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
 		}
 	}
 	if (current_page.hasClass('outer')) {
@@ -1680,8 +1735,10 @@ function undo_page_delete() {
 		if (!current_page.hasClass(restore_parent_id)) go_to(current_page.attr('id'),restore_parent_id);
 		insert_page(restore.summary[i],restore.page,i,true,false,true);
 	}
-	if (window.self !== window.top) {
-		window.parent.postMessage('["undo_page_delete"]','*');
+	if (window.self !== window.top || typeof(nick) !== 'undefined') {
+		var msg = '["undo_page_delete"]'
+		if (typeof(nick) !== 'undefined') collab_send(msg);
+		else window.parent.postMessage(msg,'*');
 	}
 }
 
@@ -2894,6 +2951,7 @@ function partner_backspace(sender_range) {
 			if ($prev.html() == '') $prev.html('<br>');
 		}
 	}
+	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 }
 function partner_delete(sender_range) {
 	// This and partner_backspace are similar enough that they should probably be combined somehow.
@@ -2930,6 +2988,7 @@ function partner_delete(sender_range) {
 			if ($next.html() == '') $next.html('<br>');
 		}
 	}
+	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 }
 function partner_enter(sender_range) {
 	var p = document.createElement('p');
@@ -3049,7 +3108,7 @@ function getSenderRange() {
 	var pageID = $page.attr('id');
 	var miniDOM = [];
 	var node = range.startContainer;
-	while (node && !$(node).is('[contenteditable="true"]')) {
+	while (node && !$(node).is('[contenteditable="true"]') && $(node).closest('[contenteditable="true"]').index() != -1) {
 		miniDOM.push($(node.parentNode.childNodes).index(node));
 		node = node.parentNode;
 	}
@@ -3159,4 +3218,35 @@ function compare_ranges(range0,range1) {
 			console.log(contents.textContent);
 		}
 	}
+}
+
+function collab_updates() {
+	if (collab_timer != 0) {
+		clearTimeout(collab_timer);
+		collab_timer = 0;
+	}
+	var ajax_data = 'book=' + $('.Z1 h3').html() + '&line=' + line;
+	$.ajax({url:'https://www.okeebo.com/test/collab/update.php',
+			dataType:'json',
+			type:'GET',
+			data:ajax_data,
+			success:function(result) {
+				var row = result.msg.split('\n');
+				for (var i=0; row[i]; ++i) {
+					var val = JSON.parse(row[i]);
+					if (val.spkr != nick || line == 0) window.postMessage(val.msg,'*');
+				}
+				line = result.line;
+				collab_updates();
+			},
+			error:function() {
+				collab_timer = setTimeout('collab_updates()',5000);
+			}
+	});
+}
+function collab_send(msg) {
+	var val = {spkr: nick, msg: msg};
+	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
+	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
+	$.post(url,ajax_data);
 }
