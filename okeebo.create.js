@@ -13,6 +13,13 @@ var writing_buttons = '.writing';
 var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
 var localsave = false;
 var caps = false;
+var collab = {};
+/*
+	collab = {
+		spkr: [current, history]
+	}
+	collab[spkr][1] = {0: event0, 1: event1, 2: event2, ... };
+*/
 
 var zoom_in = concept_zoom_in;
 var zoom_out = concept_zoom_out;
@@ -847,7 +854,7 @@ $(document).ready(function(event) {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
 			var data = JSON.parse(event.data);
-			console.log(event.data,data);
+			//console.log(event.data,data);
 			if (data[0] == 'keydown') {
 				var sender_range = deriveRange(data[2]);
 				var sender_text = data[1];
@@ -3234,7 +3241,22 @@ function collab_updates() {
 				var row = result.msg.split('\n');
 				for (var i=0; row[i]; ++i) {
 					var val = JSON.parse(row[i]);
-					if (val.spkr != nick || line == 0) window.postMessage(val.msg,'*');
+					if (val.spkr != nick || line == 0) {
+						var order = 0;
+						if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
+						else collab[val.spkr] = [order, {}];
+						collab[val.spkr][1][val.order] = val.msg;
+						if (order == val.order) {
+							// Do the current task
+							window.postMessage(val.msg,'*');
+							collab[val.spkr][0] = order;
+							// Do any directly following tasks that may be queued
+							while (collab[val.spkr][1][++order]) {
+								window.postMessage(collab[val.spkr][1][order],'*');
+								collab[val.spkr][0] = order;
+							}
+						}
+					}
 				}
 				line = result.line;
 				collab_updates();
@@ -3245,8 +3267,18 @@ function collab_updates() {
 	});
 }
 function collab_send(msg) {
-	var val = {spkr: nick, msg: msg};
+	var order = 0;
+	if (collab[nick]) {
+		order = collab[nick][0] + 1;
+		collab[nick][0] = order;
+		collab[nick][1][order] = msg;
+	}
+	else {
+		collab[nick] = [order, {0: msg}];
+	}
+	var val = {spkr: nick, msg: msg, order: order};
 	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
 	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
 	$.post(url,ajax_data);
 }
+/* Queuing posts makes sure things arrive in a sequentially order, but the time lag is so drastic that it's a bad solution. */
