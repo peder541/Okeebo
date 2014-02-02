@@ -876,8 +876,8 @@ $(document).ready(function(event) {
 				partner_enter(sender_range);	
 			}
 			else if (data[0] == 'cursor') {
-				var sender_range = deriveRange(data[1]);
-				if ($('.'+data[1].pageID).is(':visible')) partner_cursor(sender_range);
+				//var sender_range = deriveRange(data[1]);
+				if ($('.'+data[1].pageID).is(':visible')) partner_cursor(data[1],data[2]);
 				else $('.cursor').remove();
 			}
 			else if (data[0] == 'insert_page') {
@@ -2828,12 +2828,14 @@ function up_down() {
 	- Use "rect = range.getBoundingClientRect();" to get coordinates for sender's cursor
 	
 */
-function partner_cursor(sender_range) {
+function partner_cursor(range_data,spkr) {
+	//spkr = spkr.split(':')[0];
+	var sender_range = deriveRange(range_data);
 	var endRange;
 	if (sender_range) endRange = sender_range.cloneRange();
 	sender_range.collapse(true);
 	endRange.collapse(false);
-	$('.cursor').remove();
+	$('.cursor[title="' + spkr + '"]').remove();
 	// change "i < 1" to "i < 2" to also show the end of a range
 	for (var i = 0; i < 1; ++i) {
 		var rect = sender_range.getBoundingClientRect();
@@ -2853,11 +2855,20 @@ function partner_cursor(sender_range) {
 				}
 			}
 		}
-		$('body').append('<p class="cursor"> </p>');
-		$('.cursor').eq(i).css({
+		$('body').append('<p class="cursor" title="' + spkr + '"> </p>');
+		$('.cursor[title="' + spkr + '"]').eq(i).css({
 			'top': rect.top + $(window).scrollTop(),
 			'left': rect.left,
 			'height': rect.height
+		}).on('mousedown',function(event) {
+			var $page = $('.inner,.outer').filter(':visible');
+			if (range_data.h3) $page.children('h3').focus();
+			else if (range_data.span >= 0) $page.children('p[id]').children('span[contenteditable="true"]').eq(range_data.span).focus();
+			else node = $page.children('div[contenteditable="true"]').eq(range_data.div || 0).focus();
+			var sel = document.getSelection();
+			sel.removeAllRanges();
+			sel.addRange(sender_range);
+			event.preventDefault();
 		});
 		sender_range = endRange;
 	}
@@ -2918,8 +2929,19 @@ function partner_insert(sender_range,sender_text) {
 	sel.addRange(receiver_range);
 	*/
 	// Idea 2. Inserts a text node at the sender's range.
+	var startElement = $(sender_range.startContainer).closest('p,li');
+	var endElement = $(sender_range.endContainer).closest('p,li');
 	sender_range.deleteContents();
-	sender_range.insertNode(document.createTextNode(sender_text));
+	if (startElement.is(endElement)) sender_range.insertNode(document.createTextNode(sender_text));
+	else {
+		startElement.append(sender_text);
+		var $page = $('.inner,.outer').filter(':visible');
+		var elements = $page.find('p,li');
+		for (var start = elements.index(startElement), i = start + 1, end = elements.index(endElement); i <= end; ++i) {
+			console.log(elements.eq(i).html(),i);
+			startElement.append(elements.eq(i).detach().html());
+		}
+	}
 	sender_range.startContainer.parentNode.normalize();
 	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	//partner_cursor(sender_range);
@@ -3177,7 +3199,7 @@ function deriveRange(senderRange,div) {
 	if (senderRange.end) {
 		if (senderRange.endDOM) {
 			if (senderRange.h3) node = $('.' + senderRange.pageID + ' h3')[0];
-			else if (senderRange.pID >= 0) node = $('.' + senderRange.pageID + ' p[id]')[senderRange.pID];
+			else if (senderRange.span >= 0) node = $('.' + senderRange.pageID + ' p[id]')[senderRange.span];
 			else node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 			DOM = senderRange.endDOM;
 			for (var i in DOM) node = node.childNodes[DOM[i]];
@@ -3248,11 +3270,17 @@ function collab_updates() {
 						collab[val.spkr][1][val.order] = val.msg;
 						if (order == val.order) {
 							// Do the current task
-							window.postMessage(val.msg,'*');
+							var msg = JSON.parse(val.msg);
+							msg.push(val.spkr);
+							msg = JSON.stringify(msg);
+							window.postMessage(msg,'*');
 							collab[val.spkr][0] = order;
 							// Do any directly following tasks that may be queued
 							while (collab[val.spkr][1][++order]) {
-								window.postMessage(collab[val.spkr][1][order],'*');
+								var msg = JSON.parse(collab[val.spkr][1][order]);
+								msg.push(val.spkr);
+								msg = JSON.stringify(msg);
+								window.postMessage(msg,'*');
 								collab[val.spkr][0] = order;
 							}
 						}
@@ -3262,6 +3290,7 @@ function collab_updates() {
 				collab_updates();
 			},
 			error:function() {
+				console.log('Timeout. Reconnecting in 5 seconds.');
 				collab_timer = setTimeout('collab_updates()',5000);
 			}
 	});
