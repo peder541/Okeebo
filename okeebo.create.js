@@ -169,9 +169,23 @@ $(document).ready(function(event) {
 					$('#underline').click();
 					return false;
 				case 89:
+					if (document.execCommand('redo')) {
+						var range1 = getSenderRange();
+						document.execCommand('undo');
+						var range0 = getSenderRange();
+						document.execCommand('redo');
+						compare_ranges(range0,range1);
+					}
+					return false;
 				case 90:
-					range0 = getSenderRange();
-					setTimeout('compare_ranges(range0,getSenderRange());',0);
+					if (document.execCommand('undo')) {
+						var range1 = getSenderRange();
+						document.execCommand('redo');
+						var range0 = getSenderRange();
+						document.execCommand('undo');
+						compare_ranges(range0,range1);
+					}
+					return false;
 			}
 		}
 		if (event.which == 8 && !$(event.target).is('[contenteditable="true"]')) return false;
@@ -3292,6 +3306,8 @@ function getSenderRange() {
 	senderRange.pageID = pageID;
 	senderRange.miniDOM = miniDOM;
 	senderRange.spot = range.startOffset;
+	senderRange.size = range.startContainer.textContent.length;
+	senderRange.others = node.childNodes.length;
 	
 	// Code for Selections
 	if (range.startContainer != range.endContainer) {
@@ -3376,7 +3392,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		}
 	}
 	if (dif.indexOf(1) != -1) {
-		// The undo action was an undoing of deleting text. In order to mirror, we have to reinsert deleted text.
+		// The undo action was an undoing of backspacing. In order to mirror, we have to reinsert deleted text.
 		// Figure out what this text is on sender.
 		if (range1.startOffset != range1.endOffset) {
 			var contents = range1.cloneContents();
@@ -3394,7 +3410,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		range.collapse(true);
 		sel.removeAllRanges();
 		sel.addRange(range);
-		sender_range = JSON.stringify(getSenderRange());
+		var sender_range = JSON.stringify(getSenderRange());
 		sel.removeAllRanges();
 		sel.addRange(old_range);
 		if (contents.childNodes.length > 1) {
@@ -3412,6 +3428,45 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		else {
 			var msg = '["keydown","' + text + '",' + sender_range + ']';
 			if (text == '') msg = '["enter",' + sender_range + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
+		}
+	}
+	if (dif[0] == 0 && dif[1] == 0) {
+		if (rangeA.others < rangeB.others) {
+			// Most likely an undo of a "paragraph merging" delete. Need to check if anything else fits this heuristic.
+			var sender_range = JSON.stringify(getSenderRange());
+			var msg = '["enter",' + sender_range + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
+		}
+		else if (rangeA.others > rangeB.others) {
+			// Most likely a redo of a "paragaph merging" delete. Need to check if anything else fits this heuristic.
+			var sender_range = JSON.stringify(getSenderRange());
+			var msg = '["delete",' + sender_range + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
+		}
+		else if (rangeA.size < rangeB.size) {
+			// Most likely an undo of a regular delete. Need to check if anything else fits this heuristic.
+			var dif = rangeB.size - rangeA.size;
+			var sel = document.getSelection();
+			var old_range = sel.getRangeAt(0);
+			var range = old_range.cloneRange();
+			range.setEnd(range.endContainer, range.endOffset + dif);
+			text = range.cloneContents().textContent;
+			var sender_range = JSON.stringify(getSenderRange());
+			var msg = '["keydown","' + text + '",' + sender_range + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');	
+		}
+		else if (rangeA.size > rangeB.size) {
+			// Most likely a redo of a regular delete. Need to check if anything else fits this heuristic.
+			var dif = rangeA.size - rangeB.size;
+			var sender_range = getSenderRange();
+			sender_range.end = sender_range.spot + dif;
+			sender_range = JSON.stringify(sender_range);
+			var msg = '["delete",' + sender_range + ']';
 			if (typeof(nick) !== 'undefined') collab_send(msg);
 			else window.parent.postMessage(msg,'*');
 		}
