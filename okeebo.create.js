@@ -7,6 +7,7 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var collab_timer = 0;
+var event_timer = 0;
 var line = 0;
 var _delete = new Array();
 var writing_buttons = '.writing';
@@ -154,6 +155,8 @@ $(document).ready(function(event) {
 	
 	/// Document Events
 	$(document).on('keydown',function(event) {
+		if (event_timer) clearTimeout(event_timer);
+		event_timer = setTimeout('event_timer = 0;',10);
 		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
 			switch (event.which) {
 				case 66:
@@ -165,14 +168,10 @@ $(document).ready(function(event) {
 				case 85:
 					$('#underline').click();
 					return false;
+				case 89:
 				case 90:
-					function wacka() {
-						range1 = getSenderRange();
-						console.log(range1);
-						return range1;
-					}
-					range0 = wacka();
-					setTimeout(wacka,10);
+					range0 = getSenderRange();
+					setTimeout('compare_ranges(range0,getSenderRange());',0);
 			}
 		}
 		if (event.which == 8 && !$(event.target).is('[contenteditable="true"]')) return false;
@@ -251,6 +250,8 @@ $(document).ready(function(event) {
 		if (event.which == 20) caps = !caps;
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
+		if (event_timer) clearTimeout(event_timer);
+		event_timer = setTimeout(clearTimeout,10,event_timer);
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			if (!event.ctrlKey && !event.altKey) {
 				var text = '';
@@ -499,7 +500,7 @@ $(document).ready(function(event) {
 					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<p><b>' + $this.html() + '</b></p>');
 				});
 				if (window.top !== window.self || typeof(nick) !== 'undefined') {
-					var msg = '["keydown","' + clipboardData + '",' + JSON.stringify(getSenderRange()) + ']';
+					var msg = '["keydown","' + dummyDIV.html() + '",' + JSON.stringify(getSenderRange()) + ']';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');	
 				}
@@ -552,7 +553,7 @@ $(document).ready(function(event) {
 	})
 	/**/
 	.on('input','[contenteditable="true"]',function(event) {
-		setTimeout(keyup,10,$(this));
+		setTimeout(keyup,10,$(this));		
 	});
 	// Resizable Images in Chrome, Opera, and Safari
 	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
@@ -853,8 +854,10 @@ $(document).ready(function(event) {
 	if (window.self !== window.top || typeof(nick) !== 'undefined') {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
-			var data = JSON.parse(event.data);
-			//console.log(event.data,data);
+			var data = JSON.parse(event.data.replace(/\n/g,''));
+			if (data[0] == 'compare_ranges') {
+				compare_ranges(data[1],data[2],true);	
+			}
 			if (data[0] == 'keydown') {
 				var sender_range = deriveRange(data[2]);
 				var sender_text = data[1];
@@ -873,7 +876,8 @@ $(document).ready(function(event) {
 			}
 			else if (data[0] == 'enter') {
 				var sender_range = deriveRange(data[1]);
-				partner_enter(sender_range);	
+				var keyup = data[1].span >= 0 || data[1].h3;
+				partner_enter(sender_range,keyup);	
 			}
 			else if (data[0] == 'cursor') {
 				//var sender_range = deriveRange(data[1]);
@@ -2916,7 +2920,7 @@ function partner_format_text(el,sender_range) {
 	sel.removeAllRanges();
 	if (swap) sel.addRange(range);
 }
-function partner_insert(sender_range,sender_text) {
+function partner_insert(sender_range,sender_text,keyup) {
 	// Original Idea. Involves swapping cursor focus and using execCommand
 	/*
 	var sel = document.getSelection();
@@ -2929,106 +2933,240 @@ function partner_insert(sender_range,sender_text) {
 	sel.addRange(receiver_range);
 	*/
 	// Idea 2. Inserts a text node at the sender's range.
-	var startElement = $(sender_range.startContainer).closest('p,li');
-	var endElement = $(sender_range.endContainer).closest('p,li');
-	sender_range.deleteContents();
-	if (startElement.is(endElement)) sender_range.insertNode(document.createTextNode(sender_text));
+	var startElement = $(sender_range.startContainer).closest('p,li,h3');
+	var endElement = $(sender_range.endContainer).closest('p,li,h3');
+	if (startElement.is(endElement)) {
+		sender_range.deleteContents();
+		sender_range.insertNode(document.createTextNode(sender_text));
+		sender_range.startContainer.parentNode.normalize();
+	}
+	// Handles when text is inserted into a multi-element selection.
 	else {
+		var sel = document.getSelection();
+		// Calculates what the new caret position will be.
+		if (sel.rangeCount) {
+			var range = sel.getRangeAt(0);
+			if ($(range.startContainer).closest('p,li').is(endElement)) {
+				
+				var displace = range.compareBoundaryPoints(Range.END_TO_START, sender_range);
+				var endCompare = range.compareBoundaryPoints(Range.END_TO_END, sender_range);
+				//if (displace >= 0) {
+						
+						var node = sender_range.startContainer;
+						var new_node = node;
+						var senderMiniDOM = [];
+						do {
+							node = new_node;
+							senderMiniDOM.push($(node.parentNode.childNodes).index(node));
+							new_node = node.parentNode;
+						} while (!$(node.parentNode).is(startElement));
+						senderMiniDOM.reverse();
+						
+						var node = range.startContainer;
+						var new_node = node;
+						var startMiniDOM = [];
+						do {
+							node = new_node;
+							startMiniDOM.push($(node.parentNode.childNodes).index(node));
+							new_node = node.parentNode;
+						} while (!$(node.parentNode).is(endElement));
+						startMiniDOM.reverse();
+						startMiniDOM[0] += senderMiniDOM[0];
+						
+						var startOffset = range.startOffset;
+						if ($(range.startContainer).is(sender_range.endContainer)) {
+							startOffset -= sender_range.endOffset;
+						}
+						if (startMiniDOM[0] == 0) {
+							if (startOffset < 0) startOffset = -1;
+							startOffset += sender_range.startOffset + sender_text.length;
+						}
+						if (startOffset < 0) startOffset = 0;
+						
+						var node = range.endContainer;
+						var new_node = node;
+						var endMiniDOM = [];
+						do {
+							node = new_node;
+							endMiniDOM.push($(node.parentNode.childNodes).index(node));
+							new_node = node.parentNode;
+						} while (!$(node.parentNode).is(endElement));
+						endMiniDOM.reverse();
+						endMiniDOM[0] += senderMiniDOM[0];
+						
+						var endOffset = range.endOffset;
+						if ($(range.endContainer).is(sender_range.endContainer)) {
+							endOffset -= sender_range.endOffset;
+						}
+						if (endMiniDOM[0] == 0) {
+							if (endOffset < 0) endOffset = -1;
+							endOffset += sender_range.startOffset + sender_text.length;
+						}
+						if (endOffset < 0) endOffset = 0;
+						
+					//}
+					//else displace = range.startOffset - sender_range.endOffset;
+				//}
+				if (displace < 0) {
+					sel.removeAllRanges();
+					range = sender_range.cloneRange();
+					range.collapse(true);
+					sel.addRange(range);
+				}
+			}
+		}
+		// Apply Changes
+		sender_range.deleteContents();
 		startElement.append(sender_text);
 		var $page = $('.inner,.outer').filter(':visible');
 		var elements = $page.find('p,li');
 		for (var start = elements.index(startElement), i = start + 1, end = elements.index(endElement); i <= end; ++i) {
-			console.log(elements.eq(i).html(),i);
+			//console.log(elements.eq(i).html(),i);
 			startElement.append(elements.eq(i).detach().html());
 		}
+		sender_range.startContainer.parentNode.normalize();
+		if (sel.rangeCount) {
+			// Apply Caret Position
+			if (typeof(startMiniDOM) === 'undefined') {
+				if (displace >= 0) range.setStart(range.startContainer, range.startOffset + displace + sender_text.length);
+			}
+			else {
+				var node = startElement[0];
+				for (var i in startMiniDOM) {
+					node = node.childNodes[startMiniDOM[i]];
+					if (typeof(node) === 'undefined') break;
+				}
+				if (typeof(node) !== 'undefined' && displace >= 0) {
+					range.setStart(node, startOffset);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+				
+				node = startElement[0];
+				for (var i in endMiniDOM) {
+					node = node.childNodes[endMiniDOM[i]];
+					if (typeof(node) === 'undefined') break;
+				}
+				if (typeof(node) !== 'undefined' && endCompare >= 0) {
+					range.setEnd(node, endOffset);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+			}
+		}
 	}
-	sender_range.startContainer.parentNode.normalize();
 	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
+	size_linear_buttons($('.inner,.outer').filter(':visible'));
 	//partner_cursor(sender_range);
 }
-function partner_backspace(sender_range) {
-	// This and partner_delete are similar enough that they should probably be combined somehow.
-	var node = sender_range.startContainer;
-	var $node = $(node);
-	if ($node.is(sender_range.endContainer)) {
-		if (sender_range.startOffset != sender_range.endOffset) {
-			sender_range.deleteContents();
-			return true;	
-		}
-		var index = sender_range.startOffset-1;
-		try {
-			if ($node.is('p')) {
-				node = node.childNodes[index];
-				sender_range.setStart(node,node.textContent.length-1);
-				sender_range.setEnd(node,node.textContent.length);
+
+// This and partner_delete are similar enough that they should probably be combined somehow.
+function partner_backspace(sender_range,keyup) {
+	var startElement = $(sender_range.startContainer).closest('p,li,h3');
+	var endElement = $(sender_range.endContainer).closest('p,li,h3');
+	if (startElement.is(endElement)) {
+		var node = sender_range.startContainer;
+		var $node = $(node);
+		if ($node.is(sender_range.endContainer)) {
+			if (sender_range.startOffset != sender_range.endOffset) {
 				sender_range.deleteContents();
+				return true;	
 			}
-			else {
-				sender_range.setStart(node,index);
-				sender_range.deleteContents();
+			var index = sender_range.startOffset-1;
+			try {
+				if ($node.is('p')) {
+					node = node.childNodes[index];
+					sender_range.setStart(node,node.textContent.length-1);
+					sender_range.setEnd(node,node.textContent.length);
+					sender_range.deleteContents();
+				}
+				else {
+					sender_range.setStart(node,index);
+					sender_range.deleteContents();
+				}
+			}
+			catch(e) {
+				$node = $node.closest('p');
+				$prev = $node.prev('p');
+				$last = $node.children('*').last();
+				if ($last.is('br')) $last.remove();
+				$last = $prev.children('*').last();
+				if ($last.is('br')) $last.remove();
+				if ($prev.index() != -1) {
+					$prev.append($node.detach().html());
+					$prev[0].normalize();
+				}
+				if ($prev.html() == '') $prev.html('<br>');
 			}
 		}
-		catch(e) {
-			$node = $node.closest('p');
-			$prev = $node.prev('p');
-			$last = $node.children('*').last();
-			if ($last.is('br')) $last.remove();
-			$last = $prev.children('*').last();
-			if ($last.is('br')) $last.remove();
-			$prev.append($node.detach().html());
-			$prev[0].normalize();
-			if ($prev.html() == '') $prev.html('<br>');
-		}
+		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	}
-	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
+	else partner_insert(sender_range, '', keyup);
 }
-function partner_delete(sender_range) {
-	// This and partner_backspace are similar enough that they should probably be combined somehow.
-	var node = sender_range.startContainer;
-	var $node = $(node);
-	if ($node.is(sender_range.endContainer)) {
-		if (sender_range.startOffset != sender_range.endOffset) {
-			sender_range.deleteContents();
-			return true;	
-		}
-		var index = sender_range.startOffset+1;
-		if (sender_range.startOffset != sender_range.endOffset) index = sender_range.endOffset;
-		try {
-			if ($node.is('p')) {
-				node = node.childNodes[index];
-				sender_range.setStart(node,node.textContent.length);
-				sender_range.setEnd(node,node.textContent.length+1);
+
+// This and partner_backspace are similar enough that they should probably be combined somehow.
+function partner_delete(sender_range,keyup) {
+	var startElement = $(sender_range.startContainer).closest('p,li,h3');
+	var endElement = $(sender_range.endContainer).closest('p,li,h3');
+	if (startElement.is(endElement)) {
+		var node = sender_range.startContainer;
+		var $node = $(node);
+		if ($node.is(sender_range.endContainer)) {
+			if (sender_range.startOffset != sender_range.endOffset) {
 				sender_range.deleteContents();
+				return true;	
 			}
-			else {
-				sender_range.setEnd(node,index);
-				sender_range.deleteContents();
+			var index = sender_range.startOffset+1;
+			if (sender_range.startOffset != sender_range.endOffset) index = sender_range.endOffset;
+			try {
+				if ($node.is('p')) {
+					node = node.childNodes[index];
+					sender_range.setStart(node,node.textContent.length);
+					sender_range.setEnd(node,node.textContent.length+1);
+					sender_range.deleteContents();
+				}
+				else {
+					sender_range.setEnd(node,index);
+					sender_range.deleteContents();
+				}
+			}
+			catch(e) {
+				$node = $node.closest('p');
+				$next = $node.next('p');
+				$last = $node.children('*').last();
+				if ($last.is('br')) $last.remove();
+				$last = $next.children('*').last();
+				if ($last.is('br')) $last.remove();
+				if ($next.index() != -1) {
+					$next.prepend($node.detach().html());
+					$next[0].normalize();
+				}
+				if ($next.html() == '') $next.html('<br>');
 			}
 		}
-		catch(e) {
-			$node = $node.closest('p');
-			$next = $node.next('p');
-			$last = $node.children('*').last();
-			if ($last.is('br')) $last.remove();
-			$last = $next.children('*').last();
-			if ($last.is('br')) $last.remove();
-			$next.prepend($node.detach().html());
-			$next[0].normalize();
-			if ($next.html() == '') $next.html('<br>');
-		}
+		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	}
-	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
+	else partner_insert(sender_range, '', keyup);
 }
-function partner_enter(sender_range) {
-	var p = document.createElement('p');
-	p.innerHTML = '<br>';
-	sender_range.insertNode(p);
-	var node = p.nextSibling;
-	if (node && node.nodeType == 3) {
-		if (!node.textContent == '') $(p).html(node);	
+function partner_enter(sender_range,keyup) {
+	if (keyup) {
+		if (!$(sender_range.startContainer).closest('[contenteditable="true"]').is('p[id] > span:first-child,h3')) {
+			sender_range.insertNode(document.createElement('br'));
+		}
 	}
-	var $parent = $(p).parent('p');
-	if ($parent.index() != -1) $parent.after(p);
+	else {
+		var p = document.createElement('p');
+		sender_range.insertNode(p);
+		var node = p.nextSibling;
+		while (node) {
+			new_node = node.nextSibling;
+			if (!node.textContent == '') $(p).append(node);
+			node = new_node;
+		}
+		if (p.innerHTML == '') p.innerHTML = '<br>';
+		var $parent = $(p).parent('p');
+		if ($parent.index() != -1) $parent.after(p);
+	}
 }
 function partner_insert_page(data) {
 	var currentID = $('.inner,.outer').filter(':visible').attr('id');
@@ -3218,33 +3356,64 @@ function deriveRange(senderRange,div) {
 	return range;
 }
 
-// For 12/26/13: Use iframes to locally simulate two computers conversing. Iframes will be computers. Parent window will be server.
-
-function compare_ranges(range0,range1) {
-	var range0 = deriveRange(range0);
-	var range1 = deriveRange(range1);
+function compare_ranges(rangeA,rangeB,ghost) {
+	var range0 = deriveRange(rangeA);
+	var range1 = deriveRange(rangeB);
 	var dif = [ range1.compareBoundaryPoints(Range.START_TO_START,range0),range1.compareBoundaryPoints(Range.END_TO_END,range0) ];
 	if (dif.indexOf(-1) != -1) {
 		// The undo action was an undoing of inserting text. In order to mirror, we have to delete text.
 		// Figure out what this text is on receiver.
-		var range = document.createRange();
-		range.setStart(range1.startContainer,range1.startOffset);
-		range.setEnd(range0.endContainer,range0.endOffset);
-		range.deleteContents();
+		if (ghost) {
+			var range = document.createRange();
+			range.setStart(range1.startContainer,range1.startOffset);
+			range.setEnd(range0.endContainer,range0.endOffset);
+			partner_insert(range, '');
+		}
+		else {
+			msg = '["compare_ranges",' + JSON.stringify(rangeA) + ',' + JSON.stringify(rangeB) + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
+		}
 	}
 	if (dif.indexOf(1) != -1) {
 		// The undo action was an undoing of deleting text. In order to mirror, we have to reinsert deleted text.
 		// Figure out what this text is on sender.
 		if (range1.startOffset != range1.endOffset) {
 			var contents = range1.cloneContents();
-			console.log(contents.textContent);	
 		}
 		else {
 			var range = document.createRange();
 			range.setStart(range0.startContainer,range0.startOffset);
 			range.setEnd(range1.endContainer,range1.endOffset);
 			var contents = range.cloneContents();
-			console.log(contents.textContent);
+		}
+		var text = contents.textContent;
+		var sel = document.getSelection();
+		var old_range = sel.getRangeAt(0);
+		if (typeof(range) === 'undefined') range = old_range.cloneRange();
+		range.collapse(true);
+		sel.removeAllRanges();
+		sel.addRange(range);
+		sender_range = JSON.stringify(getSenderRange());
+		sel.removeAllRanges();
+		sel.addRange(old_range);
+		if (contents.childNodes.length > 1) {
+			for (var i = 0, l = contents.childNodes.length; i < l; ++i) {
+				var msg = '["keydown","' + contents.childNodes[l-i-1].textContent + '",' + sender_range + ']';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
+				if (i != l - 1) {
+					var msg = '["enter",' + sender_range + ']';
+					if (typeof(nick) !== 'undefined') collab_send(msg);
+					else window.parent.postMessage(msg,'*');
+				}
+			}
+		}
+		else {
+			var msg = '["keydown","' + text + '",' + sender_range + ']';
+			if (text == '') msg = '["enter",' + sender_range + ']';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
 		}
 	}
 }
@@ -3310,4 +3479,3 @@ function collab_send(msg) {
 	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
 	$.post(url,ajax_data);
 }
-/* Queuing posts makes sure things arrive in a sequentially order, but the time lag is so drastic that it's a bad solution. */
