@@ -266,6 +266,43 @@ $(document).ready(function(event) {
 	.on('keydown','[contenteditable="true"]',function(event) {
 		if (event_timer) clearTimeout(event_timer);
 		event_timer = setTimeout(clearTimeout,10,event_timer);
+		if (event.which == 8 || event.which == 46) {
+			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
+			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
+				event.preventDefault();
+				return false;
+			}
+			// Makes Firefox behave like Chrome and IE when hitting backspace on first paragraph and delete on last paragraph.
+			var sel = document.getSelection();
+			var range = sel.getRangeAt(0);
+			if (range.startContainer == range.endContainer && range.startOffset == range.endOffset) {
+				if (event.which == 8 && $('div[contenteditable="true"]:visible').children('p').index(range.startContainer) == 0 && range.startOffset == 0) {
+					event.preventDefault();
+					return false;	
+				}
+				if (event.which == 46 && $('div[contenteditable="true"]:visible').children('p').last().is(range.endContainer) && range.endOffset == 0) {
+					event.preventDefault();
+					return false;
+				}
+			}
+			// Makes sure <p> are properly removed from an .outer, preserving that page's formatting.
+			if ($(this).parent().is('.outer')) {
+				var p = $(this).children('p');
+				if (((p.html() == '') || (p.html() == '<br>')) && (!p.eq(1).html())) {
+					$(this).remove();
+					if ($('#sidebar').is(':visible')) {
+						var current_page = $('.inner,.outer').filter(':visible');
+						if (current_page.has('h3 + div[contenteditable]').html() || (current_page.has('h3 + p').html() && _drag)) {
+							disable_sidebar_option($('#add_intro_text'));
+						}
+						else enable_sidebar_option($('#add_intro_text'));
+					}
+					setTimeout(size_buttons,10,$('.outer').filter(':visible'));
+					event.preventDefault();
+					return false;
+				}
+			}
+		}
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			if (!event.ctrlKey && !event.altKey) {
 				var text = '';
@@ -342,30 +379,6 @@ $(document).ready(function(event) {
 				}
 			}*/
 		}
-		if (event.which == 8 || event.which == 46) {
-			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
-			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
-				event.preventDefault();
-				return false;
-			}
-			// Makes sure <p> are properly removed from an .outer, preserving that page's formatting.
-			if ($(this).parent().is('.outer')) {
-				var p = $(this).children('p');
-				if (((p.html() == '') || (p.html() == '<br>')) && (!p.eq(1).html())) {
-					$(this).remove();
-					if ($('#sidebar').is(':visible')) {
-						var current_page = $('.inner,.outer').filter(':visible');
-						if (current_page.has('h3 + div[contenteditable]').html() || (current_page.has('h3 + p').html() && _drag)) {
-							disable_sidebar_option($('#add_intro_text'));
-						}
-						else enable_sidebar_option($('#add_intro_text'));
-					}
-					setTimeout(size_buttons,10,$('.outer').filter(':visible'));
-					event.preventDefault();
-					return false;
-				}
-			}
-		}
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
@@ -408,6 +421,7 @@ $(document).ready(function(event) {
 		}
 		else {
 			// Content
+			
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		size_buttons($('.inner,.outer').filter(':visible'));
@@ -3179,7 +3193,10 @@ function partner_enter(sender_range,keyup) {
 		}
 		if (p.innerHTML == '') p.innerHTML = '<br>';
 		var $parent = $(p).parent('p');
-		if ($parent.index() != -1) $parent.after(p);
+		if ($parent.index() != -1) {
+			$parent.after(p);
+			if ($parent.html() == '') $parent.html('<br>');	
+		}
 	}
 }
 function partner_insert_page(data) {
@@ -3377,6 +3394,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 	var range1 = deriveRange(rangeB);
 	var dif = [ range1.compareBoundaryPoints(Range.START_TO_START,range0),range1.compareBoundaryPoints(Range.END_TO_END,range0) ];
 	if (dif.indexOf(-1) != -1) {
+		console.log('undo typing');
 		// The undo action was an undoing of inserting text. In order to mirror, we have to delete text.
 		// Figure out what this text is on receiver.
 		if (ghost) {
@@ -3392,6 +3410,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		}
 	}
 	if (dif.indexOf(1) != -1) {
+		console.log('undo backspace');
 		// The undo action was an undoing of backspacing. In order to mirror, we have to reinsert deleted text.
 		// Figure out what this text is on sender.
 		if (range1.startOffset != range1.endOffset) {
@@ -3433,6 +3452,8 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		}
 	}
 	if (dif[0] == 0 && dif[1] == 0) {
+		console.log('Number of Other Elements: ',rangeA.others,rangeB.others);
+		console.log('Size of Container: ',rangeA.size,rangeB.size);
 		if (rangeA.others < rangeB.others) {
 			// Most likely an undo of a "paragraph merging" delete. Need to check if anything else fits this heuristic.
 			var sender_range = JSON.stringify(getSenderRange());
