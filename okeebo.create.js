@@ -883,10 +883,19 @@ $(document).ready(function(event) {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
 			var data = JSON.parse(event.data.replace(/\n/g,''));
-			if (data[0] == 'compare_ranges') {
+			if ($('svg').is(':visible')) {
+				var _graph = 1;
+				toggle_graph();
+			}
+			if (data[0] == 'list') {
+				var sender_range = deriveRange(data[1]);
+				var list_type = data[2];
+				partner_list(sender_range,list_type);	
+			}
+			else if (data[0] == 'compare_ranges') {
 				compare_ranges(data[1],data[2],true);	
 			}
-			if (data[0] == 'keydown') {
+			else if (data[0] == 'keydown') {
 				var sender_range = deriveRange(data[2]);
 				var sender_text = data[1];
 				var keyup = data[2].span >= 0 || data[2].h3;
@@ -913,7 +922,7 @@ $(document).ready(function(event) {
 				else $('.cursor').remove();
 			}
 			else if (data[0] == 'insert_page') {
-				partner_insert_page(data[1]);	
+				partner_insert_page(data[1],data[2]);
 			}
 			else if (data[0] == 'delete_page') {
 				partner_delete_page(data[1]);	
@@ -935,6 +944,7 @@ $(document).ready(function(event) {
 					else window.parent.postMessage(msg,'*');
 				}
 			}
+			if (typeof(_graph) !== 'undefined' && _graph) toggle_graph(1);
 		});
 	}
 	
@@ -983,6 +993,11 @@ $(document).ready(function(event) {
 		document.execCommand('underline', false, null);
 	});
 	$('#ul,#ol,#al').on('click',function(event) {
+		if (typeof(ghost) === 'undefined' || !ghost) {
+			var msg = '["list",' + JSON.stringify(getSenderRange()) + ',"' + event.target.id + '"]';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
+		}
 		var sel = document.getSelection();
 		/// make something in span that looks like a list
 		/// currently using the kbd tag as a crutch. want to transition to just text
@@ -1043,7 +1058,7 @@ $(document).ready(function(event) {
 					$(document.getSelection().anchorNode).parents('ol').attr('type','a');
 				break;
 			}
-		}
+		}		
 	});
 	$('#img').on('click',function(event) {
 		make_iframe();
@@ -1075,17 +1090,19 @@ $(document).ready(function(event) {
 		insert_video();
 	});
 	$('#new_page').on('click',function(event) {
-		var page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
-		var string = getSelectionHtml();
-		if (string == '') string = '<p>Content</p>';
-		page.children('div').append(string);
 		if ($('#new_page').hasClass('graph')) {
-			var graph = 1;
 			toggle_graph();	
+			insert_page();
+			toggle_graph(1);
 		}
-		insert_page(0,page,0,0,1);
-		improve_formatting();
-		if (graph == 1) toggle_graph(1);
+		else {
+			var page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
+			var string = getSelectionHtml();
+			if (string == '') string = '<p>Content</p>';
+			page.children('div').append(string);
+			insert_page(0,page,0,0,1);
+			improve_formatting();
+		}
 	});
 	$('#table').on('click',function(event) {
 		var row = parseInt(prompt('Number of Rows:'),10);
@@ -1511,13 +1528,13 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 	if ((window.self !== window.top || typeof(nick) !== 'undefined') && !ghost) {
 		var data = {
 			'pageID': current_div.attr('id'),
-			'summary': summary,
-			'page': false,				// Some issues here
+			'summary': summary && summary.html(),
+			'page': page && page.selector,
 			'exists': exists,
 			'reinsert': reinsert,
 			'cut': cut
 		};
-		var msg = '["insert_page",' + JSON.stringify(data) + ']';
+		var msg = '["insert_page",' + JSON.stringify(data) + ',' + ((cut) ? JSON.stringify(getSenderRange()) : '0') + ']';
 		if (typeof(nick) !== 'undefined') collab_send(msg);
 		else window.parent.postMessage(msg,'*');
 	}
@@ -1592,11 +1609,20 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 		}
 		else {
 			// do stuff here for partner_insert_page(). Probably need sender_range
+			var string;
+			if (page) string = page.cloneContents();
+			if (string && string.textContent == '') string = '<p>Content</p>';
+			else if (page) partner_delete(page);
+			page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
+			page.children('div').append(string);
 		}
 	}
 	current_div.append('<button type="button" class="in ' + letter + '0">+</button>');
 	//children('h3').after
-	if (summary) summary.attr('id',letter + '0');
+	if (summary) {
+		summary.attr('id',letter + '0');
+		summary.find('.delete,.handle').remove();
+	}
 	else if (exists) {
 		summary = '<p id="' + letter + '0"><span class="italic">' + page.children('h3').html() + '</span><br /><span>Summary</span></p>';
 	}
@@ -2916,6 +2942,17 @@ function cursor_hide() {
 	if (typeof(cursor_timeout)!=='undefined' && cursor_timeout) clearTimeout(cursor_timeout);
 	cursor_timeout = setTimeout(cursor_show,500);	
 }
+function partner_list(sender_range,list_type) {
+	var sel = document.getSelection();
+	if (sel.rangeCount) var range = sel.getRangeAt(0);
+	sel.removeAllRanges();
+	sel.addRange(sender_range);
+	ghost = 1;
+	$('#' + list_type).click();
+	sel.removeAllRanges();
+	if (typeof(range) !== 'undefined') sel.addRange(range);
+	delete ghost;
+}
 ///// Needs more work.
 function partner_format_text(el,sender_range) {
 	// Method 1. 10% done and have to esentially rebuild execCommand
@@ -3183,7 +3220,14 @@ function partner_enter(sender_range,keyup) {
 		}
 	}
 	else {
-		var p = document.createElement('p');
+		var element = $(sender_range.startContainer).closest('p,li');
+		var tagName = element[0].tagName;
+		if (element.is('li') && element.html() == '<br>') {
+			element.parent().after('<p><br></p>');
+			element.remove();
+			return true;	
+		}
+		var p = document.createElement(tagName);
 		sender_range.insertNode(p);
 		var node = p.nextSibling;
 		while (node) {
@@ -3192,21 +3236,30 @@ function partner_enter(sender_range,keyup) {
 			node = new_node;
 		}
 		if (p.innerHTML == '') p.innerHTML = '<br>';
-		var $parent = $(p).parent('p');
+		var $parent = $(p).parent('p,li');
 		if ($parent.index() != -1) {
 			$parent.after(p);
 			if ($parent.html() == '') $parent.html('<br>');	
 		}
 	}
 }
-function partner_insert_page(data) {
+function partner_insert_page(data,range_data) {
 	var currentID = $('.inner,.outer').filter(':visible').attr('id');
 	var _top = $(window).scrollTop();
 	var sel = document.getSelection();
 	var range = false;
 	if (sel.rangeCount) range = sel.getRangeAt(0);
 	go_to(currentID,data.pageID);
-	insert_page(data.summary, data.page, data.exists, data.reinsert, data.cut, true);
+	var summary = false;
+	if (data.summary) {
+		summary = $('<p></p>');
+		summary.html(data.summary);
+	}
+	var page = false;
+	if (data.page) page = $(data.page);
+	if (data.cut && range_data) page = deriveRange(range_data);
+	insert_page(summary, page, data.exists, data.reinsert, data.cut, true);
+	if (data.cut) improve_formatting();
 	go_to(data.pageID,currentID);
 	sel.removeAllRanges();
 	if (range) sel.addRange(range);
