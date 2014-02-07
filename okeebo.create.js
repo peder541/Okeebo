@@ -66,6 +66,15 @@ function add_checkboxes_for_continuous_reading() {
 			var parent_id = get_parent_tag($(this).parent().parent().attr('id'));
 			var first_id = $('.' + parent_id).children('p[id]').first().attr('id');
 			update_all_affected_links(first_id);
+			if (window.self !== window.top || typeof(nick) !== 'undefined') {
+				var pageKeys = [];
+				var pIDs = [];
+				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
+				$('p[id]').each(function() { pIDs.push(this.id); });
+				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'"]';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
+			}
 		});
 	});
 }
@@ -272,19 +281,6 @@ $(document).ready(function(event) {
 				event.preventDefault();
 				return false;
 			}
-			// Makes Firefox behave like Chrome and IE when hitting backspace on first paragraph and delete on last paragraph.
-			var sel = document.getSelection();
-			var range = sel.getRangeAt(0);
-			if (range.startContainer == range.endContainer && range.startOffset == range.endOffset) {
-				if (event.which == 8 && $('div[contenteditable="true"]:visible').children('p').index(range.startContainer) == 0 && range.startOffset == 0) {
-					event.preventDefault();
-					return false;	
-				}
-				if (event.which == 46 && $('div[contenteditable="true"]:visible').children('p').last().is(range.endContainer) && range.endOffset == 0) {
-					event.preventDefault();
-					return false;
-				}
-			}
 			// Makes sure <p> are properly removed from an .outer, preserving that page's formatting.
 			if ($(this).parent().is('.outer')) {
 				var p = $(this).children('p');
@@ -298,6 +294,19 @@ $(document).ready(function(event) {
 						else enable_sidebar_option($('#add_intro_text'));
 					}
 					setTimeout(size_buttons,10,$('.outer').filter(':visible'));
+					event.preventDefault();
+					return false;
+				}
+			}
+			// Makes Firefox behave like Chrome and IE when hitting backspace on first paragraph and delete on last paragraph.
+			var sel = document.getSelection();
+			var range = sel.getRangeAt(0);
+			if (range.startContainer == range.endContainer && range.startOffset == range.endOffset) {
+				if (event.which == 8 && $('div[contenteditable="true"]:visible').children('p').index(range.startContainer) == 0 && range.startOffset == 0) {
+					event.preventDefault();
+					return false;	
+				}
+				if (event.which == 46 && $('div[contenteditable="true"]:visible').children('p').last().is(range.endContainer) && range.endOffset == 0) {
 					event.preventDefault();
 					return false;
 				}
@@ -335,7 +344,17 @@ $(document).ready(function(event) {
 					if (text == '\\') text = '\\\\';
 				}
 				else if (event.which == 8) {
-					var msg = '["backspace",' + sender_range + ']';
+					var sel = document.getSelection();
+					var deletedText = sel.toString();
+					if (deletedText == '') {
+						var range = sel.getRangeAt(0);
+						if (range.startOffset != 0) {
+							var clone = range.cloneRange();
+							clone.setStart(clone.startContainer, clone.startOffset - 1);
+							deletedText = clone.toString();
+						}
+					}
+					var msg = '["backspace",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');
 				}
@@ -345,7 +364,17 @@ $(document).ready(function(event) {
 					else window.parent.postMessage(msg,'*');
 				}
 				else if (event.which == 46) {
-					var msg = '["delete",' + sender_range + ']';
+					var sel = document.getSelection();
+					var deletedText = sel.toString();
+					if (deletedText == '') {
+						var range = sel.getRangeAt(0);
+						if (range.endOffset != range.endContainer.textContent.length) {
+							var clone = range.cloneRange();
+							clone.setEnd(clone.endContainer, clone.endOffset + 1);
+							deletedText = clone.toString();
+						}
+					}
+					var msg = '["delete",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');	
 				}
@@ -363,6 +392,9 @@ $(document).ready(function(event) {
 				else console.log(event.which);
 				if (text) {
 					var msg = '["keydown","' + text + '",' + sender_range + ']';
+					var sel = document.getSelection();
+					var deletedText = sel.toString();
+					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',' + JSON.stringify(deletedText) + ']';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');
 				}
@@ -495,6 +527,14 @@ $(document).ready(function(event) {
 							}
 						});
 					}
+					if (window.top !== window.self || typeof(nick) !== 'undefined') {
+						var msg = '["keydown","' + dummyDIV.html() + '",' + JSON.stringify(getSenderRange()) + ']';
+						var sel = document.getSelection();
+						var deletedText = sel.toString();
+						if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
+						if (typeof(nick) !== 'undefined') collab_send(msg);
+						else window.parent.postMessage(msg,'*');	
+					}
 					if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 					else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
 					
@@ -529,6 +569,9 @@ $(document).ready(function(event) {
 				});
 				if (window.top !== window.self || typeof(nick) !== 'undefined') {
 					var msg = '["keydown","' + dummyDIV.html() + '",' + JSON.stringify(getSenderRange()) + ']';
+					var sel = document.getSelection();
+					var deletedText = sel.toString();
+					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');	
 				}
@@ -553,8 +596,22 @@ $(document).ready(function(event) {
 				if (end_punctuation.indexOf(words[i][words[i].length-1]) != -1) start_of_title = i+1;
 			}
 			var text = words.join(' ');
+			if (window.top !== window.self || typeof(nick) !== 'undefined') {
+				var msg = '["keydown","' + text + '",' + JSON.stringify(getSenderRange()) + ']';
+				var sel = document.getSelection();
+				var deletedText = sel.toString();
+				if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');	
+			}
 			document.execCommand('insertText',false,text);
 			event.preventDefault();
+		}
+		if (event.type == 'cut' && _clip != '' && (window.top !== window.self || typeof(nick) !== 'undefined')) {
+			var sender_range = JSON.stringify(getSenderRange());
+			var msg = '["keydown","",' + sender_range + ',"' + _clip + '"]';
+			if (typeof(nick) !== 'undefined') collab_send(msg);
+			else window.parent.postMessage(msg,'*');
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		resize_windows();
@@ -882,7 +939,13 @@ $(document).ready(function(event) {
 	if (window.self !== window.top || typeof(nick) !== 'undefined') {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
+			try {
 			var data = JSON.parse(event.data.replace(/\n/g,''));
+			}
+			catch(e) {
+				console.log(e.toString(),event.data);	
+			}
+			if (data[0] != 'cursor') console.log(event.data);
 			if ($('svg').is(':visible')) {
 				var _graph = 1;
 				toggle_graph();
@@ -944,7 +1007,15 @@ $(document).ready(function(event) {
 					else window.parent.postMessage(msg,'*');
 				}
 			}
-			if (typeof(_graph) !== 'undefined' && _graph) toggle_graph(1);
+			if (typeof(_graph) !== 'undefined' && _graph) {
+				toggle_graph(1);
+				/*if (data[0] == 'cursor') {
+					// depict which page/node the other person is modifying
+					var circle = d3.selectAll('circle');
+					circle.classed('cursor',false);
+					circle.filter(function(d,i) { return 1+d.indexOf(data[1].pageID); }).classed('cursor',true);
+				}*/
+			}
 		});
 	}
 	
@@ -1526,6 +1597,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 	var first_id, letter, number;
 	var current_div = $('.outer,.inner').filter(':visible');
 	if ((window.self !== window.top || typeof(nick) !== 'undefined') && !ghost) {
+		if (summary) summary.find('.delete,.handle').remove();
 		var data = {
 			'pageID': current_div.attr('id'),
 			'summary': summary && summary.html(),
@@ -1588,6 +1660,15 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 			var parent_id = get_parent_tag($(this).parent().parent().attr('id'));
 			var first_id = $('.' + parent_id).children('p[id]').first().attr('id');
 			update_all_affected_links(first_id);
+			if (window.self !== window.top || typeof(nick) !== 'undefined') {
+				var pageKeys = [];
+				var pIDs = [];
+				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
+				$('p[id]').each(function() { pIDs.push(this.id); });
+				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'"]';
+				if (typeof(nick) !== 'undefined') collab_send(msg);
+				else window.parent.postMessage(msg,'*');
+			}
 		});
 		if (_drag) toggle_edit_one(current_div);
 	}
@@ -1611,7 +1692,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 			// do stuff here for partner_insert_page(). Probably need sender_range
 			var string;
 			if (page) string = page.cloneContents();
-			if (string && string.textContent == '') string = '<p>Content</p>';
+			if (!string || string.textContent == '') string = '<p>Content</p>';
 			else if (page) partner_delete(page);
 			page = $('<div class="inner"><button class="out">-</button><h3 contenteditable="true">Title</h3><div contenteditable="true"></div></div>');
 			page.children('div').append(string);
@@ -1791,7 +1872,7 @@ function delete_page(target_id,quick,ghost) {
 	return true;
 }
 
-function undo_page_delete() {
+function undo_page_delete(ghost) {
 	if (_delete.length == 0) return false;
 	var restore = _delete.pop();
 	for (var i=0; i < restore.parent.length; ++i) {
@@ -1800,8 +1881,8 @@ function undo_page_delete() {
 		if (!current_page.hasClass(restore_parent_id)) go_to(current_page.attr('id'),restore_parent_id);
 		insert_page(restore.summary[i],restore.page,i,true,false,true);
 	}
-	if (window.self !== window.top || typeof(nick) !== 'undefined') {
-		var msg = '["undo_page_delete"]'
+	if ((window.self !== window.top || typeof(nick) !== 'undefined') && !ghost) {
+		var msg = '["undo_page_delete","' + restore.page.attr('class').split(' ').pop() + '"]';
 		if (typeof(nick) !== 'undefined') collab_send(msg);
 		else window.parent.postMessage(msg,'*');
 	}
@@ -2987,7 +3068,7 @@ function partner_format_text(el,sender_range) {
 }
 function partner_insert(sender_range,sender_text,keyup) {
 	// Original Idea. Involves swapping cursor focus and using execCommand
-	/*
+	/** /
 	var sel = document.getSelection();
 	var receiver_range = sel.getRangeAt(0);
 	sel.removeAllRanges();
@@ -2996,11 +3077,11 @@ function partner_insert(sender_range,sender_text,keyup) {
 	sender_range
 	sel.removeAllRanges();
 	sel.addRange(receiver_range);
-	*/
+	/**//**/
 	// Idea 2. Inserts a text node at the sender's range.
 	var startElement = $(sender_range.startContainer).closest('p,li,h3');
 	var endElement = $(sender_range.endContainer).closest('p,li,h3');
-	if (startElement.is(endElement)) {
+	if (startElement.is(endElement) || startElement.length == 0) {
 		sender_range.deleteContents();
 		sender_range.insertNode(document.createTextNode(sender_text));
 		sender_range.startContainer.parentNode.normalize();
@@ -3122,14 +3203,14 @@ function partner_insert(sender_range,sender_text,keyup) {
 	}
 	if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	size_linear_buttons($('.inner,.outer').filter(':visible'));
-	//partner_cursor(sender_range);
+	//partner_cursor(sender_range);*/
 }
 
 // This and partner_delete are similar enough that they should probably be combined somehow.
 function partner_backspace(sender_range,keyup) {
 	var startElement = $(sender_range.startContainer).closest('p,li,h3');
 	var endElement = $(sender_range.endContainer).closest('p,li,h3');
-	if (startElement.is(endElement)) {
+	if (startElement.is(endElement) || startElement.length == 0) {
 		var node = sender_range.startContainer;
 		var $node = $(node);
 		if ($node.is(sender_range.endContainer)) {
@@ -3173,7 +3254,7 @@ function partner_backspace(sender_range,keyup) {
 function partner_delete(sender_range,keyup) {
 	var startElement = $(sender_range.startContainer).closest('p,li,h3');
 	var endElement = $(sender_range.endContainer).closest('p,li,h3');
-	if (startElement.is(endElement)) {
+	if (startElement.is(endElement) || startElement.length == 0) {
 		var node = sender_range.startContainer;
 		var $node = $(node);
 		if ($node.is(sender_range.endContainer)) {
@@ -3272,38 +3353,44 @@ function partner_delete_page(pageID) {
 }
 function partner_undo_page_delete() {
 	var currentID = $('.inner,.outer').filter(':visible').attr('id');
-	undo_page_delete();
-	go_to($('.inner,.outer').filter(':visible').attr('id'),currentID);	
+	undo_page_delete(1);
+	go_to($('.inner,.outer').filter(':visible').attr('id'),currentID);
 }
 function partner_rearrange(pageKeys,pIDs,movedID,destination) {
-	var $moved = $('#' + movedID);
-	
-	// toggle drag and consistent cursor position
-	var sel = document.getSelection();
-	var range = sel.rangeCount && sel.getRangeAt(0);
-	var $pageWithMoved = $moved.parents('.outer');
-	var temp_drag = 0;
-	var range_swap = 0;
-	if ($pageWithMoved.is(':visible')) {
-		range_swap = 1;
-		range = getSenderRange();
-	}
-	if ($pageWithMoved.has('[contenteditable="true"]')) {
-		temp_drag = 1;
-		toggle_drag($pageWithMoved);	
-	}
-	
-	var $dest = $('#' + movedID).parent().children('p');
-	if (destination == -1) {
-		$dest = $dest.eq(0);
-		$dest.before($moved);
+	if (movedID) {
+		var $moved = $('#' + movedID);
+		
+		// toggle drag and consistent cursor position
+		var sel = document.getSelection();
+		var range = sel.rangeCount && sel.getRangeAt(0);
+		var $pageWithMoved = $moved.parents('.outer');
+		var temp_drag = 0;
+		var range_swap = 0;
+		if ($pageWithMoved.is(':visible')) {
+			range_swap = 1;
+			range = getSenderRange();
+		}
+		if ($pageWithMoved.has('[contenteditable="true"]')) {
+			temp_drag = 1;
+			toggle_drag($pageWithMoved);	
+		}
+		
+		var $dest = $('#' + movedID).parent().children('p');
+		if (destination == -1) {
+			$dest = $dest.eq(0);
+			$dest.before($moved);
+		}
+		else {
+			$dest = $dest.eq(destination);
+			$dest.after($moved);
+		}
+		$moved.before($('.' + movedID));
+		$dest.before($('.' + $dest.attr('id')));
 	}
 	else {
-		$dest = $dest.eq(destination);
-		$dest.after($moved);
+		var checkbox = $('.' + destination).find('.linear input');
+		checkbox.prop('checked',!checkbox.prop('checked'));
 	}
-	$moved.before($('.' + movedID));
-	$dest.before($('.' + $dest.attr('id')));
 	var $pages = $('.inner,.outer');
 	$pages.each(function(i) {
 		var $this = $(this);
@@ -3349,10 +3436,12 @@ function ghost_type() {
 	});
 }
 
-function getSenderRange() {
-	var sel = document.getSelection();	
-	if (sel.rangeCount < 1) return false;
-	var range = sel.getRangeAt(0);
+function getSenderRange(range) {
+	if (!range) {
+		var sel = document.getSelection();	
+		if (sel.rangeCount < 1) return false;
+		var range = sel.getRangeAt(0);
+	}
 	range.startContainer.parentNode.normalize();
 	var senderRange = {};
 	var $page = $('.inner,.outer').filter(':visible');
@@ -3440,6 +3529,122 @@ function deriveRange(senderRange,div) {
 		range.setEnd(node,senderRange.end);
 	}
 	return range;
+}
+
+//// How important is it for sender_range.size and sender_range.others to be accurate here? ////
+function partner_conjugate(msg) {
+	var data = JSON.parse(msg);
+	switch (data[0]) {
+		case 'list':
+			break;
+		case 'compare_ranges':
+			break;
+		case 'keydown':
+			var text = data[1];
+			var sender_range = data[2];
+			if (data[3]) {
+				sender_range.size += text.length - data[3].length;
+				sender_range.end = sender_range.spot + text.length;
+				delete sender_range.endDOM;
+				var conjugate_msg = '["keydown","' + data[3] + '",' + JSON.stringify(sender_range) + ',"' + text + '"]';
+			}
+			else {
+				if (text.length == 1) {
+					sender_range.spot += 1;
+					sender_range.size += 1;
+				}
+				else {
+					sender_range.size += text.length;
+					sender_range.end = sender_range.spot + text.length;
+				}
+				var conjugate_msg = '["backspace",' + JSON.stringify(sender_range) + ',"' + text + '"]';
+			}
+			break;
+		case 'backspace':
+			var text = data[2];
+			var sender_range = data[1];
+			if (text) {
+				if (text.length == 1) sender_range.spot -= 1;
+				else delete sender_range.end;
+				sender_range.size -= text.length;
+				var conjugate_msg = '["keydown","' + text + '",' + JSON.stringify(sender_range) + ']';
+			}
+			else if (sender_range.miniDOM[0] > 0) {
+				sender_range.miniDOM[0] -= 1;
+				var range = deriveRange(sender_range);
+				var newSize = range.startContainer.textContent.length;
+				sender_range.spot = newSize - sender_range.size;
+				sender_range.size = newSize;
+				sender_range.others -= 1;
+				var conjugate_msg = '["enter",' + JSON. stringify(sender_range) + ']';
+			}
+			else conjugate_msg = msg;
+			break;
+		case 'delete':
+			var text = data[2];
+			var sender_range = data[1];
+			if (text) {
+				sender_range.size -= text.length;
+				if (text.length != 1) delete sender_range.end;
+				var conjugate_msg = '["keydown","' + text + '",' + JSON.stringify(sender_range) + ']';
+			}
+			else if (sender_range.miniDOM[0] < sender_range.others - 1) {
+				var range = deriveRange(sender_range);
+				sender_range.size = range.startContainer.textContent.length;
+				sender_range.others -= 1;
+				var conjugate_msg = '["enter",' + JSON. stringify(sender_range) + ']';
+			}
+			else conjugate_msg = msg;
+			break;
+		case 'enter':
+			var sender_range = data[1];
+			sender_range.miniDOM[0] += 1;
+			sender_range.size -= sender_range.spot;
+			sender_range.spot = 0;
+			sender_range.others += 1;
+			var conjugate_msg = '["backspace",' + JSON.stringify(sender_range) + ',""]';
+			break;			
+		case 'format_text':
+			var sender_range = data[2];
+			var sel = document.getSelection().toString();
+			if (sender_range.endDOM) {
+				delete sender_range.endDOM;
+				sender_range.end = sender_range.spot + sel.length;
+				console.log(sender_range.toSource());
+				var range = deriveRange(sender_range);
+				sender_range.size = range.startContainer.textContent.length;
+			}
+			else {
+				sender_range.size = sender_range.spot;
+				sender_range.endDOM = [];
+				for (var i in sender_range.miniDOM) sender_range.endDOM[i] = sender_range.miniDOM[i];
+				sender_range.endDOM[1] += 1;
+				sender_range.endDOM[2] = 0;
+				sender_range.end = sel.length	
+			}
+			var conjugate_msg = '["format_text","' + data[1] + '",' + JSON.stringify(sender_range) + ']';
+			break;
+		case 'rearrange':
+			break;
+		case 'insert_page':
+			var sender_range = data[1];
+			var link_to_page_to_delete = $('.' + sender_range.pageID).children('.in + p[id]').attr('id');
+			var letter = String.fromCharCode(link_to_page_to_delete.charCodeAt(0) + 1);
+			var number = link_to_page_to_delete.substr(1);
+			var conjugate_msg = '["delete_page","' + letter + number + '"]';
+			break;
+		// case 'delete_edge':		// Add this above too
+		case 'delete_page':
+			var conjugate_msg = '["undo_page_delete","' + data[1] + '"]';
+			break;
+		case 'undo_page_delete':
+			var conjugate_msg = '["delete_page","' + data[1] + '"]';
+			break;
+	}
+	window.postMessage(conjugate_msg,'*');
+	if (typeof(nick) !== 'undefined') collab_send(conjugate_msg);
+	else window.parent.postMessage(conjugate_msg,'*');
+	return conjugate_msg;
 }
 
 function compare_ranges(rangeA,rangeB,ghost) {
