@@ -3389,7 +3389,9 @@ function partner_enter(sender_range,keyup) {
 			return true;	
 		}
 		var p = document.createElement(tagName);
-		sender_range.insertNode(p);
+		var el = $(sender_range.startContainer).closest('p,li,b,u,i');
+		if (el.is('b,i,u')) el.before(p);
+		else sender_range.insertNode(p);
 		var node = p.nextSibling;
 		while (node) {
 			new_node = node.nextSibling;
