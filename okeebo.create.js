@@ -352,6 +352,7 @@ $(document).ready(function(event) {
 							var clone = range.cloneRange();
 							clone.setStart(clone.startContainer, clone.startOffset - 1);
 							deletedText = clone.toString();
+							if (deletedText.length > 1) deletedText = deletedText.substr(deletedText.length-1);
 						}
 					}
 					var msg = '["backspace",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
@@ -968,11 +969,13 @@ $(document).ready(function(event) {
 				var sender_range = deriveRange(data[1]);
 				var keyup = data[1].span >= 0 || data[1].h3;
 				partner_backspace(sender_range,keyup);
+				$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
 			}
 			else if (data[0] == 'delete') {
 				var sender_range = deriveRange(data[1]);
 				var keyup = data[1].span >= 0 || data[1].h3;
 				partner_delete(sender_range,keyup);
+				$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
 			}
 			else if (data[0] == 'enter') {
 				var sender_range = deriveRange(data[1]);
@@ -3227,22 +3230,55 @@ function partner_backspace(sender_range,keyup) {
 					sender_range.deleteContents();
 				}
 				else {
-					sender_range.setStart(node,index);
-					sender_range.deleteContents();
+					if (node.nodeType == 3) {
+						sender_range.setStart(node,index);
+						sender_range.deleteContents();
+					}
+					else {
+						while (node.textContent.length == 0) node = node.previousSibling;
+						while (node.childNodes.length) {
+							console.log(node.textContent,node.nodeType);
+							node = node.childNodes[node.childNodes.length - 1];
+							while (node.textContent.length == 0) node = node.previousSibling;
+						}
+						sender_range.setStart(node, node.textContent.length - 1);
+						sender_range.setEnd(node, node.textContent.length);
+						sender_range.deleteContents();
+					}
 				}
 			}
 			catch(e) {
-				$node = $node.closest('p');
-				$prev = $node.prev('p');
-				$last = $node.children('*').last();
-				if ($last.is('br')) $last.remove();
-				$last = $prev.children('*').last();
-				if ($last.is('br')) $last.remove();
-				if ($prev.index() != -1) {
-					$prev.append($node.detach().html());
-					$prev[0].normalize();
+				var range_data = getSenderRange(sender_range);
+				var DOM = range_data.miniDOM;
+				DOM.shift();
+				var test = true;
+				for (var i in DOM) if (DOM[i] != 0) test = false;
+				if (test) {
+					var $el = $node.closest('p');
+					$prev = $el.prev('p');
+					$last = $el.children('*').last();
+					if ($last.is('br')) $last.remove();
+					$last = $prev.children('*').last();
+					if ($last.is('br')) $last.remove();
+					if ($prev.index() != -1) {
+						$prev.append($el.detach().html());
+						$prev[0].normalize();
+					}
+					if ($prev.html() == '') $prev.html('<br>');
 				}
-				if ($prev.html() == '') $prev.html('<br>');
+				else {
+					node = node.previousSibling;
+					while (node.textContent.length == 0) node = node.previousSibling;
+					while (node.childNodes.length) {
+						console.log(node.textContent,node.nodeType);
+						node = node.childNodes[node.childNodes.length - 1];	
+						while (node.textContent.length == 0) node = node.previousSibling;
+					}
+					sender_range.setStart(node,node.textContent.length-1);
+					sender_range.setEnd(node,node.textContent.length);
+					console.log(getSenderRange(sender_range).toSource());
+					sender_range.deleteContents();
+				}
 			}
 		}
 		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
@@ -3277,14 +3313,14 @@ function partner_delete(sender_range,keyup) {
 				}
 			}
 			catch(e) {
-				$node = $node.closest('p');
-				$next = $node.next('p');
-				$last = $node.children('*').last();
+				var $el = $node.closest('p');
+				$next = $el.next('p');
+				$last = $el.children('*').last();
 				if ($last.is('br')) $last.remove();
 				$last = $next.children('*').last();
 				if ($last.is('br')) $last.remove();
 				if ($next.index() != -1) {
-					$next.prepend($node.detach().html());
+					$next.prepend($el.detach().html());
 					$next[0].normalize();
 				}
 				if ($next.html() == '') $next.html('<br>');
