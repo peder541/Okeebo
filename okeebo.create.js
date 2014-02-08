@@ -348,11 +348,20 @@ $(document).ready(function(event) {
 					var deletedText = sel.toString();
 					if (deletedText == '') {
 						var range = sel.getRangeAt(0);
+						var clone = range.cloneRange();
 						if (range.startOffset != 0) {
-							var clone = range.cloneRange();
 							clone.setStart(clone.startContainer, clone.startOffset - 1);
 							deletedText = clone.toString();
 							if (deletedText.length > 1) deletedText = deletedText.substr(deletedText.length-1);
+						}
+						// Some corner cases need to be added to this section
+						else {
+							clone.setStart(clone.startContainer, 0);
+							clone.setEnd(clone.startContainer, clone.startContainer.textContent.length);
+							var needle = clone.cloneContents().textContent;
+							var haystack = $(clone.startContainer.parentNode).closest('p').text();
+							var spot = haystack.search(needle)-1;
+							if (spot != -1) deletedText = haystack.substr(spot,1);
 						}
 					}
 					var msg = '["backspace",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
@@ -369,10 +378,17 @@ $(document).ready(function(event) {
 					var deletedText = sel.toString();
 					if (deletedText == '') {
 						var range = sel.getRangeAt(0);
+						var clone = range.cloneRange();
 						if (range.endOffset != range.endContainer.textContent.length) {
-							var clone = range.cloneRange();
 							clone.setEnd(clone.endContainer, clone.endOffset + 1);
 							deletedText = clone.toString();
+						}
+						// Some corner cases may need to be added to this section
+						else {
+							var needle = clone.startContainer.textContent;
+							var haystack = $(clone.startContainer.parentNode).closest('p').text();
+							var spot = haystack.search(needle) + needle.length;
+							deletedText = haystack.substr(spot,1);
 						}
 					}
 					var msg = '["delete",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
@@ -3275,7 +3291,6 @@ function partner_backspace(sender_range,keyup) {
 					}
 					sender_range.setStart(node,node.textContent.length-1);
 					sender_range.setEnd(node,node.textContent.length);
-					console.log(getSenderRange(sender_range).toSource());
 					sender_range.deleteContents();
 				}
 			}
@@ -3332,6 +3347,7 @@ function partner_delete(sender_range,keyup) {
 						var testLength = testNode.childNodes.length - 1;
 						if (DOM[i] != testLength) {
 							test = false;
+							break;
 						}
 						testNode = testNode.childNodes[testLength];
 					}
@@ -3362,8 +3378,16 @@ function partner_delete(sender_range,keyup) {
 						sender_range.deleteContents();
 					}
 					else {
-						sender_range.setStart(node,sender_range.endOffset);
-						sender_range.setEnd(node,sender_range.endOffset + 1);
+						try {
+							sender_range.setStart(node,sender_range.endOffset);
+							sender_range.setEnd(node,sender_range.endOffset + 1);
+						}
+						catch (e3) {
+							var finalExceptionNode = $(sender_range.startContainer).closest('b,i,u')[0].nextSibling;
+							while (finalExceptionNode.nodeType != 3) finalExceptionNode = finalExceptionNode.childNodes[0];
+							sender_range.setStart(finalExceptionNode,0);
+							sender_range.setEnd(finalExceptionNode,1);
+						}
 						sender_range.deleteContents();
 					}
 				}
@@ -3648,13 +3672,20 @@ function partner_conjugate(msg) {
 			if (text) {
 				if (text.length == 1) sender_range.spot -= 1;
 				else delete sender_range.end;
+				if (sender_range.spot < 0) sender_range.spot = 0;
 				sender_range.size -= text.length;
 				var conjugate_msg = '["keydown","' + text + '",' + JSON.stringify(sender_range) + ']';
 			}
 			else if (sender_range.miniDOM[0] > 0) {
 				sender_range.miniDOM[0] -= 1;
 				var range = deriveRange(sender_range);
-				var newSize = range.startContainer.textContent.length;
+				var node = $(range.startContainer).closest('p')[0];
+				var i = 0;
+				while (node.childNodes.length > 0) {
+					sender_range.miniDOM[++i] = node.childNodes.length - 1;
+					node = node.childNodes[node.childNodes.length - 1];
+				}
+				var newSize = node.textContent.length;
 				sender_range.spot = newSize - sender_range.size;
 				sender_range.size = newSize;
 				sender_range.others -= 1;
@@ -3681,6 +3712,7 @@ function partner_conjugate(msg) {
 		case 'enter':
 			var sender_range = data[1];
 			sender_range.miniDOM[0] += 1;
+			for (var i=1, l = sender_range.miniDOM.length; i<l; ++i) sender_range.miniDOM[i] = 0;
 			sender_range.size -= sender_range.spot;
 			sender_range.spot = 0;
 			sender_range.others += 1;
