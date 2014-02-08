@@ -3216,11 +3216,7 @@ function partner_backspace(sender_range,keyup) {
 	if (startElement.is(endElement) || startElement.length == 0) {
 		var node = sender_range.startContainer;
 		var $node = $(node);
-		if ($node.is(sender_range.endContainer)) {
-			if (sender_range.startOffset != sender_range.endOffset) {
-				sender_range.deleteContents();
-				return true;	
-			}
+		if ($node.is(sender_range.endContainer) && sender_range.startOffset == sender_range.endOffset) {
 			var index = sender_range.startOffset-1;
 			try {
 				if ($node.is('p')) {
@@ -3237,7 +3233,6 @@ function partner_backspace(sender_range,keyup) {
 					else {
 						while (node.textContent.length == 0) node = node.previousSibling;
 						while (node.childNodes.length) {
-							console.log(node.textContent,node.nodeType);
 							node = node.childNodes[node.childNodes.length - 1];
 							while (node.textContent.length == 0) node = node.previousSibling;
 						}
@@ -3252,7 +3247,12 @@ function partner_backspace(sender_range,keyup) {
 				var DOM = range_data.miniDOM;
 				DOM.shift();
 				var test = true;
-				for (var i in DOM) if (DOM[i] != 0) test = false;
+				for (var i in DOM) {
+					if (DOM[i] != 0) {
+						test = false;
+						break;
+					}
+				}
 				if (test) {
 					var $el = $node.closest('p');
 					$prev = $el.prev('p');
@@ -3270,7 +3270,6 @@ function partner_backspace(sender_range,keyup) {
 					node = node.previousSibling;
 					while (node.textContent.length == 0) node = node.previousSibling;
 					while (node.childNodes.length) {
-						console.log(node.textContent,node.nodeType);
 						node = node.childNodes[node.childNodes.length - 1];	
 						while (node.textContent.length == 0) node = node.previousSibling;
 					}
@@ -3281,6 +3280,7 @@ function partner_backspace(sender_range,keyup) {
 				}
 			}
 		}
+		else sender_range.deleteContents();
 		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	}
 	else partner_insert(sender_range, '', keyup);
@@ -3293,39 +3293,83 @@ function partner_delete(sender_range,keyup) {
 	if (startElement.is(endElement) || startElement.length == 0) {
 		var node = sender_range.startContainer;
 		var $node = $(node);
-		if ($node.is(sender_range.endContainer)) {
-			if (sender_range.startOffset != sender_range.endOffset) {
-				sender_range.deleteContents();
-				return true;	
-			}
-			var index = sender_range.startOffset+1;
-			if (sender_range.startOffset != sender_range.endOffset) index = sender_range.endOffset;
+		if ($node.is(sender_range.endContainer) && sender_range.startOffset == sender_range.endOffset) {
+			var index = sender_range.endOffset + 1;
 			try {
 				if ($node.is('p')) {
 					node = node.childNodes[index];
-					sender_range.setStart(node,node.textContent.length);
-					sender_range.setEnd(node,node.textContent.length+1);
+					sender_range.setStart(node,0);
+					sender_range.setEnd(node,1);
 					sender_range.deleteContents();
 				}
 				else {
-					sender_range.setEnd(node,index);
-					sender_range.deleteContents();
+					if (node.nodeType == 3) {
+						sender_range.setEnd(node,index);
+						sender_range.deleteContents();
+					}
+					else {
+						while (node.textContent.length == 0) node = node.nextSibling;
+						while (node.childNodes.length) {
+							console.log(node.textContent,node.nodeType);
+							node = node.childNodes[0];
+							while (node.textContent.length == 0) node = node.nextSibling;
+						}
+						sender_range.setStart(node,0);
+						sender_range.setEnd(node,1);
+						sender_range.deleteContents();
+					}
 				}
 			}
 			catch(e) {
-				var $el = $node.closest('p');
-				$next = $el.next('p');
-				$last = $el.children('*').last();
-				if ($last.is('br')) $last.remove();
-				$last = $next.children('*').last();
-				if ($last.is('br')) $last.remove();
-				if ($next.index() != -1) {
-					$next.prepend($el.detach().html());
-					$next[0].normalize();
+				var range_data = getSenderRange(sender_range);
+				var DOM = range_data.miniDOM;
+				DOM.shift();
+				var test = true;
+				if (sender_range.startOffset != sender_range.startContainer.textContent.length) test = false;
+				else {
+					var testNode = $(node.parentNode).closest('p')[0];
+					for (var i in DOM) {
+						var testLength = testNode.childNodes.length - 1;
+						if (DOM[i] != testLength) {
+							test = false;
+						}
+						testNode = testNode.childNodes[testLength];
+					}
 				}
-				if ($next.html() == '') $next.html('<br>');
+				if (test) {
+					var $el = $node.closest('p');
+					$next = $el.next('p');
+					$last = $el.children('*').last();
+					if ($last.is('br')) $last.remove();
+					$last = $next.children('*').last();
+					if ($last.is('br')) $last.remove();
+					if ($next.index() != -1) {
+						$next.prepend($el.detach().html());
+						$next[0].normalize();
+					}
+					if ($next.html() == '') $next.html('<br>');
+				}
+				else {
+					if (node.nextSibling) {
+						node = node.nextSibling;
+						while (node.textContent.length == 0) node = node.nextSibling;
+						while (node.childNodes.length) {
+							node = node.childNodes[0];	
+							while (node.textContent.length == 0) node = node.nextSibling;
+						}
+						sender_range.setStart(node,0);
+						sender_range.setEnd(node,1);
+						sender_range.deleteContents();
+					}
+					else {
+						sender_range.setStart(node,sender_range.endOffset);
+						sender_range.setEnd(node,sender_range.endOffset + 1);
+						sender_range.deleteContents();
+					}
+				}
 			}
 		}
+		else sender_range.deleteContents();
 		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	}
 	else partner_insert(sender_range, '', keyup);
