@@ -3413,9 +3413,9 @@ function partner_enter(sender_range,keyup) {
 			return true;	
 		}
 		var p = document.createElement(tagName);
-		var el = $(sender_range.startContainer).closest('p,li,b,u,i');
+		/*var el = $(sender_range.startContainer).closest('p,li,b,u,i');
 		if (el.is('b,i,u')) el.before(p);
-		else sender_range.insertNode(p);
+		else */sender_range.insertNode(p);
 		var node = p.nextSibling;
 		while (node) {
 			new_node = node.nextSibling;
@@ -3423,7 +3423,7 @@ function partner_enter(sender_range,keyup) {
 			node = new_node;
 		}
 		if (p.innerHTML == '') p.innerHTML = '<br>';
-		var $parent = $(p).parent('p,li');
+		var $parent = $(p).parents('p,li');
 		if ($parent.index() != -1) {
 			$parent.after(p);
 			if ($parent.html() == '') $parent.html('<br>');	
@@ -3756,8 +3756,6 @@ function partner_conjugate(msg) {
 			break;
 	}
 	window.postMessage(conjugate_msg,'*');
-	if (typeof(nick) !== 'undefined') collab_send(conjugate_msg);
-	else window.parent.postMessage(conjugate_msg,'*');
 	return conjugate_msg;
 }
 
@@ -3884,18 +3882,18 @@ function collab_updates() {
 						var order = 0;
 						if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
 						else collab[val.spkr] = [order, {}];
-						collab[val.spkr][1][val.order] = val.msg;
-						if (order == val.order) {
+						collab[val.spkr][1][val.order[val.spkr]] = val.msg;
+						if (order == val.order[val.spkr]) {
 							// Do the current task
 							var msg = JSON.parse(val.msg);
-							msg.push(val.spkr);
+							if (msg[0] == 'cursor') msg.push(val.spkr);
 							msg = JSON.stringify(msg);
 							window.postMessage(msg,'*');
 							collab[val.spkr][0] = order;
 							// Do any directly following tasks that may be queued
 							while (collab[val.spkr][1][++order]) {
 								var msg = JSON.parse(collab[val.spkr][1][order]);
-								msg.push(val.spkr);
+								if (msg[0] == 'cursor') msg.push(val.spkr);
 								msg = JSON.stringify(msg);
 								window.postMessage(msg,'*');
 								collab[val.spkr][0] = order;
@@ -3922,6 +3920,8 @@ function collab_send(msg) {
 	else {
 		collab[nick] = [order, {0: msg}];
 	}
+	order = {};
+	for (var i in collab) order[i] = collab[i][0];
 	var val = {spkr: nick, msg: msg, order: order};
 	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
 	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
