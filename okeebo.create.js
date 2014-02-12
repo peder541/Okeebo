@@ -3924,11 +3924,11 @@ function collab_updates() {
 // Working better when I calculate the difference between range data rather than undo and reapply instructions.
 function fix_collab(val) {
 	var main_data = JSON.parse(val.msg);
-	if (main_data[0] == 'cursor') return val.msg;
-	else if (main_data[0] != 'keydown') var sender_range = main_data[1];
+	//if (main_data[0] == 'cursor') return val.msg;
+	/*else */if (main_data[0] != 'keydown') var sender_range = main_data[1];
 	else var sender_range = main_data[2];
 	var instructions = [];
-	//var ranges = {};
+	
 	for (var spkr in collab) {
 		for (var j = collab[spkr][0]; j > (val.order[spkr] || 0); --j) {
 			var data = collab[spkr][1][j];
@@ -3938,52 +3938,55 @@ function fix_collab(val) {
 				instructions.push(instruct);
 			}
 		}
-		/*if (typeof(data) !== 'undefined' && data) {
-			if (data[0] != 'keydown') ranges[spkr] = deriveRange(data[1]);
-			else ranges[spkr] = deriveRange(data[2]);
-		}*/
 	}
-	/*if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
-		// Sort based on applied timestamp
-		instructions.sort(function(a,b) { return b[2] - a[2]; });
-		for (var k in instructions) {
-			partner_conjugate(instructions[k][0]);
-		}
-	}*/
+	
 	if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
 		// Sort based on applied timestamp
 		instructions.sort(function(a,b) { return a[2] - b[2]; });
 		console.log('State off by:',instructions.length);
 		var dif = 0;
 		
+		outerloop:		// this is a label name
 		for (var j = 0, l = instructions.length; j < l; ++j) {
 			var msg = instructions[j][0];
 			var data = JSON.parse(msg);
 			if (data[0] == 'keydown') {
 				var range_data = data[2];
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
-				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue;
+				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
+				/*if (val.time < instructions[j][1] && [some condition that shows cursors are in the same spot]) {
+					dif = 0;
+					break;	
+				}*/
 				if (range_data.spot <= sender_range.spot + dif) {
 					if (range_data.end) dif -= range_data.end - range_data.spot;
 					dif += data[1].length;
 				}
-				/*if (val.time < instructions[j][1] && range_data.spot == sender_range.spot) {
-					dif = 0;
-					break;	
-				}*/
+				else if (range_data.spot > sender_range.spot) {
+					if (typeof(main_data[1]) === 'string') range_data.spot += main_data[1].length;
+					data[2] = range_data;
+					collab[instructions[j][3]][1][instructions[j][4]][0] = JSON.stringify(data);
+				}
 			}
 			else {
+				var range_data = data[1];
 				if (data[0] == 'delete' || data[0] == 'backspace') {
-					var range_data = data[1];
 					if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
-					for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue;
+					for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 					if (range_data.spot <= sender_range.spot + dif) {
 						if (range_data.end) dif -= range_data.end - range_data.spot;
 						else dif -= 1;
 					}
 				}
-				else if (data[0] == 'insert') {
-					dif = 0;
+				else if (data[0] == 'enter') {
+					var test = true;
+					var l1 = range_data.miniDOM.length, l2 = sender_range.miniDOM.length;
+					if (l1 != l2) test = false;
+					for (var i=0; i < l1 && i < l2; ++i) {
+						if (range_data.miniDOM[i] > sender_range.miniDOM[i]) continue outerloop;
+						else if (range_data.miniDOM[i] != sender_range.miniDOM[i]) test = false;
+					}
+					if (test) dif -= range_data.spot;
 					sender_range.miniDOM[0] += 1;	
 				}
 			}
@@ -3993,32 +3996,6 @@ function fix_collab(val) {
 		if (sender_range.end) sender_range.end += dif;
 		if (main_data[0] == 'keydown') main_data[2] = sender_range;
 		else main_data[1] = sender_range;
-		
-		
-		// Reapply instructions
-		/*for (var j = 0, l = instructions.length; j < l; ++j) {
-			var msg = instructions[j][0];
-			var truetime = instructions[j][1];
-			var spkr = instructions[j][3];
-			var instruct_order = instructions[j][4];
-			
-			var data = JSON.parse(msg);
-			var range_data = getSenderRange(ranges[spkr]);
-			if (data[0] != 'keydown') data[1] = range_data;
-			else data[2] = range_data;
-			msg = JSON.stringify(data);
-			window.postMessage(msg,'*');
-			collab[spkr][1][instruct_order] = [msg,truetime,truetime];
-			
-			if (collab[spkr][1][instruct_order+1]) {
-				var msg = collab[spkr][1][instruct_order+1][0];
-				var data = JSON.parse(msg);
-				if (typeof(data) !== 'undefined' && data) {
-					if (data[0] != 'keydown') ranges[spkr] = deriveRange(data[1]);
-					else ranges[spkr] = deriveRange(data[2]);
-				}
-			}
-		}*/
 	}
 	return JSON.stringify(main_data);
 }
