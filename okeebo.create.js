@@ -406,7 +406,7 @@ $(document).ready(function(event) {
 						nbsp = true;
 					}
 				}
-				else console.log(event.which);
+				//else console.log(event.which);
 				if (text) {
 					var msg = '["keydown","' + text + '",' + sender_range + ']';
 					var sel = document.getSelection();
@@ -953,7 +953,7 @@ $(document).ready(function(event) {
 			$('#new_page').css('top',324);
 		}
 	});
-	if (window.self !== window.top || typeof(nick) !== 'undefined') {
+	if (window.self !== window.top || typeof(nick) !== 'undefined' || 1) {
 		$(window).on('message',function(event) {
 			event = event.originalEvent;
 			try {
@@ -962,7 +962,7 @@ $(document).ready(function(event) {
 			catch(e) {
 				console.log(e.toString(),event.data);	
 			}
-			if (data[0] != 'cursor') console.log(event.data);
+			//if (window.self !== window.top && data[0] != 'cursor') console.log(event.data);
 			if ($('svg').is(':visible')) {
 				var _graph = 1;
 				toggle_graph();
@@ -3882,22 +3882,29 @@ function collab_updates() {
 						var order = 0;
 						if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
 						else collab[val.spkr] = [order, {}];
-						collab[val.spkr][1][val.order[val.spkr]] = val.msg;
+						var t = new Date();
+						t = t.valueOf();
+						collab[val.spkr][1][val.order[val.spkr]] = [val.msg,val.time,t];
 						if (order == val.order[val.spkr]) {
 							// Do the current task
 							var msg = JSON.parse(val.msg);
 							if (msg[0] == 'cursor') msg.push(val.spkr);
+							
 							msg = JSON.stringify(msg);
 							window.postMessage(msg,'*');
 							collab[val.spkr][0] = order;
 							// Do any directly following tasks that may be queued
 							while (collab[val.spkr][1][++order]) {
-								var msg = JSON.parse(collab[val.spkr][1][order]);
+								var t = new Date();
+								t = t.valueOf();
+								collab[val.spkr][1][order][2] = t;
+								var msg = JSON.parse(collab[val.spkr][1][order][0]);
 								if (msg[0] == 'cursor') msg.push(val.spkr);
 								msg = JSON.stringify(msg);
 								window.postMessage(msg,'*');
 								collab[val.spkr][0] = order;
 							}
+							//fix_collab(val);
 						}
 					}
 				}
@@ -3910,19 +3917,127 @@ function collab_updates() {
 			}
 	});
 }
+
+// The goal of this function is to correct collisions issue when multiple users edit the same paragraph. It needs a lot of work still.
+// The concept was successful when testing very small. The looping seems to be very problematic.
+// Perhaps not a high priority issue though?
+// Working better when I calculate the difference between range data rather than undo and reapply instructions.
+function fix_collab(val) {
+	var main_data = JSON.parse(val.msg);
+	if (main_data[0] == 'cursor') return val.msg;
+	else if (main_data[0] != 'keydown') var sender_range = main_data[1];
+	else var sender_range = main_data[2];
+	var instructions = [];
+	//var ranges = {};
+	for (var spkr in collab) {
+		for (var j = collab[spkr][0]; j > (val.order[spkr] || 0); --j) {
+			var data = collab[spkr][1][j];
+			var instruct = [data[0],data[1],data[2],spkr,j];
+			data = JSON.parse(data[0]);
+			if (data[0] != 'cursor') {
+				instructions.push(instruct);
+			}
+		}
+		/*if (typeof(data) !== 'undefined' && data) {
+			if (data[0] != 'keydown') ranges[spkr] = deriveRange(data[1]);
+			else ranges[spkr] = deriveRange(data[2]);
+		}*/
+	}
+	/*if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
+		// Sort based on applied timestamp
+		instructions.sort(function(a,b) { return b[2] - a[2]; });
+		for (var k in instructions) {
+			partner_conjugate(instructions[k][0]);
+		}
+	}*/
+	if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
+		// Sort based on applied timestamp
+		instructions.sort(function(a,b) { return a[2] - b[2]; });
+		console.log('State off by:',instructions.length);
+		var dif = 0;
+		
+		for (var j = 0, l = instructions.length; j < l; ++j) {
+			var msg = instructions[j][0];
+			var data = JSON.parse(msg);
+			if (data[0] == 'keydown') {
+				var range_data = data[2];
+				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
+				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue;
+				if (range_data.spot <= sender_range.spot + dif) {
+					if (range_data.end) dif -= range_data.end - range_data.spot;
+					dif += data[1].length;
+				}
+				/*if (val.time < instructions[j][1] && range_data.spot == sender_range.spot) {
+					dif = 0;
+					break;	
+				}*/
+			}
+			else {
+				if (data[0] == 'delete' || data[0] == 'backspace') {
+					var range_data = data[1];
+					if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
+					for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue;
+					if (range_data.spot <= sender_range.spot + dif) {
+						if (range_data.end) dif -= range_data.end - range_data.spot;
+						else dif -= 1;
+					}
+				}
+				else if (data[0] == 'insert') {
+					dif = 0;
+					sender_range.miniDOM[0] += 1;	
+				}
+			}
+		}
+		console.log('Diff:',dif);
+		sender_range.spot += dif;
+		if (sender_range.end) sender_range.end += dif;
+		if (main_data[0] == 'keydown') main_data[2] = sender_range;
+		else main_data[1] = sender_range;
+		
+		
+		// Reapply instructions
+		/*for (var j = 0, l = instructions.length; j < l; ++j) {
+			var msg = instructions[j][0];
+			var truetime = instructions[j][1];
+			var spkr = instructions[j][3];
+			var instruct_order = instructions[j][4];
+			
+			var data = JSON.parse(msg);
+			var range_data = getSenderRange(ranges[spkr]);
+			if (data[0] != 'keydown') data[1] = range_data;
+			else data[2] = range_data;
+			msg = JSON.stringify(data);
+			window.postMessage(msg,'*');
+			collab[spkr][1][instruct_order] = [msg,truetime,truetime];
+			
+			if (collab[spkr][1][instruct_order+1]) {
+				var msg = collab[spkr][1][instruct_order+1][0];
+				var data = JSON.parse(msg);
+				if (typeof(data) !== 'undefined' && data) {
+					if (data[0] != 'keydown') ranges[spkr] = deriveRange(data[1]);
+					else ranges[spkr] = deriveRange(data[2]);
+				}
+			}
+		}*/
+	}
+	return JSON.stringify(main_data);
+}
+
 function collab_send(msg) {
 	var order = 0;
+	var t = new Date();
+	t = t.valueOf();
 	if (collab[nick]) {
 		order = collab[nick][0] + 1;
 		collab[nick][0] = order;
-		collab[nick][1][order] = msg;
+		collab[nick][1][order] = [msg,t,t];
 	}
 	else {
-		collab[nick] = [order, {0: msg}];
+		collab[nick] = [order, {0: [msg,t,t]}];
 	}
 	order = {};
 	for (var i in collab) order[i] = collab[i][0];
-	var val = {spkr: nick, msg: msg, order: order};
+	var val = {spkr: nick, msg: msg, order: order, time: t};
 	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
 	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
 	$.post(url,ajax_data);
