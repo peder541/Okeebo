@@ -66,12 +66,14 @@ function add_checkboxes_for_continuous_reading() {
 			var parent_id = get_parent_tag($(this).parent().parent().attr('id'));
 			var first_id = $('.' + parent_id).children('p[id]').first().attr('id');
 			update_all_affected_links(first_id);
+			var old_pageKeys = [];
+			$('.inner,.outer').each(function() { old_pageKeys.push($(this).attr('class')); });
 			if (window.self !== window.top || typeof(nick) !== 'undefined') {
 				var pageKeys = [];
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('p[id]').each(function() { pIDs.push(this.id); });
-				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'"]';
+				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'",' + JSON.stringify(old_pageKeys) + ']';
 				if (typeof(nick) !== 'undefined') collab_send(msg);
 				else window.parent.postMessage(msg,'*');
 			}
@@ -1463,6 +1465,10 @@ function drop(event) {
 	var letter = first_id.charAt(0);
 	var first_number = parseInt(first_id.substr(1),10);
 	if (data.charAt(0) != first_id.charAt(0)) return false;
+	if (window.self !== window.top || typeof(nick) !== 'undefined') {
+		var old_pageKeys = [];
+		$('.inner,.outer').each(function() { old_pageKeys.push($(this).attr('class')); });
+	}
 	var y = event.pageY;
 	if (!y) y = event.clientY + $(window).scrollTop();
 	//if (!y) y = event.originalEvent.changedTouches[0].pageY;
@@ -1484,7 +1490,7 @@ function drop(event) {
 			var pIDs = [];
 			$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 			$('p[id]').each(function() { pIDs.push(this.id); });
-			var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1]';
+			var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1,' + JSON.stringify(old_pageKeys) + ']';
 			if (typeof(nick) !== 'undefined') collab_send(msg);
 			else window.parent.postMessage(msg,'*');
 		}
@@ -1509,7 +1515,7 @@ function drop(event) {
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('p[id]').each(function() { pIDs.push(this.id); });
-				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ']';
+				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ',' + JSON.stringify(old_pageKeys) + ']';
 				if (typeof(nick) !== 'undefined') collab_send(msg);
 				else window.parent.postMessage(msg,'*');
 			}
@@ -3937,7 +3943,7 @@ function fix_collab(val) {
 	var instructions = [];
 	
 	for (var spkr in collab) {
-		for (var j = collab[spkr][0]; j > (val.order[spkr] || 0); --j) {
+		for (var j = collab[spkr][0]; j > (val.order[spkr] || -1); --j) {
 			var data = collab[spkr][1][j];
 			var instruct = [data[0],data[1],data[2],spkr,j];
 			data = JSON.parse(data[0]);
@@ -3958,6 +3964,7 @@ function fix_collab(val) {
 			var data = JSON.parse(msg);
 			if (data[0] == 'keydown') {
 				var range_data = data[2];
+				if (!$('.' + sender_range.pageID).hasClass(range_data.pageID)) continue;
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 				if (range_data.spot <= sender_range.spot + dif) {
@@ -3982,6 +3989,7 @@ function fix_collab(val) {
 			else {
 				var range_data = data[1];
 				if (data[0] == 'delete' || data[0] == 'backspace') {
+					if (!$('.' + sender_range.pageID).hasClass(range_data.pageID)) continue;
 					if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 					for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 					if (range_data.spot <= sender_range.spot + dif) {
@@ -3990,6 +3998,7 @@ function fix_collab(val) {
 					}
 				}
 				else if (data[0] == 'enter') {
+					if (!$('.' + sender_range.pageID).hasClass(range_data.pageID)) continue;
 					var test = true;
 					var l1 = range_data.miniDOM.length, l2 = sender_range.miniDOM.length;
 					if (l1 != l2) test = false;
@@ -3999,6 +4008,22 @@ function fix_collab(val) {
 					}
 					if (test) dif -= range_data.spot;
 					sender_range.miniDOM[0] += 1;	
+				}
+				else if (data[0] == 'rearrange') {
+					// update page id
+					var pageKeys = data[1];
+					var old_pageKeys = data[5];
+					var index_alpha = -1;
+					var index_beta = -1;
+					for (var alpha=0; alpha < old_pageKeys.length; ++alpha) {
+						var keys = old_pageKeys[alpha].split(' ');
+						index_beta = keys.indexOf(sender_range.pageID);
+						if (index_beta != -1) {
+							index_alpha = alpha;
+							break;	
+						}
+					}
+					if (index_alpha != -1 && index_beta != -1) sender_range.pageID = pageKeys[index_alpha].split(' ')[index_beta];
 				}
 			}
 		}
