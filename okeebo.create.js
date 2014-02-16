@@ -3891,6 +3891,7 @@ function collab_updates() {
 							if (msg[0] == 'cursor') msg.push(val.spkr);
 							
 							msg = JSON.stringify(msg);
+							msg = fix_collab(val);
 							window.postMessage(msg,'*');
 							collab[val.spkr][0] = order;
 							// Do any directly following tasks that may be queued
@@ -3901,10 +3902,15 @@ function collab_updates() {
 								var msg = JSON.parse(collab[val.spkr][1][order][0]);
 								if (msg[0] == 'cursor') msg.push(val.spkr);
 								msg = JSON.stringify(msg);
+								
+								val.msg = msg;								// Need to update the val object before its passed to fix_collab
+								val.time = collab[val.spkr][1][order][1];
+								val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
+								msg = fix_collab(val);						// Apply fix before posting
+								
 								window.postMessage(msg,'*');
 								collab[val.spkr][0] = order;
 							}
-							//fix_collab(val);
 						}
 					}
 				}
@@ -3922,6 +3928,7 @@ function collab_updates() {
 // The concept was successful when testing very small. The looping seems to be very problematic.
 // Perhaps not a high priority issue though?
 // Working better when I calculate the difference between range data rather than undo and reapply instructions.
+cursor_test = 0;
 function fix_collab(val) {
 	var main_data = JSON.parse(val.msg);
 	//if (main_data[0] == 'cursor') return val.msg;
@@ -3943,7 +3950,6 @@ function fix_collab(val) {
 	if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
 		// Sort based on applied timestamp
 		instructions.sort(function(a,b) { return a[2] - b[2]; });
-		console.log('State off by:',instructions.length);
 		var dif = 0;
 		
 		outerloop:		// this is a label name
@@ -3954,11 +3960,16 @@ function fix_collab(val) {
 				var range_data = data[2];
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
-				/*if (val.time < instructions[j][1] && [some condition that shows cursors are in the same spot]) {
-					dif = 0;
-					break;	
-				}*/
 				if (range_data.spot <= sender_range.spot + dif) {
+					/*if (val.time < instructions[j][1] && main_data[1] != 'cursor') {
+						console.log(main_data[1],sender_range.spot,range_data.spot,cursor_test);
+						if (Math.abs(range_data.spot - sender_range.spot) == cursor_test) {
+							dif = 0;
+							if (typeof(main_data[1]) === 'string') cursor_test += main_data[1].length;
+							break;
+						}
+						else cursor_test = 0;
+					}*/
 					if (range_data.end) dif -= range_data.end - range_data.spot;
 					dif += data[1].length;
 				}
@@ -3991,7 +4002,6 @@ function fix_collab(val) {
 				}
 			}
 		}
-		console.log('Diff:',dif);
 		sender_range.spot += dif;
 		if (sender_range.end) sender_range.end += dif;
 		if (main_data[0] == 'keydown') main_data[2] = sender_range;
@@ -4018,4 +4028,44 @@ function collab_send(msg) {
 	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
 	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
 	$.post(url,ajax_data);
+}
+
+
+// This function is for local testing.
+function collab_receive(val) {	
+	var order = 0;
+	if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
+	else collab[val.spkr] = [order, {}];
+	var t = new Date();
+	t = t.valueOf();
+	collab[val.spkr][1][val.order[val.spkr]] = [val.msg,val.time,t];
+	if (order == val.order[val.spkr]) {
+		// Do the current task
+		var msg = JSON.parse(val.msg);
+		if (msg[0] == 'cursor') msg.push(val.spkr);
+		
+		msg = JSON.stringify(msg);
+		
+		msg = fix_collab(val);	// Apply fix before posting
+		
+		window.postMessage(msg,'*');
+		collab[val.spkr][0] = order;
+		// Do any directly following tasks that may be queued
+		while (collab[val.spkr][1][++order]) {
+			var t = new Date();
+			t = t.valueOf();
+			collab[val.spkr][1][order][2] = t;
+			var msg = JSON.parse(collab[val.spkr][1][order][0]);
+			if (msg[0] == 'cursor') msg.push(val.spkr);
+			msg = JSON.stringify(msg);
+			
+			val.msg = msg;								// Need to update the val object before its passed to fix_collab
+			val.time = collab[val.spkr][1][order][1];
+			val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
+			msg = fix_collab(val);				// Apply fix before posting
+			
+			window.postMessage(msg,'*');
+			collab[val.spkr][0] = order;
+		}
+	}
 }
