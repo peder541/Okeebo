@@ -7,7 +7,6 @@
 var _drag = 0, _edit = 0;
 var arrange_timer, scroll_timer;
 var collab_timer = 0;
-var event_timer = 0;
 var line = 0;
 var _delete = new Array();
 var writing_buttons = '.writing';
@@ -72,7 +71,7 @@ function add_checkboxes_for_continuous_reading() {
 				var pageKeys = [];
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
-				$('p[id]').each(function() { pIDs.push(this.id); });
+				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'",' + JSON.stringify(old_pageKeys) + ']';
 				if (typeof(nick) !== 'undefined') collab_send(msg);
 				else window.parent.postMessage(msg,'*');
@@ -166,8 +165,6 @@ $(document).ready(function(event) {
 	
 	/// Document Events
 	$(document).on('keydown',function(event) {
-		if (event_timer) clearTimeout(event_timer);
-		event_timer = setTimeout('event_timer = 0;',10);
 		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
 			switch (event.which) {
 				case 66:
@@ -275,8 +272,6 @@ $(document).ready(function(event) {
 		if (event.which == 20) caps = !caps;
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
-		if (event_timer) clearTimeout(event_timer);
-		event_timer = setTimeout(clearTimeout,10,event_timer);
 		if (event.which == 8 || event.which == 46) {
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
 			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
@@ -964,7 +959,7 @@ $(document).ready(function(event) {
 			catch(e) {
 				console.log(e.toString(),event.data);	
 			}
-			//if (window.self !== window.top && data[0] != 'cursor') console.log(event.data);
+			if (window.self !== window.top && data[0] != 'cursor') console.log(event.data); //55113 
 			if ($('svg').is(':visible')) {
 				var _graph = 1;
 				toggle_graph();
@@ -1489,7 +1484,7 @@ function drop(event) {
 			var pageKeys = [];
 			var pIDs = [];
 			$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
-			$('p[id]').each(function() { pIDs.push(this.id); });
+			$('.in + p[id]').each(function() { pIDs.push(this.id); });
 			var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1,' + JSON.stringify(old_pageKeys) + ']';
 			if (typeof(nick) !== 'undefined') collab_send(msg);
 			else window.parent.postMessage(msg,'*');
@@ -1514,7 +1509,7 @@ function drop(event) {
 				var pageKeys = [];
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
-				$('p[id]').each(function() { pIDs.push(this.id); });
+				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ',' + JSON.stringify(old_pageKeys) + ']';
 				if (typeof(nick) !== 'undefined') collab_send(msg);
 				else window.parent.postMessage(msg,'*');
@@ -1629,7 +1624,8 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 			'page': page && page.selector,
 			'exists': exists,
 			'reinsert': reinsert,
-			'cut': cut
+			'cut': cut,
+			'last': current_div.children('p[id]').last().attr('id')
 		};
 		var msg = '["insert_page",' + JSON.stringify(data) + ',' + ((cut) ? JSON.stringify(getSenderRange()) : '0') + ']';
 		if (typeof(nick) !== 'undefined') collab_send(msg);
@@ -1689,7 +1685,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 				var pageKeys = [];
 				var pIDs = [];
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
-				$('p[id]').each(function() { pIDs.push(this.id); });
+				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'"]';
 				if (typeof(nick) !== 'undefined') collab_send(msg);
 				else window.parent.postMessage(msg,'*');
@@ -1815,7 +1811,7 @@ function delete_page(target_id,quick,ghost) {
 		} }
 		catch (e) { console.log(e); }
 		var test = true;
-		current_page.children('p[id]').each(function(index) {
+		current_page.children('.in + p[id]').each(function(index) {
 			var target_id = this.id;
 			target_id = String.fromCharCode(target_id.charCodeAt(0)+1) + target_id.substr(1);
 			test = delete_edge(target_id,1);
@@ -2081,9 +2077,9 @@ function create_sidebar() {
 	$('.inner,.outer').first().before('<div id="sidebar"></div>');
 	$('#sidebar')
 		.append('<p id="drag">' + (_drag ? 'Stop Dragging Summaries' : 'Start Dragging Summaries') + '</p>')
-		.append('<p id="insert_new_page">Insert New Page</p>')
-		.append('<p id="add_intro_text">Add Introductory Text</p>')
 		.append('<p id="view_graph">View Graph of All Pages</p>')
+		.append('<p id="add_intro_text">Add Introductory Text</p>')
+		.append('<p id="insert_new_page">Insert New Page</p>')
 		//.append('<p id="insert_existing_page">Insert Existing Page</p>')
 		.append('<p id="delete_page">Delete Current Page</p>')
 		.append('<p id="undo_page_delete">Undo Page Delete</p>')
@@ -2283,7 +2279,7 @@ function getSelectionHtml() {
 }
 
 function cleanSummaries() {
-	$('p[id]').each(function() { 
+	$('.in + p[id]').each(function() { 
 		var last = $(this).children('span').eq(1).children().last(); 
 		while (last.is('br')) { 
 			last.remove(); last = $(this).children('span').eq(1).children().last();
@@ -3411,6 +3407,7 @@ function partner_enter(sender_range,keyup) {
 		}
 	}
 	else {
+		sender_range.deleteContents();
 		var element = $(sender_range.startContainer).closest('p,li');
 		var tagName = element[0].tagName;
 		if (element.is('li') && element.html() == '<br>') {
@@ -3437,12 +3434,16 @@ function partner_enter(sender_range,keyup) {
 	}
 }
 function partner_insert_page(data,range_data) {
-	var currentID = $('.inner,.outer').filter(':visible').attr('id');
+	var $currentPage = $('.inner,.outer').filter(':visible');
+	var currentPage_key_index = $currentPage.attr('class').split(' ').indexOf($currentPage.attr('id'));
+	if ($currentPage.is(page)) {
+		// Possibly add something to get a more accurate value of currentPage_key_index	in this case
+	}
 	var _top = $(window).scrollTop();
 	var sel = document.getSelection();
 	var range = false;
 	if (sel.rangeCount) range = sel.getRangeAt(0);
-	go_to(currentID,data.pageID);
+	go_to($currentPage.attr('id'),data.pageID);
 	var summary = false;
 	if (data.summary) {
 		summary = $('<p></p>');
@@ -3453,15 +3454,19 @@ function partner_insert_page(data,range_data) {
 	if (data.cut && range_data) page = deriveRange(range_data);
 	insert_page(summary, page, data.exists, data.reinsert, data.cut, true);
 	if (data.cut) improve_formatting();
-	go_to(data.pageID,currentID);
+	go_to(data.pageID,$currentPage.attr('class').split(' ')[currentPage_key_index]);
 	sel.removeAllRanges();
 	if (range) sel.addRange(range);
 	$(window).scrollTop(_top);
 }
 function partner_delete_page(pageID) {
-	var currentID = $('.inner,.outer').filter(':visible').attr('id');
+	var $currentPage = $('.inner,.outer').filter(':visible');
+	var currentPage_key_index = $currentPage.attr('class').split(' ').indexOf($currentPage.attr('id'));
+	if ($currentPage.is('.' + pageID)) {
+		// Possibly add something to get a more accurate value of currentPage_key_index	in this case
+	}
 	delete_page(pageID,0,1);
-	go_to($('.inner,.outer').filter(':visible').attr('id'),currentID);
+	go_to($('.inner,.outer').filter(':visible').attr('id'),$currentPage.attr('class').split(' ')[currentPage_key_index]);
 }
 function partner_undo_page_delete() {
 	var currentID = $('.inner,.outer').filter(':visible').attr('id');
@@ -3504,19 +3509,25 @@ function partner_rearrange(pageKeys,pIDs,movedID,destination) {
 		checkbox.prop('checked',!checkbox.prop('checked'));
 	}
 	var $pages = $('.inner,.outer');
-	$pages.each(function(i) {
-		var $this = $(this);
-		var spot = $this.attr('class').split(' ').indexOf(this.id);
-		$this.attr('class',pageKeys[i]);
-		if (this.id) this.id = pageKeys[i].split(' ')[spot];
-	});
-	$('.in').each(function(i) {
-		$(this).attr('class','in ' + pIDs[i]);
-	});
-	$('p[id]').each(function(i) {
-		this.id = pIDs[i];
-	});
-	
+	if (pageKeys) {
+		$pages.each(function(i) {
+			var $this = $(this);
+			var spot = $this.attr('class').split(' ').indexOf(this.id);
+			$this.attr('class',pageKeys[i]);
+			if (this.id) this.id = pageKeys[i].split(' ')[spot];
+		});
+		$('.in').each(function(i) {
+			$(this).attr('class','in ' + pIDs[i]);
+		});
+		$('.in + p[id]').each(function(i) {
+			this.id = pIDs[i];
+		});
+	}
+	else {
+		arrange_links($('.Z1').children(),'a',1);
+		repair_links($('.Z1').children(),'a',1);
+		update_all_affected_links('a1');
+	}
 	if (temp_drag) toggle_drag($pageWithMoved);
 	
 	redraw_node_map($pages.filter(':visible').attr('id'));
@@ -3745,10 +3756,11 @@ function partner_conjugate(msg) {
 			var conjugate_msg = '["format_text","' + data[1] + '",' + JSON.stringify(sender_range) + ']';
 			break;
 		case 'rearrange':
+			var conjugate_msg = JSON.stringify([data[0],data[5],data[2],data[3],data[4],data[1]]);
 			break;
 		case 'insert_page':
 			var sender_range = data[1];
-			var link_to_page_to_delete = $('.' + sender_range.pageID).children('.in + p[id]').attr('id');
+			var link_to_page_to_delete = $('.' + sender_range.pageID).children('.in + p[id]').last().attr('id');
 			var letter = String.fromCharCode(link_to_page_to_delete.charCodeAt(0) + 1);
 			var number = link_to_page_to_delete.substr(1);
 			var conjugate_msg = '["delete_page","' + letter + number + '"]';
@@ -3760,6 +3772,8 @@ function partner_conjugate(msg) {
 		case 'undo_page_delete':
 			var conjugate_msg = '["delete_page","' + data[1] + '"]';
 			break;
+		case 'none':
+			var conjugate_msg = msg;
 	}
 	window.postMessage(conjugate_msg,'*');
 	return conjugate_msg;
@@ -3964,7 +3978,7 @@ function fix_collab(val) {
 			var data = JSON.parse(msg);
 			if (data[0] == 'keydown') {
 				var range_data = data[2];
-				if (!$('.' + sender_range.pageID).hasClass(range_data.pageID)) continue;
+				if (!$('.' + sender_range.pageID).hasClass(range_data.pageID) || main_data[0] == 'insert_page') continue;
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 				if (range_data.spot <= sender_range.spot + dif) {
@@ -4010,20 +4024,177 @@ function fix_collab(val) {
 					sender_range.miniDOM[0] += 1;	
 				}
 				else if (data[0] == 'rearrange') {
+					if (main_data[0] == 'rearrange' || main_data[0] == 'none') {
+						if (val.order[instructions[j][3]] || instructions[j][3] != val.spkr) {
+							/*if (val.time < instructions[j][1]) {
+								setTimeout(partner_conjugate,0,partner_conjugate(instructions[j][0]));
+							}*/
+							if (val.time < instructions[j][1]) {
+								partner_conjugate(instructions[j][0]);
+								instructions[j][0] = '["none"]';	
+							}
+							else main_data[0] = 'none';
+						}
+					}
 					// update page id
 					var pageKeys = data[1];
 					var old_pageKeys = data[5];
 					var index_alpha = -1;
 					var index_beta = -1;
+					var old_page_id = sender_range.pageID || sender_range;
 					for (var alpha=0; alpha < old_pageKeys.length; ++alpha) {
 						var keys = old_pageKeys[alpha].split(' ');
-						index_beta = keys.indexOf(sender_range.pageID);
+						index_beta = keys.indexOf(old_page_id);
 						if (index_beta != -1) {
 							index_alpha = alpha;
 							break;	
 						}
 					}
-					if (index_alpha != -1 && index_beta != -1) sender_range.pageID = pageKeys[index_alpha].split(' ')[index_beta];
+					if (index_alpha != -1 && index_beta != -1) {
+						var new_page_id = pageKeys[index_alpha].split(' ')[index_beta];
+						sender_range.pageID = new_page_id;
+						if (main_data[0] == 'delete_page') {
+							sender_range = new_page_id;
+						}
+					}
+					if (main_data[0] == 'insert_page') {
+						if (sender_range.page) {
+							var old_page = sender_range.page.substr(1);
+						}
+						else continue;
+						for (var alpha=0; alpha < old_pageKeys.length; ++alpha) {
+							var keys = old_pageKeys[alpha].split(' ');
+							index_beta = keys.indexOf(old_page);
+							if (index_beta != -1) {
+								index_alpha = alpha;
+								break;	
+							}
+						}
+						if (index_alpha != -1 && index_beta != -1) {
+							var new_page = pageKeys[index_alpha].split(' ')[index_beta];
+							sender_range.page = '.' + new_page;
+						}
+					}
+				}
+				else if (data[0] == 'insert_page') {
+					var compare = sender_range.pageID;
+					if (main_data[0] == 'rearrange') {
+						compare = String.fromCharCode(main_data[3].charCodeAt(0) + 1) + main_data[3].substr(1);
+					}
+					var parent_tag = get_parent_tag(compare);
+					if (!parent_tag) continue;
+					var parent_letter = parent_tag.charAt(0);
+					var parent_number = parseInt(parent_tag.substr(1),10);
+					var instruct_letter = range_data.pageID.charAt(0);
+					var instruct_number = parseInt(range_data.pageID.substr(1),10);
+					if (instruct_letter == parent_letter) {
+						if (parent_number > instruct_number) {
+							var main_letter = compare.charCodeAt(0);
+							var main_number = parseInt(compare.substr(1),10);
+							if (main_data[0] == 'rearrange') {
+								main_data[3] = String.fromCharCode(main_letter-1) + (++main_number);
+								// Should be able to do something with main_data[2] here
+							}
+							else sender_range.pageID = String.fromCharCode(main_letter) + (++main_number);	
+						}
+						else if (parent_number == instruct_number) {
+							var main_letter = compare.charCodeAt(0);
+							var main_number = parseInt(compare.substr(1),10);
+							if (range_data.last == String.fromCharCode(main_letter-1) + (main_number-1)) {
+								if (main_data[0] == 'rearrange') {
+									main_data[3] = String.fromCharCode(main_letter-1) + (++main_number);
+									parent_tag = parent_letter + (++parent_number);
+									if ($('.' + parent_tag).index() == -1) parent_tag = parent_letter + (++parent_number);
+									// Should be able to do something with main_data[2] here
+								}
+								else sender_range.pageID = String.fromCharCode(main_letter) + (++main_number);	
+							}
+						}
+					}
+					if (main_data[0] == 'rearrange') {
+						var pIDs = [];
+						$('.in + p[id]').each(function() { pIDs.push(this.id); });
+						var sender_pIDs = main_data[2];
+						var lost_pIDs = [];
+						for (var i in pIDs) {
+							if (sender_pIDs.indexOf(pIDs[i]) == -1) lost_pIDs.push(pIDs[i]);	
+						}
+						for (var i in lost_pIDs) {
+							var $this = $('#' + lost_pIDs[i]);
+							var $siblings = $this.parent('.outer').children('.in + p[id]');
+							var index = $siblings.index($this);
+							if (index == 0) {
+								var needle = $siblings.eq(index + 1).attr('id');
+								var index = sender_pIDs.indexOf(needle);
+								sender_pIDs.splice(index, 0, lost_pIDs[i]);
+							}
+							else {
+								var needle = $siblings.eq(index - 1).attr('id');
+								var index = sender_pIDs.indexOf(needle);
+								sender_pIDs.splice(index + 1, 0, lost_pIDs[i]);
+							}
+						}
+						/*
+						var pageKeys = main_data[1];
+						var old_pageKeys = main_data[5];
+						var diff = [];
+						for (var i in pageKeys) {
+							if (pageKeys[i] != old_pageKeys[i]) diff.push(i);
+						}
+						pageKeys = [];
+						$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
+						main_data[5] = pageKeys.slice();
+						var len = diff.length;
+						var keys = new Array(len);
+						for (var a=0; a<len; ++a) {
+							keys[a] = pageKeys[diff[a]].split(' ');
+						}
+						for (var a=0; a<len; ++a) {
+							for (var b in keys[a]) {
+								if (keys[a][b] != 'inner' && keys[a][b] != 'outer') {
+									if (get_parent_tag(keys[a][b]) == parent_tag) {
+										keys.push([a,b]);
+										break;
+									}
+								}
+							}
+						}
+						console.log(len,keys.length);
+						var temp = keys[keys[len][0]][keys[len][1]];
+						keys[keys[len][0]][keys[len][1]] = keys[keys[len+1][0]][keys[len+1][1]];
+						keys[keys[len+1][0]][keys[len+1][1]] = temp;
+						for (var a=0; a<len; ++a) {
+							pageKeys[diff[a]] = keys[a].join(' ');
+						}
+						sender_range = pageKeys;
+						*/
+						// Want a heuristic for this to save computation.
+						sender_range = false;
+					}
+				}
+				else if (data[0] == 'delete_page') {
+					if (main_data[0] == 'rearrange') {
+						
+						continue;	
+					}
+					var page = _delete[_delete.length-1];
+					if (!page) continue;
+					page = page.page;
+					var keys = page.attr('class').split(' ');
+					if (keys.shift() == 'outer') keys.shift();
+					var main_letter = sender_range.pageID.charAt(0);
+					var main_number = parseInt(sender_range.pageID.substr(1),10);
+					var times = 0;
+					for (var i=0; i < keys.length; ++i) {
+						var key_letter = keys[i].charAt(0);
+						var key_num = parseInt(keys[i].substr(1),10);
+						if (key_letter == main_letter) {
+							if (key_num < main_number) ++times;
+							else if (key_num == main_number) return '["none"]';
+						}
+					}
+					main_number -= times;
+					sender_range.pageID = main_letter + main_number;
 				}
 			}
 		}
