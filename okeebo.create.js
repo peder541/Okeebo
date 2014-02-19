@@ -123,6 +123,7 @@ $(document).ready(function(event) {
 			var obj = ew_resize_table[0];
 			var width = ew_resize_table[2];
 			obj.css('width','');
+
 			obj.attr('width',width + dif);
 		}
 	});
@@ -194,6 +195,16 @@ $(document).ready(function(event) {
 						compare_ranges(range0,range1);
 					}
 					return false;
+				/**/
+				case 8:
+				case 46:
+					var range0 = getSenderRange();
+					setTimeout(function() {
+						var range1 = getSenderRange();
+						compare_ranges(range0,range1);
+					},10);
+					break;
+				/**/
 			}
 		}
 		if (event.which == 8 && !$(event.target).is('[contenteditable="true"]')) return false;
@@ -411,6 +422,7 @@ $(document).ready(function(event) {
 					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',' + JSON.stringify(deletedText) + ']';
 					if (typeof(nick) !== 'undefined') collab_send(msg);
 					else window.parent.postMessage(msg,'*');
+					console.log('Typing:',msg);
 				}
 			}
 			/*else if (event.ctrlKey) {
@@ -959,7 +971,7 @@ $(document).ready(function(event) {
 			catch(e) {
 				console.log(e.toString(),event.data);	
 			}
-			if (window.self !== window.top && data[0] != 'cursor') console.log(event.data); //55113 
+			if (window.self !== window.top && data[0] != 'cursor') console.log('Receive:',event.data); //55113 
 			if ($('svg').is(':visible')) {
 				var _graph = 1;
 				toggle_graph();
@@ -1432,6 +1444,7 @@ function toggle_drag(singlePage) {
 }
 
 function allowDrop(event) {
+
 	/// Show when a drag is far enough to switch
 	color_dragging(event,event.dataTransfer.getData("Text"));
 	
@@ -3899,39 +3912,7 @@ function collab_updates() {
 				for (var i=0; row[i]; ++i) {
 					var val = JSON.parse(row[i]);
 					if (val.spkr != nick || line == 0) {
-						var order = 0;
-						if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
-						else collab[val.spkr] = [order, {}];
-						var t = new Date();
-						t = t.valueOf();
-						collab[val.spkr][1][val.order[val.spkr]] = [val.msg,val.time,t];
-						if (order == val.order[val.spkr]) {
-							// Do the current task
-							var msg = JSON.parse(val.msg);
-							if (msg[0] == 'cursor') msg.push(val.spkr);
-							
-							msg = JSON.stringify(msg);
-							msg = fix_collab(val);
-							window.postMessage(msg,'*');
-							collab[val.spkr][0] = order;
-							// Do any directly following tasks that may be queued
-							while (collab[val.spkr][1][++order]) {
-								var t = new Date();
-								t = t.valueOf();
-								collab[val.spkr][1][order][2] = t;
-								var msg = JSON.parse(collab[val.spkr][1][order][0]);
-								if (msg[0] == 'cursor') msg.push(val.spkr);
-								msg = JSON.stringify(msg);
-								
-								val.msg = msg;								// Need to update the val object before its passed to fix_collab
-								val.time = collab[val.spkr][1][order][1];
-								val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
-								msg = fix_collab(val);						// Apply fix before posting
-								
-								window.postMessage(msg,'*');
-								collab[val.spkr][0] = order;
-							}
-						}
+						collab_execute(val);
 					}
 				}
 				line = result.line;
@@ -4032,6 +4013,7 @@ function fix_collab(val) {
 							if (val.time < instructions[j][1]) {
 								partner_conjugate(instructions[j][0]);
 								instructions[j][0] = '["none"]';	
+
 							}
 							else main_data[0] = 'none';
 						}
@@ -4077,116 +4059,64 @@ function fix_collab(val) {
 					}
 				}
 				else if (data[0] == 'insert_page') {
-					var compare = sender_range.pageID;
+					
+					if (instructions[j][3] == val.spkr) continue;
+					var compare = sender_range.pageID || sender_range;
 					if (main_data[0] == 'rearrange') {
 						compare = String.fromCharCode(main_data[3].charCodeAt(0) + 1) + main_data[3].substr(1);
 					}
-					var parent_tag = get_parent_tag(compare);
-					if (!parent_tag) continue;
-					var parent_letter = parent_tag.charAt(0);
-					var parent_number = parseInt(parent_tag.substr(1),10);
-					var instruct_letter = range_data.pageID.charAt(0);
-					var instruct_number = parseInt(range_data.pageID.substr(1),10);
-					if (instruct_letter == parent_letter) {
-						if (parent_number > instruct_number) {
-							var main_letter = compare.charCodeAt(0);
-							var main_number = parseInt(compare.substr(1),10);
-							if (main_data[0] == 'rearrange') {
-								main_data[3] = String.fromCharCode(main_letter-1) + (++main_number);
-								// Should be able to do something with main_data[2] here
-								/*for (var i in main_data[2]) {
-									var letter = main_data[2][i].charAt(0);
-									var number = parseInt(main_data[2][i].substr(1),10);
-									if (letter == String.fromCharCode(main_letter-1) && number >= main_number)
-										main_data[2][i] = letter + (++number);
-								}*/
-							}
-							else sender_range.pageID = String.fromCharCode(main_letter) + (++main_number);	
-						}
-						else if (parent_number == instruct_number) {
-							var main_letter = compare.charCodeAt(0);
-							var main_number = parseInt(compare.substr(1),10);
-							if (range_data.last == String.fromCharCode(main_letter-1) + (main_number-1)) {
-								if (main_data[0] == 'rearrange') {
-									main_data[3] = String.fromCharCode(main_letter-1) + (++main_number);
-									parent_tag = parent_letter + (++parent_number);
-									if ($('.' + parent_tag).index() == -1) parent_tag = parent_letter + (++parent_number);
-									// Should be able to do something with main_data[2] here
-									/*for (var i in main_data[2]) {
-										var letter = main_data[2][i].charAt(0);
-										var number = parseInt(main_data[2][i].substr(1),10);
-										if (letter == String.fromCharCode(main_letter-1) && number >= main_number)
-											main_data[2][i] = letter + (++number);
-									}*/
-								}
-								else sender_range.pageID = String.fromCharCode(main_letter) + (++main_number);	
-							}
+					var page = range_data.last;
+					if (!page) continue;
+					page = $('.' + String.fromCharCode(page.charCodeAt(0) + 1) + page.substr(1));
+					var keys = page.attr('class').split(' ');
+					if (keys.shift() == 'outer') keys.shift();
+					var main_letter = compare.charAt(0);
+					var main_number = parseInt(compare.substr(1),10);
+					var times = 0;
+					for (var i=0; i < keys.length; ++i) {
+						var key_letter = keys[i].charAt(0);
+						var key_num = parseInt(keys[i].substr(1),10);
+						if (key_letter == main_letter) {
+							if (key_num < main_number) ++times;
+							else if (key_num == main_number) return '["none"]';
 						}
 					}
+					main_number += times;
+					sender_range.pageID = main_letter + main_number;
+					
 					if (main_data[0] == 'rearrange') {
-						/*
-						var pIDs = [];
-						$('.in + p[id]').each(function() { pIDs.push(this.id); });
-						var sender_pIDs = main_data[2];
-						var lost_pIDs = [];
-						for (var i in pIDs) {
-							if (sender_pIDs.indexOf(pIDs[i]) == -1) lost_pIDs.push(pIDs[i]);	
-						}
-						for (var i in lost_pIDs) {
-							var $this = $('#' + lost_pIDs[i]);
-							var $siblings = $this.parent('.outer').children('.in + p[id]');
-							var index = $siblings.index($this);
-							if (index == 0) {
-								var needle = $siblings.eq(index + 1).attr('id');
-								var index = sender_pIDs.indexOf(needle);
-								sender_pIDs.splice(index, 0, lost_pIDs[i]);
-							}
-							else {
-								var needle = $siblings.eq(index - 1).attr('id');
-								var index = sender_pIDs.indexOf(needle);
-								sender_pIDs.splice(index + 1, 0, lost_pIDs[i]);
-							}
-						}*/
-						/*
-						var pageKeys = main_data[1];
-						var old_pageKeys = main_data[5];
-						var diff = [];
-						for (var i in pageKeys) {
-							if (pageKeys[i] != old_pageKeys[i]) diff.push(i);
-						}
-						pageKeys = [];
-						$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
-						main_data[5] = pageKeys.slice();
-						var len = diff.length;
-						var keys = new Array(len);
-						for (var a=0; a<len; ++a) {
-							keys[a] = pageKeys[diff[a]].split(' ');
-						}
-						for (var a=0; a<len; ++a) {
-							for (var b in keys[a]) {
-								if (keys[a][b] != 'inner' && keys[a][b] != 'outer') {
-									if (get_parent_tag(keys[a][b]) == parent_tag) {
-										keys.push([a,b]);
-										break;
-									}
-								}
-							}
-						}
-						console.log(len,keys.length);
-						var temp = keys[keys[len][0]][keys[len][1]];
-						keys[keys[len][0]][keys[len][1]] = keys[keys[len+1][0]][keys[len+1][1]];
-						keys[keys[len+1][0]][keys[len+1][1]] = temp;
-						for (var a=0; a<len; ++a) {
-							pageKeys[diff[a]] = keys[a].join(' ');
-						}
-						sender_range = pageKeys;
-						*/
-						// May want a heuristic for this to save computation.
+						main_data[3] = String.fromCharCode(main_letter.charCodeAt(0) - 1) + main_number;
+						// Optimization tip: Look at code from 2/18/14 and earlier for ways to alter sender_range rather than relying on recalculating.
 						sender_range = false;
+					}
+					
+					else if (main_data[0] == 'insert_page') {
+						if (sender_range.page) {
+							compare = sender_range.page.substr(1);
+						}
+						else continue;
+						var main_letter = compare.charAt(0);
+						var main_number = parseInt(compare.substr(1),10);
+						var times = 0;
+						for (var i=0; i < keys.length; ++i) {
+							var key_letter = keys[i].charAt(0);
+							var key_num = parseInt(keys[i].substr(1),10);
+							if (key_letter == main_letter) {
+								if (key_num < main_number) ++times;
+								else if (key_num == main_number) return '["none"]';
+							}
+						}
+						main_number += times;
+						sender_range.page = '.' + main_letter + main_number;
+					}
+					
+					else if (main_data[0] == 'delete_page') {
+						sender_range = main_letter + main_number;
 					}
 				}
 				else if (data[0] == 'delete_page') {
-					var compare = sender_range.pageID;
+					if (instructions[j][3] == val.spkr) continue;
+					var compare = sender_range.pageID || sender_range;
 					if (main_data[0] == 'rearrange') {
 						compare = String.fromCharCode(main_data[3].charCodeAt(0) + 1) + main_data[3].substr(1);
 					}
@@ -4210,9 +4140,31 @@ function fix_collab(val) {
 					sender_range.pageID = main_letter + main_number;
 					
 					if (main_data[0] == 'rearrange') {
-						if (main_data[0] == 'rearrange') main_data[3] = String.fromCharCode(main_letter.charCodeAt(0) - 1) + main_number;
+						main_data[3] = String.fromCharCode(main_letter.charCodeAt(0) - 1) + main_number;
 						
 						sender_range = false;	
+					}
+					else if (main_data[0] == 'insert_page') {
+						if (sender_range.page) {
+							compare = sender_range.page.substr(1);
+						}
+						else continue;
+						var main_letter = compare.charAt(0);
+						var main_number = parseInt(compare.substr(1),10);
+						var times = 0;
+						for (var i=0; i < keys.length; ++i) {
+							var key_letter = keys[i].charAt(0);
+							var key_num = parseInt(keys[i].substr(1),10);
+							if (key_letter == main_letter) {
+								if (key_num < main_number) ++times;
+								else if (key_num == main_number) return '["none"]';
+							}
+						}
+						main_number -= times;
+						sender_range.page = '.' + main_letter + main_number;
+					}
+					else if (main_data[0] == 'delete_page') {
+						sender_range = main_letter + main_number;
 					}
 				}
 			}
@@ -4245,9 +4197,7 @@ function collab_send(msg) {
 	$.post(url,ajax_data);
 }
 
-
-// This function is for local testing.
-function collab_receive(val) {	
+function collab_execute(val) {	
 	var order = 0;
 	if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
 	else collab[val.spkr] = [order, {}];
@@ -4277,7 +4227,7 @@ function collab_receive(val) {
 			val.msg = msg;								// Need to update the val object before its passed to fix_collab
 			val.time = collab[val.spkr][1][order][1];
 			val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
-			msg = fix_collab(val);				// Apply fix before posting
+			msg = fix_collab(val);						// Apply fix before posting
 			
 			window.postMessage(msg,'*');
 			collab[val.spkr][0] = order;
