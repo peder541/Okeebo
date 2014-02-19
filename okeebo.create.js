@@ -4203,7 +4203,7 @@ function collab_execute(val) {
 	else collab[val.spkr] = [order, {}];
 	var t = new Date();
 	t = t.valueOf();
-	collab[val.spkr][1][val.order[val.spkr]] = [val.msg,val.time,t];
+	collab[val.spkr][1][val.order[val.spkr]] = [val.msg,val.time,t,val.order];
 	if (order == val.order[val.spkr]) {
 		// Do the current task
 		var msg = JSON.parse(val.msg);
@@ -4226,7 +4226,8 @@ function collab_execute(val) {
 			
 			val.msg = msg;								// Need to update the val object before its passed to fix_collab
 			val.time = collab[val.spkr][1][order][1];
-			val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
+			//val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
+			val.order = collab[val.spkr][1][order][3];
 			msg = fix_collab(val);						// Apply fix before posting
 			
 			window.postMessage(msg,'*');
