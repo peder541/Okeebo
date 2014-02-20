@@ -73,8 +73,7 @@ function add_checkboxes_for_continuous_reading() {
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'",' + JSON.stringify(old_pageKeys) + ']';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 			}
 		});
 	});
@@ -373,13 +372,11 @@ $(document).ready(function(event) {
 						}
 					}
 					var msg = '["backspace",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');
+					collab_send(msg);
 				}
 				else if (event.which == 13) {
 					var msg = '["enter",' + sender_range + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');
+					collab_send(msg);
 				}
 				else if (event.which == 46) {
 					var sel = document.getSelection();
@@ -400,8 +397,7 @@ $(document).ready(function(event) {
 						}
 					}
 					var msg = '["delete",' + sender_range + ',' + JSON.stringify(deletedText) + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');	
+					collab_send(msg);	
 				}
 				else if (event.which == 32) {
 					/// might want a distribution of &nbsp; to ' ' that's more similar to the native implementation
@@ -420,8 +416,7 @@ $(document).ready(function(event) {
 					var sel = document.getSelection();
 					var deletedText = sel.toString();
 					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',' + JSON.stringify(deletedText) + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');
+					collab_send(msg);
 					console.log('Typing:',msg);
 				}
 			}
@@ -443,8 +438,7 @@ $(document).ready(function(event) {
 			//if ($(this).is('div[contenteditable]')) {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 			//}
 		}
 		if ($(this).is('h3')) {
@@ -558,8 +552,7 @@ $(document).ready(function(event) {
 						var sel = document.getSelection();
 						var deletedText = sel.toString();
 						if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
-						if (typeof(nick) !== 'undefined') collab_send(msg);
-						else window.parent.postMessage(msg,'*');	
+						collab_send(msg);	
 					}
 					if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 					else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
@@ -598,8 +591,7 @@ $(document).ready(function(event) {
 					var sel = document.getSelection();
 					var deletedText = sel.toString();
 					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');	
+					collab_send(msg);	
 				}
 				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
@@ -627,8 +619,7 @@ $(document).ready(function(event) {
 				var sel = document.getSelection();
 				var deletedText = sel.toString();
 				if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');	
+				collab_send(msg);	
 			}
 			document.execCommand('insertText',false,text);
 			event.preventDefault();
@@ -636,8 +627,7 @@ $(document).ready(function(event) {
 		if (event.type == 'cut' && _clip != '' && (window.top !== window.self || typeof(nick) !== 'undefined')) {
 			var sender_range = JSON.stringify(getSenderRange());
 			var msg = '["keydown","",' + sender_range + ',"' + _clip + '"]';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 		$('body').css({'overflow-y':'auto','overflow-x':'hidden'});
 		resize_windows();
@@ -653,8 +643,7 @@ $(document).ready(function(event) {
 			//if ($(this).is('div[contenteditable]')) {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 			//}
 		}
 	})
@@ -962,91 +951,6 @@ $(document).ready(function(event) {
 			$('#new_page').css('top',324);
 		}
 	});
-	if (window.self !== window.top || typeof(nick) !== 'undefined' || 1) {
-		$(window).on('message',function(event) {
-			event = event.originalEvent;
-			try {
-			var data = JSON.parse(event.data.replace(/\n/g,''));
-			}
-			catch(e) {
-				console.log(e.toString(),event.data);	
-			}
-			if (window.self !== window.top && data[0] != 'cursor') console.log('Receive:',event.data); //55113 
-			if ($('svg').is(':visible')) {
-				var _graph = 1;
-				toggle_graph();
-			}
-			if (data[0] == 'list') {
-				var sender_range = deriveRange(data[1]);
-				var list_type = data[2];
-				partner_list(sender_range,list_type);	
-			}
-			else if (data[0] == 'compare_ranges') {
-				compare_ranges(data[1],data[2],true);	
-			}
-			else if (data[0] == 'keydown') {
-				var sender_range = deriveRange(data[2]);
-				var sender_text = data[1];
-				var keyup = data[2].span >= 0 || data[2].h3;
-				partner_insert(sender_range,sender_text,keyup);
-			}
-			else if (data[0] == 'backspace') {
-				var sender_range = deriveRange(data[1]);
-				var keyup = data[1].span >= 0 || data[1].h3;
-				partner_backspace(sender_range,keyup);
-				$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
-			}
-			else if (data[0] == 'delete') {
-				var sender_range = deriveRange(data[1]);
-				var keyup = data[1].span >= 0 || data[1].h3;
-				partner_delete(sender_range,keyup);
-				$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
-			}
-			else if (data[0] == 'enter') {
-				var sender_range = deriveRange(data[1]);
-				var keyup = data[1].span >= 0 || data[1].h3;
-				partner_enter(sender_range,keyup);	
-			}
-			else if (data[0] == 'cursor') {
-				//var sender_range = deriveRange(data[1]);
-				if ($('.'+data[1].pageID).is(':visible')) partner_cursor(data[1],data[2]);
-				else $('.cursor').remove();
-			}
-			else if (data[0] == 'insert_page') {
-				partner_insert_page(data[1],data[2]);
-			}
-			else if (data[0] == 'delete_page') {
-				partner_delete_page(data[1]);	
-			}
-			else if (data[0] == 'undo_page_delete') {
-				partner_undo_page_delete();
-			}
-			else if (data[0] == 'rearrange') {
-				partner_rearrange(data[1],data[2],data[3],data[4]);	
-			}
-			else if (data[0] == 'format_text') {
-				partner_format_text(data[1],deriveRange(data[2]));	
-			}
-			if (data[0] != 'cursor') {
-				var sender_range = JSON.stringify(getSenderRange());
-				if (sender_range != 'false') {
-					var msg = '["cursor",' + sender_range + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');
-				}
-			}
-			if (typeof(_graph) !== 'undefined' && _graph) {
-				toggle_graph(1);
-				/*if (data[0] == 'cursor') {
-					// depict which page/node the other person is modifying
-					var circle = d3.selectAll('circle');
-					circle.classed('cursor',false);
-					circle.filter(function(d,i) { return 1+d.indexOf(data[1].pageID); }).classed('cursor',true);
-				}*/
-			}
-		});
-	}
-	
 	
 	/// Button Events
 	$('#menu').on('click',function(event) {
@@ -1065,8 +969,7 @@ $(document).ready(function(event) {
 	$('#bold').on('click',function(event) {
 		if (window.top !== window.self || typeof(nick) !== 'undefined') {
 			var msg = '["format_text","b",' + JSON.stringify(getSenderRange()) + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');	
+			collab_send(msg);	
 		}
     	document.execCommand('bold', false, null);
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
@@ -1075,8 +978,7 @@ $(document).ready(function(event) {
 	$('#italic').on('click',function(event) {
 		if (window.top !== window.self || typeof(nick) !== 'undefined') {
 			var msg = '["format_text","i",' + JSON.stringify(getSenderRange()) + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');	
+			collab_send(msg);	
 		}
 		document.execCommand('italic', false, null);
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
@@ -1085,8 +987,7 @@ $(document).ready(function(event) {
 	$('#underline').on('click',function(event) {
 		if (window.top !== window.self || typeof(nick) !== 'undefined') {
 			var msg = '["format_text","u",' + JSON.stringify(getSenderRange()) + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');	
+			collab_send(msg);	
 		}
 		$(document.getSelection().anchorNode).closest('p')[0].normalize();
 		document.execCommand('underline', false, null);
@@ -1094,8 +995,7 @@ $(document).ready(function(event) {
 	$('#ul,#ol,#al').on('click',function(event) {
 		if (typeof(ghost) === 'undefined' || !ghost) {
 			var msg = '["list",' + JSON.stringify(getSenderRange()) + ',"' + event.target.id + '"]';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 		var sel = document.getSelection();
 		/// make something in span that looks like a list
@@ -1499,8 +1399,7 @@ function drop(event) {
 			$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 			$('.in + p[id]').each(function() { pIDs.push(this.id); });
 			var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",-1,' + JSON.stringify(old_pageKeys) + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 		//modify_arrange_buttons();
 		return true;
@@ -1524,8 +1423,7 @@ function drop(event) {
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',"' + data + '",' + i + ',' + JSON.stringify(old_pageKeys) + ']';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 			}
 			//modify_arrange_buttons();
 			return true;
@@ -1641,8 +1539,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 			'last': current_div.children('p[id]').last().attr('id')
 		};
 		var msg = '["insert_page",' + JSON.stringify(data) + ',' + ((cut) ? JSON.stringify(getSenderRange()) : '0') + ']';
-		if (typeof(nick) !== 'undefined') collab_send(msg);
-		else window.parent.postMessage(msg,'*');
+		collab_send(msg);
 	}
 	if (!reinsert) {
 		if (typeof(page) !== 'undefined' && page instanceof jQuery) {
@@ -1700,8 +1597,7 @@ function insert_page(summary,page,exists,reinsert,cut,ghost) {
 				$('.inner,.outer').each(function() { pageKeys.push($(this).attr('class')); });
 				$('.in + p[id]').each(function() { pIDs.push(this.id); });
 				var msg = '["rearrange",' + JSON.stringify(pageKeys) + ',' + JSON.stringify(pIDs) + ',0,"' + $(this).parent().parent().attr('id') +'"]';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 			}
 		});
 		if (_drag) toggle_edit_one(current_div);
@@ -1797,8 +1693,7 @@ function delete_page(target_id,quick,ghost) {
 	if (!ghost) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			var msg = '["delete_page","' + current_page.attr('id') + '"]';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 	}
 	if (current_page.hasClass('outer')) {
@@ -1917,8 +1812,7 @@ function undo_page_delete(ghost) {
 	}
 	if ((window.self !== window.top || typeof(nick) !== 'undefined') && !ghost) {
 		var msg = '["undo_page_delete","' + restore.page.attr('class').split(' ').pop() + '"]';
-		if (typeof(nick) !== 'undefined') collab_send(msg);
-		else window.parent.postMessage(msg,'*');
+		collab_send(msg);
 	}
 }
 
@@ -3808,8 +3702,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		}
 		else {
 			msg = '["compare_ranges",' + JSON.stringify(rangeA) + ',' + JSON.stringify(rangeB) + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 	}
 	if (dif.indexOf(1) != -1) {
@@ -3838,20 +3731,17 @@ function compare_ranges(rangeA,rangeB,ghost) {
 		if (contents.childNodes.length > 1) {
 			for (var i = 0, l = contents.childNodes.length; i < l; ++i) {
 				var msg = '["keydown","' + contents.childNodes[l-i-1].textContent + '",' + sender_range + ']';
-				if (typeof(nick) !== 'undefined') collab_send(msg);
-				else window.parent.postMessage(msg,'*');
+				collab_send(msg);
 				if (i != l - 1) {
 					var msg = '["enter",' + sender_range + ']';
-					if (typeof(nick) !== 'undefined') collab_send(msg);
-					else window.parent.postMessage(msg,'*');
+					collab_send(msg);
 				}
 			}
 		}
 		else {
 			var msg = '["keydown","' + text + '",' + sender_range + ']';
 			if (text == '') msg = '["enter",' + sender_range + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 	}
 	if (dif[0] == 0 && dif[1] == 0) {
@@ -3861,15 +3751,13 @@ function compare_ranges(rangeA,rangeB,ghost) {
 			// Most likely an undo of a "paragraph merging" delete. Need to check if anything else fits this heuristic.
 			var sender_range = JSON.stringify(getSenderRange());
 			var msg = '["enter",' + sender_range + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 		else if (rangeA.others > rangeB.others) {
 			// Most likely a redo of a "paragaph merging" delete. Need to check if anything else fits this heuristic.
 			var sender_range = JSON.stringify(getSenderRange());
 			var msg = '["delete",' + sender_range + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 		else if (rangeA.size < rangeB.size) {
 			// Most likely an undo of a regular delete. Need to check if anything else fits this heuristic.
@@ -3881,8 +3769,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 			text = range.cloneContents().textContent;
 			var sender_range = JSON.stringify(getSenderRange());
 			var msg = '["keydown","' + text + '",' + sender_range + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');	
+			collab_send(msg);	
 		}
 		else if (rangeA.size > rangeB.size) {
 			// Most likely a redo of a regular delete. Need to check if anything else fits this heuristic.
@@ -3891,8 +3778,7 @@ function compare_ranges(rangeA,rangeB,ghost) {
 			sender_range.end = sender_range.spot + dif;
 			sender_range = JSON.stringify(sender_range);
 			var msg = '["delete",' + sender_range + ']';
-			if (typeof(nick) !== 'undefined') collab_send(msg);
-			else window.parent.postMessage(msg,'*');
+			collab_send(msg);
 		}
 	}
 }
@@ -3912,7 +3798,7 @@ function collab_updates() {
 				for (var i=0; row[i]; ++i) {
 					var val = JSON.parse(row[i]);
 					if (val.spkr != nick || line == 0) {
-						collab_execute(val);
+						collab_dispatch(val);
 					}
 				}
 				line = result.line;
@@ -4178,6 +4064,12 @@ function fix_collab(val) {
 }
 
 function collab_send(msg) {
+	if (typeof(nick) === 'undefined') {
+		if (window.top.frames[0] == window.self)
+			var nick = 'ben@okeebo.com';
+		else
+			var nick = 'peder541@umn.edu';	
+	}
 	var order = 0;
 	var t = new Date();
 	t = t.valueOf();
@@ -4192,12 +4084,18 @@ function collab_send(msg) {
 	order = {};
 	for (var i in collab) order[i] = collab[i][0];
 	var val = {spkr: nick, msg: msg, order: order, time: t};
-	var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
-	var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
-	$.post(url,ajax_data);
+	
+	if (typeof(window.nick) !== 'undefined') {
+		var ajax_data = 'val=' + encodeURIComponent(JSON.stringify(val));
+		var url = 'https://www.okeebo.com/test/collab/?book=' + $('.Z1 h3').html();
+		$.post(url,ajax_data);
+	}
+	else {
+		window.parent.postMessage(JSON.stringify(val),'*');
+	}
 }
 
-function collab_execute(val) {	
+function collab_dispatch(val) {	
 	var order = 0;
 	if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
 	else collab[val.spkr] = [order, {}];
@@ -4213,7 +4111,7 @@ function collab_execute(val) {
 		
 		msg = fix_collab(val);	// Apply fix before posting
 		
-		window.postMessage(msg,'*');
+		collab_execute(msg);
 		collab[val.spkr][0] = order;
 		// Do any directly following tasks that may be queued
 		while (collab[val.spkr][1][++order]) {
@@ -4230,8 +4128,89 @@ function collab_execute(val) {
 			val.order = collab[val.spkr][1][order][3];
 			msg = fix_collab(val);						// Apply fix before posting
 			
-			window.postMessage(msg,'*');
+			collab_execute(msg);
 			collab[val.spkr][0] = order;
 		}
+	}
+}
+
+function collab_execute(msg) {
+	try {
+	var data = JSON.parse(msg.replace(/\n/g,''));
+	}
+	catch(e) {
+		console.log(e.toString(),msg);	
+	}
+	if (window.self !== window.top && data[0] != 'cursor') console.log('Receive:',msg); //55113 
+	if ($('svg').is(':visible')) {
+		var _graph = 1;
+		toggle_graph();
+	}
+	if (data[0] == 'list') {
+		var sender_range = deriveRange(data[1]);
+		var list_type = data[2];
+		partner_list(sender_range,list_type);	
+	}
+	else if (data[0] == 'compare_ranges') {
+		compare_ranges(data[1],data[2],true);	
+	}
+	else if (data[0] == 'keydown') {
+		var sender_range = deriveRange(data[2]);
+		var sender_text = data[1];
+		var keyup = data[2].span >= 0 || data[2].h3;
+		partner_insert(sender_range,sender_text,keyup);
+	}
+	else if (data[0] == 'backspace') {
+		var sender_range = deriveRange(data[1]);
+		var keyup = data[1].span >= 0 || data[1].h3;
+		partner_backspace(sender_range,keyup);
+		$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
+	}
+	else if (data[0] == 'delete') {
+		var sender_range = deriveRange(data[1]);
+		var keyup = data[1].span >= 0 || data[1].h3;
+		partner_delete(sender_range,keyup);
+		$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
+	}
+	else if (data[0] == 'enter') {
+		var sender_range = deriveRange(data[1]);
+		var keyup = data[1].span >= 0 || data[1].h3;
+		partner_enter(sender_range,keyup);	
+	}
+	else if (data[0] == 'cursor') {
+		//var sender_range = deriveRange(data[1]);
+		if ($('.'+data[1].pageID).is(':visible')) partner_cursor(data[1],data[2]);
+		else $('.cursor').remove();
+	}
+	else if (data[0] == 'insert_page') {
+		partner_insert_page(data[1],data[2]);
+	}
+	else if (data[0] == 'delete_page') {
+		partner_delete_page(data[1]);	
+	}
+	else if (data[0] == 'undo_page_delete') {
+		partner_undo_page_delete();
+	}
+	else if (data[0] == 'rearrange') {
+		partner_rearrange(data[1],data[2],data[3],data[4]);	
+	}
+	else if (data[0] == 'format_text') {
+		partner_format_text(data[1],deriveRange(data[2]));	
+	}
+	if (data[0] != 'cursor') {
+		var sender_range = JSON.stringify(getSenderRange());
+		if (sender_range != 'false') {
+			var msg = '["cursor",' + sender_range + ']';
+			collab_send(msg);
+		}
+	}
+	if (typeof(_graph) !== 'undefined' && _graph) {
+		toggle_graph(1);
+		/*if (data[0] == 'cursor') {
+			// depict which page/node the other person is modifying
+			var circle = d3.selectAll('circle');
+			circle.classed('cursor',false);
+			circle.filter(function(d,i) { return 1+d.indexOf(data[1].pageID); }).classed('cursor',true);
+		}*/
 	}
 }
