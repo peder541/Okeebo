@@ -911,6 +911,7 @@ $(document).ready(function(event) {
 	/// Window Events
 	$(window).on('resize',function(event) {
 		resize_writing_items();
+		resize_cursor();
 	})
 	.on('scroll',function(event) {
 		var sidebar = $('#sidebar');
@@ -4121,7 +4122,7 @@ function collab_dispatch(val) {
 		var msg = JSON.parse(val.msg);
 		if (msg[0] == 'cursor') msg.push(val.spkr);
 		
-		msg = JSON.stringify(msg);
+		val.msg = JSON.stringify(msg);
 		
 		msg = fix_collab(val);	// Apply fix before posting
 		
@@ -4232,6 +4233,14 @@ function collab_execute(msg) {
 function resize_cursor() {
 	$('.cursor').each(function() {
 		var $this = $(this);
-		console.log($this.attr('title'));	
+		var spkr = $this.attr('title');
+		var index = collab[spkr][0];
+		var msg = collab[spkr][1][index][0];
+		var data = JSON.parse(msg);
+		while (data[0] != 'cursor') {
+			msg = collab[spkr][1][--index][0];
+			data = JSON.parse(msg);
+		}
+		partner_cursor(data[1],spkr);
 	});
 }
