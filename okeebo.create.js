@@ -4155,7 +4155,7 @@ function collab_dispatch(val) {
 		
 		collab[val.spkr][0] = order;
 		collab_execute(msg);
-		collab[val.spkr][1][order][0] = JSON.stringify(msg);	// Update with fixed message to keep synch for 3+ users
+		collab[val.spkr][1][order][0] = msg;	// Update with fixed message to keep synch for 3+ users
 		
 		// Do any directly following tasks that may be queued
 		while (collab[val.spkr][1][++order]) {
@@ -4173,7 +4173,7 @@ function collab_dispatch(val) {
 			
 			collab[val.spkr][0] = order;
 			collab_execute(msg);
-			collab[val.spkr][1][order][0] = JSON.stringify(msg);	// Update with fixed message to keep synch for 3+ users
+			collab[val.spkr][1][order][0] = msg;		// Update with fixed message to keep synch for 3+ users
 		}
 	}
 }
@@ -4266,10 +4266,11 @@ function resize_cursor() {
 		var index = collab[spkr][0];
 		var msg = collab[spkr][1][index][0];
 		var data = JSON.parse(msg);
-		while (data[0] != 'cursor') {
+		while (data[0] != 'cursor' && index > 0) {
 			msg = collab[spkr][1][--index][0];
 			data = JSON.parse(msg);
 		}
-		partner_cursor(data[1],spkr);
+		if (data[0] == 'cursor') partner_cursor(data[1],spkr);
+		else $this.remove();
 	});
 }
