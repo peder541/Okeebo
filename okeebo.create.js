@@ -417,7 +417,6 @@ $(document).ready(function(event) {
 					var deletedText = sel.toString();
 					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',' + JSON.stringify(deletedText) + ']';
 					collab_send(msg);
-					console.log('Typing:',msg);
 				}
 			}
 			/*else if (event.ctrlKey) {
@@ -3815,7 +3814,7 @@ function collab_updates() {
 // The concept was successful when testing very small. The looping seems to be very problematic.
 // Perhaps not a high priority issue though?
 // Working better when I calculate the difference between range data rather than undo and reapply instructions.
-cursor_test = 0;
+cursor_test = { order: {}, spot: null };
 function fix_collab(val) {
 	var main_data = JSON.parse(val.msg);
 	//if (main_data[0] == 'cursor') return val.msg;
@@ -3849,15 +3848,30 @@ function fix_collab(val) {
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 				if (range_data.spot <= sender_range.spot + dif) {
-					/*if (val.time < instructions[j][1] && main_data[1] != 'cursor') {
-						console.log(main_data[1],sender_range.spot,range_data.spot,cursor_test);
-						if (Math.abs(range_data.spot - sender_range.spot) == cursor_test) {
-							dif = 0;
-							if (typeof(main_data[1]) === 'string') cursor_test += main_data[1].length;
-							break;
+					
+					// Special Case for Cursor in the Same Spot //
+					if (sender_range.spot == cursor_test.spot) {
+						var test = true;
+						for (var p in val.order) {
+							if (p == val.spkr) continue;
+							if (val.order[p] != cursor_test.order[p]) {
+								test = false;
+								cursor_test = { order: {}, spot: null };
+								continue;	
+							}
 						}
-						else cursor_test = 0;
-					}*/
+						if (test) {
+							if (typeof(main_data[1]) === 'string') cursor_test.spot = sender_range.spot + main_data[1].length;
+							continue;
+						}
+					}
+					else if (val.time < instructions[j][1] && range_data.spot == sender_range.spot + dif) {
+						for (var p in val.order) cursor_test.order[p] = val.order[p];
+						cursor_test.spot = sender_range.spot + main_data[1].length;
+						continue;
+					}
+					// end //
+					
 					if (range_data.end) dif -= range_data.end - range_data.spot;
 					dif += data[1].length;
 				}
@@ -4141,7 +4155,7 @@ function collab_execute(msg) {
 	catch(e) {
 		console.log(e.toString(),msg);	
 	}
-	if (window.self !== window.top && data[0] != 'cursor') console.log('Receive:',msg); //55113 
+	if (window.self !== window.top && data[0] != 'cursor') console.log(msg); //55113 
 	if ($('svg').is(':visible')) {
 		var _graph = 1;
 		toggle_graph();
@@ -4213,4 +4227,11 @@ function collab_execute(msg) {
 			circle.filter(function(d,i) { return 1+d.indexOf(data[1].pageID); }).classed('cursor',true);
 		}*/
 	}
+}
+
+function resize_cursor() {
+	$('.cursor').each(function() {
+		var $this = $(this);
+		console.log($this.attr('title'));	
+	});
 }
