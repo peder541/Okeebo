@@ -3513,6 +3513,13 @@ function getSenderRange(range) {
 	else if (range.startOffset != range.endOffset) senderRange.end = range.endOffset;
 	//
 	
+	if (range.startContainer.nodeType != 3) {
+		var spot = senderRange.spot;
+		var node = range.startContainer.childNodes[spot];
+		while (node && node.nodeType != 3 && spot > 0) node = range.startContainer.childNodes[--spot];
+		senderRange.special = (node && node.textContent.length) || true;
+	}
+	
 	return senderRange;
 }
 
@@ -3682,7 +3689,7 @@ function partner_conjugate(msg) {
 		case 'none':
 			var conjugate_msg = msg;
 	}
-	window.postMessage(conjugate_msg,'*');
+	collab_execute(conjugate_msg);
 	return conjugate_msg;
 }
 
@@ -3811,16 +3818,39 @@ function collab_updates() {
 	});
 }
 
-// The goal of this function is to correct collisions issue when multiple users edit the same paragraph. It needs a lot of work still.
-// The concept was successful when testing very small. The looping seems to be very problematic.
-// Perhaps not a high priority issue though?
-// Working better when I calculate the difference between range data rather than undo and reapply instructions.
+function getBetterRange(range_data,mode) {
+	var sender_range = {};
+	for (var p in range_data) {
+		if (p == 'miniDOM') {
+			sender_range.miniDOM = [];
+			for (var q in range_data.miniDOM) sender_range.miniDOM[q] = range_data.miniDOM[q];
+		}
+		else sender_range[p] = range_data[p];
+	}
+	var spot = sender_range.spot;
+	var range = deriveRange(sender_range);
+	var node = range.startContainer.childNodes[spot];
+	while (node.nodeType != 3 && spot > 0) node = range.startContainer.childNodes[--spot];
+	if (spot != sender_range.spot) {
+		spot = sender_range.special;
+	}
+	else {
+		spot = 0;
+	}
+	range.setStart(node,spot);
+	if (!sender_range.end) range.collapse(true);
+	return getSenderRange(range);
+}
+
+// The goal of this function is to correct concurrency issue when multiple users edit the same paragraph. It needs some work still.
 cursor_test = { order: {}, spot: null };
 function fix_collab(val) {
 	var main_data = JSON.parse(val.msg);
-	//if (main_data[0] == 'cursor') return val.msg;
-	/*else */if (main_data[0] != 'keydown') var sender_range = main_data[1];
-	else var sender_range = main_data[2];
+	if (main_data[0] == 'keydown') sender_range = main_data[2];
+	else sender_range = main_data[1];
+	
+	if (sender_range.special) sender_range = getBetterRange(sender_range);
+	
 	var instructions = [];
 	
 	for (var spkr in collab) {
@@ -3846,6 +3876,7 @@ function fix_collab(val) {
 			if (data[0] == 'keydown') {
 				var range_data = data[2];
 				if (!$('.' + sender_range.pageID).hasClass(range_data.pageID) || main_data[0] == 'insert_page') continue;
+				if (range_data.special) range_data = getBetterRange(range_data);
 				if (range_data.miniDOM.length != sender_range.miniDOM.length) continue;
 				for (var i in range_data.miniDOM) if (range_data.miniDOM[i] != sender_range.miniDOM[i]) continue outerloop;
 				if (range_data.spot <= sender_range.spot + dif) {
@@ -3867,6 +3898,8 @@ function fix_collab(val) {
 						}
 					}
 					else if (val.time < instructions[j][1] && range_data.spot == sender_range.spot + dif) {
+						if (main_data[0] == 'keydown') main_data[2] = sender_range;
+						else main_data[1] = sender_range;
 						for (var p in val.order) cursor_test.order[p] = val.order[p];
 						cursor_test.spot = sender_range.spot + main_data[1].length;
 						continue;
@@ -3908,13 +3941,9 @@ function fix_collab(val) {
 				else if (data[0] == 'rearrange') {
 					if (main_data[0] == 'rearrange' || main_data[0] == 'none') {
 						if (val.order[instructions[j][3]] || instructions[j][3] != val.spkr) {
-							/*if (val.time < instructions[j][1]) {
-								setTimeout(partner_conjugate,0,partner_conjugate(instructions[j][0]));
-							}*/
 							if (val.time < instructions[j][1]) {
 								partner_conjugate(instructions[j][0]);
 								instructions[j][0] = '["none"]';	
-
 							}
 							else main_data[0] = 'none';
 						}
@@ -4070,10 +4099,12 @@ function fix_collab(val) {
 				}
 			}
 		}
-		sender_range.spot += dif;
-		if (sender_range.end) sender_range.end += dif;
-		if (main_data[0] == 'keydown') main_data[2] = sender_range;
-		else main_data[1] = sender_range;
+		if (dif != 0) {
+			sender_range.spot += dif;
+			if (sender_range.end) sender_range.end += dif;
+			if (main_data[0] == 'keydown') main_data[2] = sender_range;
+			else main_data[1] = sender_range;
+		}
 	}
 	return JSON.stringify(main_data);
 }
@@ -4126,8 +4157,10 @@ function collab_dispatch(val) {
 		
 		msg = fix_collab(val);	// Apply fix before posting
 		
-		collab_execute(msg);
 		collab[val.spkr][0] = order;
+		collab_execute(msg);
+		collab[val.spkr][1][order][0] = JSON.stringify(msg);	// Update with fixed message to keep synch for 3+ users
+		
 		// Do any directly following tasks that may be queued
 		while (collab[val.spkr][1][++order]) {
 			var t = new Date();
@@ -4139,12 +4172,12 @@ function collab_dispatch(val) {
 			
 			val.msg = msg;								// Need to update the val object before its passed to fix_collab
 			val.time = collab[val.spkr][1][order][1];
-			//val.order[val.spkr] = order - 1;			// Might need to store the order object earlier and retrieve it here
 			val.order = collab[val.spkr][1][order][3];
 			msg = fix_collab(val);						// Apply fix before posting
 			
-			collab_execute(msg);
 			collab[val.spkr][0] = order;
+			collab_execute(msg);
+			collab[val.spkr][1][order][0] = JSON.stringify(msg);	// Update with fixed message to keep synch for 3+ users
 		}
 	}
 }
