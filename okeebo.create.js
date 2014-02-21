@@ -3898,8 +3898,6 @@ function fix_collab(val) {
 						}
 					}
 					else if (val.time < instructions[j][1] && range_data.spot == sender_range.spot + dif) {
-						if (main_data[0] == 'keydown') main_data[2] = sender_range;
-						else main_data[1] = sender_range;
 						for (var p in val.order) cursor_test.order[p] = val.order[p];
 						cursor_test.spot = sender_range.spot + main_data[1].length;
 						continue;
@@ -4099,12 +4097,10 @@ function fix_collab(val) {
 				}
 			}
 		}
-		if (dif != 0) {
-			sender_range.spot += dif;
-			if (sender_range.end) sender_range.end += dif;
-			if (main_data[0] == 'keydown') main_data[2] = sender_range;
-			else main_data[1] = sender_range;
-		}
+		sender_range.spot += dif;
+		if (sender_range.end) sender_range.end += dif;
+		if (main_data[0] == 'keydown') main_data[2] = sender_range;
+		else main_data[1] = sender_range;
 	}
 	return JSON.stringify(main_data);
 }
