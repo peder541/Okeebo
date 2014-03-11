@@ -39,7 +39,7 @@ function resize_windows(){
 			
 	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-mapWidth);
 	var map_left = $('#map').offset().left;
-	$('#search').css('left',map_left+71);
+	$('#search').css('left',map_left+72);
 	/*$('#search').css('left',0.88*(map_left-left_margin)+left_margin);
 	$('#notes').css('left',0.55*(map_left-left_margin)+left_margin);
 	$('#home').css('left',0.22*(map_left-left_margin)+left_margin);*/
