@@ -50,7 +50,13 @@ $(document).ready(function(event) {
 						if (page_id == '`1') page_id = 'Z1';
 						var summary_id = String.fromCharCode(page_id.charCodeAt(0)-1) + page_id.substr(1);
 						toggle_graph();
-						insert_page($('#' + summary_id).clone(),$('.' + page_id),1);
+						if (event.ctrlKey) {	// Clone Page rather than "Multiple Inheritance"
+							var $clone = $('.' + page_id).clone().attr('id','');
+							if ($clone.hasClass('outer')) $clone.attr('class','outer inner');
+							else $clone.attr('class','inner');
+							insert_page($('#' + summary_id).clone(),$clone);
+						}
+						else insert_page($('#' + summary_id).clone(),$('.' + page_id),1);
 						if (continuous) toggle_graph(1);
 					}
 				}
