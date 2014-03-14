@@ -167,6 +167,28 @@ $(document).ready(function(event) {
 	$(document).on('keydown',function(event) {
 		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
 			switch (event.which) {
+				case 65:
+					///// Slight Improvement to Select All for FireFox /////
+					var sel = document.getSelection();
+					var range = sel.getRangeAt(0);
+					var node = $(range.startContainer).closest('[contenteditable]')[0];
+					var last = node;
+					while (node.nodeType != 3) {
+						node = node.childNodes[0];
+						if ($(node).is('table')) return true;
+					}
+					while (last.nodeType != 3) {
+						last = last.childNodes[last.childNodes.length-1];
+					}
+					var clone = range.cloneRange();
+					clone.setStart(node,0);
+					clone.setEnd(last,last.textContent.length-1);
+					range.setStart(last,last.textContent.length-1);
+					range.setEnd(last,last.textContent.length);
+					sel.removeAllRanges();
+					sel.addRange(range);
+					sel.addRange(clone);
+					return false;
 				case 66:
 					$('#bold').click();
 					return false;
@@ -206,7 +228,7 @@ $(document).ready(function(event) {
 				/**/
 			}
 		}
-		if (event.which == 8 && !$(event.target).is('[contenteditable="true"]')) return false;
+		if (event.which == 8 && !$(event.target).is('[contenteditable="true"],input')) return false;
 		if ($('svg').is(':visible') && event.which == 40) return false;
 	})
 	.on('keydown','h3[contenteditable="true"],p[id] > span:first-child[contenteditable="true"]',function(event) {
@@ -280,6 +302,19 @@ $(document).ready(function(event) {
 	})
 	.on('keyup',function(event) {
 		if (event.which == 20) caps = !caps;
+	})
+	.on('focus','span[contenteditable="true"]:nth-of-type(2)',function(event) {
+		if (['Response (400 Word Max)','Summary',''].indexOf(this.textContent) != -1) {
+			if (!$(this).attr('data-content')) $(this).attr('data-content',this.textContent);
+			this.innerHTML = '<br>';
+			if ($(this).height() > 30) this.innerHTML = '';
+			size_buttons($('.outer:visible'));
+		}
+	}).on('blur','span[contenteditable="true"]:nth-of-type(2)',function(event) {
+		if (this.textContent == '') {
+			this.innerHTML = $(this).attr('data-content') || '';
+			size_buttons($('.outer:visible'));
+		}
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
 		if (event.which == 8 || event.which == 46) {
@@ -479,7 +514,7 @@ $(document).ready(function(event) {
 		resize_writing_items();
 		if (document.getSelection) var anchorNode = document.getSelection().anchorNode;
 		else if (document.selection.type == 'Text') var anchorNode = document.selection.createRange().parentElement().childNodes[0];
-		if (anchorNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
+		if (anchorNode && anchorNode.parentNode && anchorNode.parentNode.tagName == 'TD') $('.active-img').click();
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		var title_paste;
@@ -652,7 +687,7 @@ $(document).ready(function(event) {
 	})
 	/**/
 	.on('input','[contenteditable="true"]',function(event) {
-		setTimeout(keyup,10,$(this));		
+		setTimeout(keyup,10,$(this));
 	});
 	// Resizable Images in Chrome, Opera, and Safari
 	$(document).on('click','[contenteditable="true"] img,[contenteditable="true"] video,[contenteditable="true"] object,[contenteditable="true"] table',function(event) {
@@ -3819,14 +3854,7 @@ function collab_updates() {
 }
 
 function getBetterRange(range_data,mode) {
-	var sender_range = {};
-	for (var p in range_data) {
-		if (p == 'miniDOM') {
-			sender_range.miniDOM = [];
-			for (var q in range_data.miniDOM) sender_range.miniDOM[q] = range_data.miniDOM[q];
-		}
-		else sender_range[p] = range_data[p];
-	}
+	var sender_range = $.extend(true, {}, range_data);
 	var spot = sender_range.spot;
 	var range = deriveRange(sender_range);
 	var node = range.startContainer.childNodes[spot];
@@ -4151,11 +4179,12 @@ function collab_dispatch(val) {
 		
 		val.msg = JSON.stringify(msg);
 		
-		msg = fix_collab(val);	// Apply fix before posting
-		
 		collab[val.spkr][0] = order;
-		collab_execute(msg);
+		
+		msg = fix_collab(val);					// Apply fix before posting
+		
 		collab[val.spkr][1][order][0] = msg;	// Update with fixed message to keep synch for 3+ users
+		collab_execute(msg);
 		
 		// Do any directly following tasks that may be queued
 		while (collab[val.spkr][1][++order]) {
@@ -4169,11 +4198,13 @@ function collab_dispatch(val) {
 			val.msg = msg;								// Need to update the val object before its passed to fix_collab
 			val.time = collab[val.spkr][1][order][1];
 			val.order = collab[val.spkr][1][order][3];
-			msg = fix_collab(val);						// Apply fix before posting
 			
 			collab[val.spkr][0] = order;
-			collab_execute(msg);
+			
+			msg = fix_collab(val);						// Apply fix before posting
+			
 			collab[val.spkr][1][order][0] = msg;		// Update with fixed message to keep synch for 3+ users
+			collab_execute(msg);
 		}
 	}
 }
@@ -4185,7 +4216,10 @@ function collab_execute(msg) {
 	catch(e) {
 		console.log(e.toString(),msg);	
 	}
-	if (window.self !== window.top && data[0] != 'cursor') console.log(msg); //55113 
+	if (window.self !== window.top && data[0] != 'cursor') {
+		if (window.self == window.frames[0]) console.log('0:',msg);
+		else console.log('1:',msg);
+	}
 	if ($('svg').is(':visible')) {
 		var _graph = 1;
 		toggle_graph();
