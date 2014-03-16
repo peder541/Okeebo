@@ -4134,12 +4134,13 @@ function fix_collab(val) {
 }
 
 function collab_send(msg) {
-	if (typeof(nick) === 'undefined') {
+	if (typeof(window.nick) === 'undefined') {
 		if (window.top.frames[0] == window.self)
 			var nick = 'ben@okeebo.com';
 		else
 			var nick = 'peder541@umn.edu';	
 	}
+	else nick = window.nick;
 	var order = 0;
 	var t = new Date();
 	t = t.valueOf();
