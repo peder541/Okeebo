@@ -3246,7 +3246,7 @@ function partner_backspace(sender_range,keyup) {
 }
 
 // This and partner_backspace are similar enough that they should probably be combined somehow.
-function partner_delete(sender_range,keyup) {
+function partner_delete(sender_range,keyup,old_text) {
 	var startElement = $(sender_range.startContainer).closest('p,li,h3');
 	var endElement = $(sender_range.endContainer).closest('p,li,h3');
 	if (startElement.is(endElement) || startElement.length == 0) {
@@ -3259,12 +3259,10 @@ function partner_delete(sender_range,keyup) {
 					node = node.childNodes[index];
 					sender_range.setStart(node,0);
 					sender_range.setEnd(node,1);
-					sender_range.deleteContents();
 				}
 				else {
 					if (node.nodeType == 3) {
 						sender_range.setEnd(node,index);
-						sender_range.deleteContents();
 					}
 					else {
 						while (node.textContent.length == 0) node = node.nextSibling;
@@ -3275,9 +3273,9 @@ function partner_delete(sender_range,keyup) {
 						}
 						sender_range.setStart(node,0);
 						sender_range.setEnd(node,1);
-						sender_range.deleteContents();
 					}
 				}
+				if (sender_range.cloneContents().textContent == old_text) sender_range.deleteContents();
 			}
 			catch(e) {
 				var range_data = getSenderRange(sender_range);
@@ -3319,7 +3317,6 @@ function partner_delete(sender_range,keyup) {
 						}
 						sender_range.setStart(node,0);
 						sender_range.setEnd(node,1);
-						sender_range.deleteContents();
 					}
 					else {
 						try {
@@ -3332,12 +3329,14 @@ function partner_delete(sender_range,keyup) {
 							sender_range.setStart(finalExceptionNode,0);
 							sender_range.setEnd(finalExceptionNode,1);
 						}
-						sender_range.deleteContents();
 					}
+					if (sender_range.cloneContents().textContent == old_text) sender_range.deleteContents();
 				}
 			}
 		}
-		else sender_range.deleteContents();
+		else {
+			if (sender_range.cloneContents().textContent == old_text) sender_range.deleteContents();
+		}
 		if (keyup) $(sender_range.startContainer.parentNode).closest('[contenteditable="true"]').keyup();
 	}
 	else partner_insert(sender_range, '', keyup);
@@ -3893,8 +3892,8 @@ function fix_collab(val) {
 	}
 	
 	if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
-		// Sort based on applied timestamp
-		instructions.sort(function(a,b) { return a[2] - b[2]; });
+		// Sort based on timestamp
+		instructions.sort(function(a,b) { return a[1] - b[1]; });
 		var dif = 0;
 		
 		outerloop:		// this is a label name
@@ -3950,6 +3949,11 @@ function fix_collab(val) {
 					if (range_data.spot <= sender_range.spot + dif) {
 						if (range_data.end) dif -= range_data.end - range_data.spot;
 						else dif -= 1;
+					}
+					else {
+						if (typeof(main_data[1]) === 'string') range_data.spot += main_data[1].length;
+						data[2] = range_data;
+						collab[instructions[j][3]][1][instructions[j][4]][0] = JSON.stringify(data);	
 					}
 				}
 				else if (data[0] == 'enter') {
@@ -4137,8 +4141,10 @@ function collab_send(msg) {
 	if (typeof(window.nick) === 'undefined') {
 		if (window.top.frames[0] == window.self)
 			var nick = 'ben@okeebo.com';
+		else if (window.top.frames[1] == window.self)
+			var nick = 'peder541@umn.edu';
 		else
-			var nick = 'peder541@umn.edu';	
+			var nick = '8bpedersen@gmail.com';
 	}
 	else nick = window.nick;
 	var order = 0;
@@ -4248,7 +4254,7 @@ function collab_execute(msg) {
 	else if (data[0] == 'delete') {
 		var sender_range = deriveRange(data[1]);
 		var keyup = data[1].span >= 0 || data[1].h3;
-		partner_delete(sender_range,keyup);
+		partner_delete(sender_range,keyup,data[2]);
 		$('body').find('b,i,u').filter(function() { return !this.innerHTML || this.innerHTML == ''; }).remove();
 	}
 	else if (data[0] == 'enter') {
