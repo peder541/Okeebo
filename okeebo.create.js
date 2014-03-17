@@ -482,7 +482,7 @@ $(document).ready(function(event) {
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
-			if ([37,38,39,40].indexOf(event.which) != -1 || typeof(nick) === 'undefined' || JSON.parse(collab[nick][1][collab[nick][0]][0])[0] == 'cursor') {
+			if ([37,38,39,40].indexOf(event.which) != -1 || typeof(nick) === 'undefined' || JSON.parse(collab[nick][1][collab[nick][0]][0])[0] != 'cursor') {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
 				collab_send(msg);
@@ -3581,14 +3581,18 @@ function deriveRange(senderRange,div) {
 	else if (senderRange.span >= 0) node = $('.' + senderRange.pageID + ' > p[id] > span')[senderRange.span];
 	else node = $('.' + senderRange.pageID + ' div[contenteditable]')[div];
 	var DOM = senderRange.miniDOM;
-	for (var i in DOM) node = node.childNodes[DOM[i]];
+	for (var i in DOM) {
+		node = node.childNodes[DOM[i]];
+	}
 	if ($(node).is('p')) {
 		$(document).one('keyup keydown',function(event) {
 			var sel = document.getSelection();
-			var range = sel.getRangeAt(0);
-			var node = range.startContainer;
-			if ($(node).is('p')) node.normalize();
-			else node.parentNode.normalize();
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0);
+				var node = range.startContainer;
+				if ($(node).is('p')) node.normalize();
+				else node.parentNode.normalize();
+			}
 		});
 	}
 	range.setStart(node,senderRange.spot);
