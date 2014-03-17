@@ -359,7 +359,6 @@ $(document).ready(function(event) {
 				var text = '';
 				var sender_range = JSON.stringify(getSenderRange());
 				
-				if (event.which != 32) nbsp = false;
 				if (event.which == 59) event.which = 186;
 				if (event.which == 61) event.which = 187;
 				if (event.which == 109 || event.which == 173) event.which = 189;
@@ -435,14 +434,28 @@ $(document).ready(function(event) {
 					collab_send(msg);	
 				}
 				else if (event.which == 32) {
-					/// might want a distribution of &nbsp; to ' ' that's more similar to the native implementation
-					if (typeof(nbsp) !== 'undefined' && nbsp) {
-						text = String.fromCharCode(160);
-						nbsp = false;
+					/// could be better to address this in function partner_insert
+					var sel = document.getSelection();
+					var range = sel.getRangeAt(0);
+					var clone = range.cloneRange();
+					var text = ' ';
+					if (clone.startOffset > 0) {
+						clone.collapse(true);
+						clone.setStart(clone.startContainer,clone.startOffset - 1);
+						if (clone.cloneContents().textContent.replace(/\s/g,' ') == ' ') {
+							text = String.fromCharCode(160);
+							sender_range = JSON.parse(sender_range);
+							sender_range.spot -= 1;
+							sender_range = JSON.stringify(sender_range);
+						}
+						else if (clone.endOffset < clone.endContainer.textContent.length) {
+							clone.collapse(false);
+							clone.setEnd(clone.endContainer,clone.endOffset + 1);
+							if (clone.cloneContents().textContent.replace(/\s/g,' ') == ' ') text = String.fromCharCode(160);
+						}
 					}
 					else {
-						text = ' ';
-						nbsp = true;
+						text = String.fromCharCode(160);
 					}
 				}
 				//else console.log(event.which);
@@ -469,11 +482,11 @@ $(document).ready(function(event) {
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
-			//if ($(this).is('div[contenteditable]')) {
+			if ([37,38,39,40].indexOf(event.which) != -1 || typeof(nick) === 'undefined' || JSON.parse(collab[nick][1][collab[nick][0]][0])[0] == 'cursor') {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
 				collab_send(msg);
-			//}
+			}
 		}
 		if ($(this).is('h3')) {
 			// Title (page)
@@ -3177,8 +3190,8 @@ function partner_backspace(sender_range,keyup) {
 		var node = sender_range.startContainer;
 		var $node = $(node);
 		if ($node.is(sender_range.endContainer) && sender_range.startOffset == sender_range.endOffset) {
-			var index = sender_range.startOffset-1;
-			try {
+			if (sender_range.startOffset > 0) {
+				var index = sender_range.startOffset - 1;
 				if ($node.is('p')) {
 					node = node.childNodes[index];
 					sender_range.setStart(node,node.textContent.length-1);
@@ -3202,7 +3215,7 @@ function partner_backspace(sender_range,keyup) {
 					}
 				}
 			}
-			catch(e) {
+			else {
 				var range_data = getSenderRange(sender_range);
 				var DOM = range_data.miniDOM;
 				DOM.shift();
@@ -3256,7 +3269,7 @@ function partner_delete(sender_range,keyup,old_text) {
 			var index = sender_range.endOffset + 1;
 			try {
 				if ($node.is('p')) {
-					node = node.childNodes[index];
+					node = node.childNodes[sender_range.endOffset];
 					sender_range.setStart(node,0);
 					sender_range.setEnd(node,1);
 				}
@@ -3275,7 +3288,7 @@ function partner_delete(sender_range,keyup,old_text) {
 						sender_range.setEnd(node,1);
 					}
 				}
-				if (sender_range.cloneContents().textContent == old_text) sender_range.deleteContents();
+				if (sender_range.cloneContents().textContent.replace(/\s/g,' ') == old_text.replace(/\s/g,' ')) sender_range.deleteContents();
 			}
 			catch(e) {
 				var range_data = getSenderRange(sender_range);
@@ -3319,11 +3332,11 @@ function partner_delete(sender_range,keyup,old_text) {
 						sender_range.setEnd(node,1);
 					}
 					else {
-						try {
+						if (sender_range.endOffset < node.textContent.length) {
 							sender_range.setStart(node,sender_range.endOffset);
 							sender_range.setEnd(node,sender_range.endOffset + 1);
 						}
-						catch (e3) {
+						else {
 							var finalExceptionNode = $(sender_range.startContainer).closest('b,i,u')[0].nextSibling;
 							while (finalExceptionNode.nodeType != 3) finalExceptionNode = finalExceptionNode.childNodes[0];
 							sender_range.setStart(finalExceptionNode,0);
@@ -4218,7 +4231,7 @@ function collab_dispatch(val) {
 
 function collab_execute(msg) {
 	try {
-	var data = JSON.parse(msg.replace(/\n/g,''));
+		var data = JSON.parse(msg.replace(/\n/g,''));
 	}
 	catch(e) {
 		console.log(e.toString(),msg);	
