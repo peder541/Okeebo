@@ -2943,18 +2943,43 @@ function up_down() {
 	- Use "rect = range.getBoundingClientRect();" to get coordinates for sender's cursor
 	
 */
+
+function partner_cursor_new(range_data,spkr) {
+	var sender_range = deriveRange(range_data);
+	var rect = sender_range.getClientRects();
+	$('.cursor[title="' + spkr + '"]').remove();
+	for (var i=0; i < rect.length; ++i) {
+		$('body').append('<p class="cursor" title="' + spkr + '"> </p>');
+		$('.cursor[title="' + spkr + '"]').eq(i).css({
+			'top': rect[i].top + $(window).scrollTop(),
+			'left': rect[i].left,
+			'height': rect[i].height,
+			'width': Math.max(rect[i].width,1),
+			'pointer-events': 'none',
+			'background-color': 'rgba(255, 0, 0, 0.25)'
+		});
+	}
+}
 function partner_cursor(range_data,spkr) {
 	//spkr = spkr.split(':')[0];
 	var sender_range = deriveRange(range_data);
 	var endRange;
-	if (sender_range) endRange = sender_range.cloneRange();
-	sender_range.collapse(true);
-	endRange.collapse(false);
 	$('.cursor[title="' + spkr + '"]').remove();
+	if (sender_range && !sender_range.collapsed) {
+		if (!IE) partner_cursor_new(range_data,spkr);
+		endRange = sender_range.cloneRange();
+		sender_range.collapse(true);
+		endRange.collapse(false);
+	}
 	// change "i < 1" to "i < 2" to also show the end of a range
 	for (var i = 0; i < 1; ++i) {
+		if (i == 1) {
+			if (endRange) sender_range = endRange;
+			else break;
+		}
+		
 		var rect = sender_range.getBoundingClientRect();
-		if (rect.top == 0 && rect.left == 0 && rect.height == 0) {
+		if (!rect || (rect.top == 0 && rect.left == 0 && rect.height == 0)) {
 			try {
 				sender_range.setStart(sender_range.startContainer,sender_range.startOffset-1);
 				rect = sender_range.getBoundingClientRect();
@@ -2971,7 +2996,7 @@ function partner_cursor(range_data,spkr) {
 			}
 		}
 		$('body').append('<p class="cursor" title="' + spkr + '"> </p>');
-		$('.cursor[title="' + spkr + '"]').eq(i).css({
+		$('.cursor[title="' + spkr + '"]').last().css({
 			'top': rect.top + $(window).scrollTop(),
 			'left': rect.left,
 			'height': rect.height
@@ -2985,7 +3010,6 @@ function partner_cursor(range_data,spkr) {
 			sel.addRange(sender_range);
 			event.preventDefault();
 		});
-		sender_range = endRange;
 	}
 	//cursor_show();
 }
