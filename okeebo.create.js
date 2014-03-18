@@ -3909,8 +3909,8 @@ function fix_collab(val) {
 	}
 	
 	if (typeof(instructions) !== 'undefined' && instructions.length != 0) {
-		// Sort based on timestamp
-		instructions.sort(function(a,b) { return a[1] - b[1]; });
+		// Sort based on timestamps
+		instructions.sort(function(a,b) { return a[2] - b[2] || a[1] - b[1]; });
 		var dif = 0;
 		
 		outerloop:		// this is a label name
@@ -3955,6 +3955,8 @@ function fix_collab(val) {
 					if (typeof(main_data[1]) === 'string') range_data.spot += main_data[1].length;
 					data[2] = range_data;
 					collab[instructions[j][3]][1][instructions[j][4]][0] = JSON.stringify(data);
+					collab[instructions[j][3]][1][instructions[j][4]][2] = 
+						Math.max( collab[instructions[j][3]][1][instructions[j][4]][2] , collab[val.spkr][1][val.order[val.spkr]][2] + 1 );
 				}
 			}
 			else {
@@ -4160,8 +4162,18 @@ function collab_send(msg) {
 			var nick = 'ben@okeebo.com';
 		else if (window.top.frames[1] == window.self)
 			var nick = 'peder541@umn.edu';
-		else
+		else if (window.top.frames[2] == window.self)
 			var nick = '8bpedersen@gmail.com';
+		else if (window.top.frames[3] == window.self)
+			var nick = 'ben.j.pedersen@facebook.com';
+		else {
+			var frames = window.top.frames;
+			for (var i = 4; i < frames.length; i++) { 
+				if (window.self == frames[i]) {
+					var nick = 'greg' + i + '@yahoo.com';
+				}
+			}
+		}
 	}
 	else nick = window.nick;
 	var order = 0;
@@ -4281,7 +4293,7 @@ function collab_execute(msg) {
 	}
 	else if (data[0] == 'cursor') {
 		//var sender_range = deriveRange(data[1]);
-		if ($('.'+data[1].pageID).is(':visible')) partner_cursor(data[1],data[2]);
+		if ($('.'+data[1].pageID).is(':visible') && (typeof(_graph) === 'undefined' || !_graph)) partner_cursor(data[1],data[2]);
 		else $('.cursor').remove();
 	}
 	else if (data[0] == 'insert_page') {
