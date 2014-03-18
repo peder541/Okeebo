@@ -4252,10 +4252,10 @@ function collab_execute(msg) {
 	catch(e) {
 		console.log(e.toString(),msg);	
 	}
-	if (window.self !== window.top && data[0] != 'cursor') {
+	/*if (window.self !== window.top && data[0] != 'cursor') {
 		if (window.self == window.frames[0]) console.log('0:',msg);
 		else console.log('1:',msg);
-	}
+	}*/
 	if ($('svg').is(':visible')) {
 		var _graph = 1;
 		toggle_graph();
