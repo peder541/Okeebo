@@ -4368,3 +4368,12 @@ function resize_cursor() {
 		else $this.remove();
 	});
 }
+
+/* Theory for applying edits to recover.html:
+	
+	collab[spkr] = [];
+	collab[spkr][0] = value during autosave;
+	collab[spkr][1] = {};
+	collab_updates();
+
+*/
