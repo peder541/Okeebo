@@ -72,6 +72,11 @@ $(document).ready(function(event) {
 				toggle_graph();
 			}
 		}
+	})
+	.on('mousedown',':not(path)',function(event) {
+		if ($('svg').is(':visible') && !$(event.target).is('path')) {
+			$('path,circle').attr('class','');
+		}
 	});
 	
 	$('body').prepend('<button id="graphMode" class="collapse">Collapse</button><button id="graphExit">&times;</button>');
@@ -477,7 +482,8 @@ function draw_lines() {
 		if (parent == 'Z1') parent = '`1';
 		circle
 			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge) return true; })
-			.style('stroke-width',2);
+			.style('stroke-width',2)
+			.style('stroke','rgb(44, 67, 116)');
 		circle
 			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
 			.style('stroke-width',4)
@@ -495,16 +501,28 @@ function draw_lines() {
 				.style('stroke','#F0C97D');
 		}
 		
+	}).on('click',function(event) {
+		
+		var edge = d3.select($(this).attr('class','hover')[0]).data()[0];
+		
+		var circle = d3.selectAll('circle');
+		var parent = d3_get_parent_tag(edge);
+		if (parent == 'Z1') parent = '`1';
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge && !$(this).attr('class')) return true; })
+			.attr('class','hover');
+		circle
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+			.attr('class','hover parent');
+		
 	}).on('mouseout',function(event) {
+		
 		var circle = d3.selectAll('circle');
 		var path = d3.selectAll('path');
 		var parent = d3_get_parent_tag(edge);
 		if (parent == 'Z1') parent = '`1';
 		circle
-			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge) return true; })
-			.style('stroke-width','');
-		circle
-			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
+			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge || data[k] == parent) return true; })
 			.style('stroke-width','')
 			.style('stroke','');
 		while (parent) {
