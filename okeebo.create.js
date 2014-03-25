@@ -3036,13 +3036,29 @@ function partner_cursor_new(range_data,spkr) {
 	var sender_range = deriveRange(range_data);
 	var rect = sender_range.getClientRects();
 	$('.cursor[title="' + spkr + '"]').remove();
+	var skippedRect = [];	
 	for (var i=0; i < rect.length; ++i) {
+		if (rect[i].height > 20) {
+			skippedRect.push(rect[i]);
+			continue;
+		}
+		for (var j=0; j < skippedRect.length; ++j) {
+			if (rect[i].top > skippedRect[j].top && rect[i].top < skippedRect[j].top + 10) {
+				skippedRect.splice(j--,1);
+			}
+		}
+		make_cursor_rect(rect[i]);
+	}
+	for (var i=0; i < skippedRect.length; ++i) {
+		make_cursor_rect(skippedRect[i]);
+	}
+	function make_cursor_rect(rectangle) {
 		$('body').append('<p class="cursor" title="' + spkr + '"> </p>');
-		$('.cursor[title="' + spkr + '"]').eq(i).css({
-			'top': rect[i].top + $(window).scrollTop(),
-			'left': rect[i].left,
-			'height': rect[i].height,
-			'width': Math.max(rect[i].width,1),
+		$('.cursor[title="' + spkr + '"]').last().css({
+			'top': rectangle.top + $(window).scrollTop(),
+			'left': rectangle.left,
+			'height': rectangle.height,
+			'width': Math.max(rectangle.width,1),
 			'pointer-events': 'none',
 			'background-color': 'rgba(255, 0, 0, 0.25)'
 		});
