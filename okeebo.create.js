@@ -318,6 +318,24 @@ $(document).ready(function(event) {
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
 		if (event.which == 8 || event.which == 46) {
+			// Deletes Selected Image in Chrome
+			if ($('.active-img').not('table').index() != -1) {
+				var $el = $('.active-img');
+				$el.closest('[contenteditable="true"]').focus();
+				var br = document.createElement('br');
+				$el.replaceWith(br);
+				var sel = document.getSelection();
+				var range;
+				if (sel.rangeCount) range = sel.getRangeAt(0);
+				else range = document.createRange();
+				range.setStart(br,0);
+				range.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(range);
+				$('.resize_handle').remove();
+				event.preventDefault();
+				return false;
+			}
 			// Prevents Firefox and Chrome from deleting the last <p> element in an .inner, preserving that page's formatting.
 			if ((!$(this).parent().hasClass('outer')) && ($(this).html() == '<p><br></p>')) {
 				event.preventDefault();
@@ -612,6 +630,23 @@ $(document).ready(function(event) {
 			// Paste from Word to Chrome is being weird. There are random characters at the end.
 			/**/
 			if (event.type == 'paste') {
+				
+				/**/var clip = event.originalEvent.clipboardData;
+				if (clip.items && clip.items.length) {
+					var test = false;
+					for (var i=0; i < clip.items.length; ++i) {
+						if (clip.items[i].kind == 'file') {
+							test = true;
+							var blob = clip.items[i].getAsFile();				
+							upload_image_from_blob(blob,insertAfter);
+						}
+					}
+					if (test) {
+						event.preventDefault();
+						return false;
+					}
+				}/**/
+				
 				var clipboardData = '';
 				var cross_browser_paste;
 				if (window.clipboardData) clipboardData = window.clipboardData.getData('text');
@@ -630,7 +665,14 @@ $(document).ready(function(event) {
 				dummyDIV.find('*').each(function() {
 					var $this = $(this);
 					$this.removeAttr('style class id');
-					if ($this.html().replace(/\s/g,'') == '') $this.remove();
+					/**/if ($this.is('img')) {
+						var new_img = new Image();
+						new_img.onload = function() {
+							$('img[src="' + this.src + '"]').attr('width',this.width);	
+						}
+						new_img.src = this.src;
+					}
+					else /**/if ($this.html().replace(/\s/g,'') == '') $this.remove();
 					if (['h1','h2','h3','h4','h5','h6'].indexOf(this.tagName.toLowerCase()) != -1) $this.replaceWith('<p><b>' + $this.html() + '</b></p>');
 				});
 				if (window.top !== window.self || typeof(nick) !== 'undefined') {
@@ -640,8 +682,20 @@ $(document).ready(function(event) {
 					if (deletedText != '') msg = msg.substr(0,msg.length-1) + ',"' + deletedText + '"]';
 					collab_send(msg);	
 				}
+				setTimeout(function() {
+					$('img[src^="data:"]').each(function() {
+						var blob = dataURItoBlob(this.src);
+						var src = this.src;
+						var callback = function(response) {
+							$('img[src="' + src + '"]')[0].outerHTML = response;
+						};
+						upload_image_from_blob(blob,callback);
+					});
+				}, 10);
+				
 				if (document.selection) document.selection.createRange().pasteHTML(dummyDIV.html());		// IE is weird. Probably doesn't work in IE 11.
 				else document.execCommand('insertHTML',false,dummyDIV.html());								// Normal way.
+				
 				event.preventDefault();
 			}
 			/**/
@@ -2346,6 +2400,31 @@ function insertAfter(html) {
 		else current_div.find('h3').after(html);
 	}
 	size_buttons(current_div);
+}
+
+function dataURItoBlob(dataURI) {
+    var byteString = atob(dataURI.split(',')[1]);
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: 'image/png' });
+}
+
+function upload_image_from_blob(blob,callback) {
+	var fd = new FormData();
+	fd.append('file', blob);
+	fd.append('submit','Upload');
+	$.ajax({
+		url: 'https://www.okeebo.com/img/upload.php',
+		type: 'POST',
+		data: fd,
+		processData: false,  // tell jQuery not to process the data
+		contentType: false   // tell jQuery not to set contentType
+	}).done(function(response) {
+		callback.call(window,response);
+	});	
 }
 
 function make_iframe() {
@@ -4377,3 +4456,7 @@ function resize_cursor() {
 	collab_updates();
 
 */
+
+function percentEncode(string) {
+	return string.replace(/\W/g, function(match) { return '%' + match.charCodeAt(0).toString(16).toUpperCase(); })	
+}
