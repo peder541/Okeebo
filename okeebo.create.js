@@ -168,6 +168,7 @@ $(document).ready(function(event) {
 		if (event.ctrlKey && $(event.target).is('[contenteditable="true"]')) {
 			switch (event.which) {
 				case 65:
+					if (IE) return true;
 					///// Slight Improvement to Select All for FireFox /////
 					var sel = document.getSelection();
 					var range = sel.getRangeAt(0);
@@ -433,7 +434,7 @@ $(document).ready(function(event) {
 				else if (event.which == 46) {
 					var sel = document.getSelection();
 					var deletedText = sel.toString();
-					if (deletedText == '') {
+					if (deletedText == '' && !$(this).is('p[id] > span:first-child')) {
 						var range = sel.getRangeAt(0);
 						var clone = range.cloneRange();
 						if (range.endOffset != range.endContainer.textContent.length) {
@@ -2396,7 +2397,15 @@ function insertAfter(html) {
 		else closest_p.after(html);
 	}
 	else {
-		if (!current_div.hasClass('outer')) current_div.find('p').eq(0).before(html);
+		if (!current_div.hasClass('outer')) {
+			if (!element) {
+				current_div.find('div[contenteditable="true"]').prepend(html);
+			}
+			else {
+				if (element.nodeType == 3) $(element).after(html);
+				else document.execCommand('insertHTML',false,html);
+			}
+		}
 		else current_div.find('h3').after(html);
 	}
 	size_buttons(current_div);
@@ -3977,6 +3986,7 @@ function getBetterRange(range_data,mode) {
 	var spot = sender_range.spot;
 	var range = deriveRange(sender_range);
 	var node = range.startContainer.childNodes[spot];
+	if (!node) return range_data;
 	while (node.nodeType != 3 && spot > 0) node = range.startContainer.childNodes[--spot];
 	if (spot != sender_range.spot) {
 		spot = sender_range.special;
