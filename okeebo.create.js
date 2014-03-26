@@ -637,6 +637,9 @@ $(document).ready(function(event) {
 					var test = false;
 					for (var i=0; i < clip.items.length; ++i) {
 						if (clip.items[i].kind == 'file') {
+							var $temp = $('<div></div>');
+							$temp.html(clip.getData('text/html'));
+							if ($temp.find('img').attr('src').substr(0,27) == 'https://www.okeebo.com/img/') continue;
 							test = true;
 							var blob = clip.items[i].getAsFile();				
 							upload_image_from_blob(blob,insertAfter);
@@ -691,6 +694,12 @@ $(document).ready(function(event) {
 							$('img[src="' + src + '"]')[0].outerHTML = response;
 						};
 						upload_image_from_blob(blob,callback);
+					});
+					$('img').filter('[src^="http"]').not('[src^="https://www.okeebo.com/img/"]').each(function() {
+						var url = this.src;
+						$.get('https://www.okeebo.com/img/upload.php?url=' + percentEncode(url), function(data) {
+							$('img[src="' + url + '"]')[0].outerHTML = data;
+						});
 					});
 				}, 10);
 				
