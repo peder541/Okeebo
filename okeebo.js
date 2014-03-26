@@ -1123,7 +1123,7 @@ function createIndex(word,times,and) {
 		
 		var info = [];
 		// Find pages containing word
-		$('.inner').not('.outer').each(function(i) {
+		$('.inner')/*.not('.outer')*/.each(function(i) {
 			var string = this.innerHTML.toLowerCase();
 			var test = string.indexOf(word);
 			// Count how many times word appears on page
