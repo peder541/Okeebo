@@ -364,6 +364,18 @@ $(document).ready(function() {
 		if (word) createIndex(word);
 	});
 	
+	if (typeof(_hide) === 'undefined') {
+		_hide = $.fn.hide;
+		$.fn.hide = function(){
+			return _hide.apply(this,arguments).trigger("hide");
+		};
+	}
+	$('body').on('hide','.inner,.outer',function(event) {
+		// Reset effects from clean_transition()
+		$('.inner,.outer').css('top','');
+		$(this).css({'padding-right':'','margin-right':'','width':''});
+	});
+	
 	flashToHTML5();
 	loadVideos();
 	
@@ -398,7 +410,7 @@ function explore_tangent(new_id) {
 	$('#meta-map').show();
 	$('._node').eq(i-1).attr('class','meta-node');
 	
-	$(window).scrollTop(0);
+	$(window).scrollTop(old_obj.offset().top - 80);
 	go_to(old_obj.attr('id'),new_id);
 }
 
@@ -411,18 +423,22 @@ function clean_transition(new_obj,old_obj) {
 	/*if ($('[contenteditable]').is(':visible')) {
 		$('.left,.right,#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
 	}*/
+	var new_top = new_obj.offset().top;
+	var old_top = old_obj.offset().top;
+	if (new_top > old_top) new_obj.css('top', (old_top - new_top) + 'px');
+	if (old_top > new_top) old_obj.css('top', (new_top - old_top) + 'px');
+	
 	$('body').css('overflow-y','hidden');
 	var top_margin = new_obj.css('margin-top');
 	top_margin = parseInt(top_margin.substr(0,top_margin.length-2),10);
 	var _window = $(window);
-	if (new_obj.height()-_window.height() > -top_margin) {
+	if (new_obj.height()-_window.height() > -top_margin || !new_obj.parent().is('body')) {
 		$('body').css('overflow-y','auto');
 		if ((_window.width() < 900)) {
 			var x = 900 - _window.width();
 			if (x < scrollbar_width) old_obj.css({'padding-right':24-x,'width':852});
 			else old_obj.css({'padding-right':24-scrollbar_width,'width':852-x+scrollbar_width});
 			if (old_obj.height()-_window.height() > -top_margin) old_obj.css({'padding-right':'','width':''});
-			else setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':'','width':''});",400);
 		}
 	}
 	else {
@@ -430,7 +446,6 @@ function clean_transition(new_obj,old_obj) {
 			var x = 900 + scrollbar_width - _window.width();
 			if (x < scrollbar_width) old_obj.css({'padding-right':24+x,'margin-right':scrollbar_width-x,'width':'auto'});
 			else old_obj.css({'padding-right':24+scrollbar_width,'width':'auto'});
-			setTimeout("$('."+old_obj.attr('class').replace(/\s/g,'.')+"').css({'padding-right':'','margin-right':'','width':''});",400);
 		}
 	}
 	if ($('[contenteditable]').is(':visible')) {
@@ -445,7 +460,7 @@ function go_to(old_id,new_id) {
 	if (new_obj.html() && !new_obj.hasClass(old_id)) {
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
-		$(window).scrollTop(0);
+		$(window).scrollTop(old_obj.offset().top - 80);
 		/*		
 		// More consistent feel?
 		new_obj.fadeIn();
@@ -464,7 +479,7 @@ function go_to(old_id,new_id) {
 		if (workspace.length) workspace[$('#meta-map div').index($('#meta-map .meta-node'))] = new_id;
 		if ($('#info').is(':visible')) $('#map .node').mouseleave();
 		
-		$(window).scrollTop(0);
+		$(window).scrollTop(new_obj.offset().top - 80);
 		size_buttons(new_obj);
 		if ($('[contenteditable]').is(':visible')) resize_writing_items()
 		use_math_plug_in();
@@ -485,7 +500,7 @@ function linear_move(direction, redraw) {
 		}
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
-		$(window).scrollTop(0);
+		$(window).scrollTop($('.'+id).offset().top - 80);
 		if ($('body').css('overflow-y')=='hidden') $('body').css('overflow-y','auto');
 		
 		if (!$('.'+id).hasClass(letter+number)) {
@@ -649,9 +664,9 @@ function tab_is_unique(obj) {
 function concept_zoom_out(dif,adj) {
 	if ($('#status').is(':visible')) $('#status').fadeOut();
 	if (status_timer) clearTimeout(status_timer);
-	$(window).scrollTop(0);
 	var id = $('.inner').filter(':visible').attr('id');
 	var old_obj = $('#' + id);
+	$(window).scrollTop(old_obj.offset().top - 80);
 	var target = id;
 	for (i=0; i<dif; ++i) target = get_parent_tag(target);
 	if (!target) return false;	
@@ -692,8 +707,8 @@ function concept_zoom_in(id) {
 	if ($('.' + letter + number).html()) {
 		if ($('#status').is(':visible')) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
-		$(window).scrollTop(0);
 		var old_obj = $('.' + id).parent('.outer');
+		$(window).scrollTop(old_obj.offset().top - 80);
 		
 		$('.' + letter + number).fadeIn();
 		old_obj.fadeOut();
