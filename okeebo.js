@@ -460,7 +460,7 @@ function go_to(old_id,new_id) {
 	if (new_obj.html() && !new_obj.hasClass(old_id)) {
 		if ($('#status').filter(':visible').html()) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
-		$(window).scrollTop(old_obj.offset().top - 80);
+		if (old_obj.offset()) $(window).scrollTop(old_obj.offset().top - 80);
 		/*		
 		// More consistent feel?
 		new_obj.fadeIn();
