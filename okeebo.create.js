@@ -305,14 +305,14 @@ $(document).ready(function(event) {
 		if (event.which == 20) caps = !caps;
 	})
 	.on('focus','span[contenteditable="true"]:nth-of-type(2)',function(event) {
-		if (['Response (400 Word Max)','Summary',''].indexOf(this.textContent) != -1) {
+		if (['Response (400 Word Max)','Summary',''].indexOf(this.textContent) != -1 && $(this).find('img').index() == -1) {
 			if (!$(this).attr('data-content')) $(this).attr('data-content',this.textContent);
 			this.innerHTML = '<br>';
 			if ($(this).height() > 30) this.innerHTML = '';
 			size_buttons($('.outer:visible'));
 		}
 	}).on('blur','span[contenteditable="true"]:nth-of-type(2)',function(event) {
-		if (this.textContent == '') {
+		if (this.textContent == '' && $(this).find('img').index() == -1) {
 			this.innerHTML = $(this).attr('data-content') || '';
 			size_buttons($('.outer:visible'));
 		}
@@ -573,7 +573,7 @@ $(document).ready(function(event) {
 					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
 					var dummyDIV = $('<div id="dummy" />');
 					dummyDIV.html(clipboardData);
-					while (dummyDIV.find('*').not('br').index() != -1) {
+					while (dummyDIV.find('*').not('br,img').index() != -1) {
 						dummyDIV.find('*').each(function(index) {
 							var $this = $(this);
 							if ($this.is('p')) {
@@ -592,7 +592,7 @@ $(document).ready(function(event) {
 								});
 								this.outerHTML = this.innerHTML;
 							}
-							else if ($this.is('br')) {
+							else if ($this.is('br') || $this.is('img')) {
 								// leave alone
 							}
 							else if ($this.is('li')) {
@@ -1296,7 +1296,7 @@ function handle_paste_glitch(obj) {
 /// Fixes most of the execCommand discrepancies. Applied during toggle_edit() to maintain the undo stack as much as possible.
 function improve_formatting($obj) {
 	if (typeof($obj) === 'undefined') $obj = $('body');
-	$obj.find('p img').unwrap();
+	$obj.find('p img').not('p[id] img').unwrap();
 	$obj.find('div[contenteditable] > p > div').unwrap();
 	var list = $obj.find('ol,ul');
 	if (list.parent().is('p')) list.unwrap();
