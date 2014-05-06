@@ -501,7 +501,7 @@ $(document).ready(function(event) {
 	})
 	.on('keyup','[contenteditable="true"]',function(event) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
-			if ([37,38,39,40].indexOf(event.which) != -1 || typeof(nick) === 'undefined' || JSON.parse(collab[nick][1][collab[nick][0]][0])[0] != 'cursor') {
+			if ([37,38,39,40].indexOf(event.which) != -1 || typeof(nick) === 'undefined' || (collab[nick] && JSON.parse(collab[nick][1][collab[nick][0]][0])[0] != 'cursor')) {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
 				collab_send(msg);
@@ -2161,6 +2161,8 @@ function create_sidebar() {
 		var current_page = $('.inner,.outer').filter(':visible');
 		if (_drag) current_page.children('h3').after('<p>Introduction</p>');
 		else current_page.children('h3').after('<div contenteditable="true"><p>Introduction</p></div>');
+		var msg = '["intro", "' + current_page.attr('id') + '"]';
+		collab_send(msg);
 		disable_sidebar_option($('#add_intro_text'));
 	});
 	$('#view_graph').on('click',function(event) {
@@ -2245,6 +2247,7 @@ function create_sidebar() {
 	resize_writing_items();
 	$('.left').css('left',sidebar_width);
 	size_buttons($('.inner,.outer').filter(':visible'));
+	resize_cursor();
 }
 
 function delete_sidebar() {
@@ -2258,6 +2261,7 @@ function delete_sidebar() {
 	$('.left').css('left',0);
 	size_buttons(inner_outer.filter(':visible'));
 	resize_writing_items();
+	resize_cursor();
 }
 
 function make_tangent() {
@@ -2887,7 +2891,7 @@ function save(role) {
 	var text = '';
 	var code = new Array();
 	var okeeboMath = $('.OkeeboMath').each(function(index) { 
-		code.push(DisplayToCode(index)); 
+		code.push(DisplayToCode(index));
 	});
 	var $body = $('body').clone();
 	okeeboMath.each(function(index) { 
@@ -2933,6 +2937,11 @@ function save(role) {
 		$body.find('#_save').val(text);
 		$body.find('#_title').val($('.Z1 h3').text());
 		$body.find('#_publish').val('autosave');
+		if (typeof(nick) !== 'undefined') {
+			for (var i in collab) {
+				$body.find('form.save').append('<input type="hidden" name="collab[' + i + ']" value="' + collab[i][0] + '" />');	
+			}
+		}
 		if (window.location.host)
 			$.post('https://www.okeebo.com/beta/publish.php',$body.find('form.save').serialize(),function(data) { console.log('Cloud Save at ' + Date()); });
 		$body.find('#_publish').val('');
@@ -3146,6 +3155,11 @@ function partner_list(sender_range,list_type) {
 	sel.removeAllRanges();
 	if (typeof(range) !== 'undefined') sel.addRange(range);
 	delete ghost;
+}
+function partner_add_intro_text(id) {
+	var $page = $('.' + id);
+	if (_drag) $page.children('h3').after('<p>Introduction</p>');
+	else $page.children('h3').after('<div contenteditable="true"><p>Introduction</p></div>');	
 }
 ///// Needs more work.
 function partner_format_text(el,sender_range) {
@@ -3732,7 +3746,12 @@ function deriveRange(senderRange,div) {
 			}
 		});
 	}
+	try {
 	range.setStart(node,senderRange.spot);
+	}
+	catch (f) {
+		console.log(node.textContent.length, senderRange.spot);	
+	}
 	range.collapse(true);
 	if (senderRange.end) {
 		if (senderRange.endDOM) {
@@ -4122,8 +4141,13 @@ function fix_collab(val) {
 						if (range_data.miniDOM[i] > sender_range.miniDOM[i]) continue outerloop;
 						else if (range_data.miniDOM[i] != sender_range.miniDOM[i]) test = false;
 					}
-					if (test) dif -= range_data.spot;
-					sender_range.miniDOM[0] += 1;	
+					if (test && range_data.spot <= sender_range.spot + dif) {
+						dif -= range_data.spot;
+						sender_range.miniDOM[0] += 1;
+					}
+					else if (!test) {
+						sender_range.miniDOM[0] += 1;	
+					}
 				}
 				else if (data[0] == 'rearrange') {
 					if (main_data[0] == 'rearrange' || main_data[0] == 'none') {
@@ -4448,6 +4472,9 @@ function collab_execute(msg) {
 	}
 	else if (data[0] == 'format_text') {
 		partner_format_text(data[1],deriveRange(data[2]));	
+	}
+	else if (data[0] == 'intro') {
+		partner_add_intro_text(data[1]);
 	}
 	if (data[0] != 'cursor') {
 		var sender_range = JSON.stringify(getSenderRange());
