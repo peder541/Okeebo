@@ -33,19 +33,37 @@ function resize_windows(){
 		$('body').append('<p id="forum"></p>');
 		forum = $('#forum');
 	}
-	$('.inner,.outer,.exit,.splitscreen,#meta-map,#forum,#home,#catalog,#function').css('margin-left',left_margin);
+	$('.inner,.outer').css('margin-left',left_margin);
+	if (main.parent().css('position') == 'static') {
+		left_margin = main.offset().left;
+	}
+	else {
+		left_margin = parseInt(main.css('margin-left'),10) || left_margin;
+	}
+	$('.exit,.splitscreen,#meta-map,#forum,#home,#catalog,#function').css('margin-left',left_margin);
 	forum.width($('#map').offset().left - forum.offset().left);
 	forum.css('top',75-Math.max(forum.height(),19));
 			
-	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,900+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-mapWidth);
+	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,(main.outerWidth()||900)+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-mapWidth);
 	var map_left = $('#map').offset().left;
 	$('#search').css('left',map_left+72);
 	/*$('#search').css('left',0.88*(map_left-left_margin)+left_margin);
 	$('#notes').css('left',0.55*(map_left-left_margin)+left_margin);
 	$('#home').css('left',0.22*(map_left-left_margin)+left_margin);*/
+	if (main.offset()) {
+		var map_top_dif = main.offset().top - 67 - $('#map').offset().top;
+		if (map_top_dif != 0) {
+			main.prepend($('#map').css({
+				'position': 'relative',
+				'top': 0,
+				'left': 0,
+				'float': 'right'
+			}));
+		}
+	}
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
-	var max_img_width = w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
+	var max_img_width = main.width();//w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
 	$('img,video,object,table').width(function(index) {
 		var $this = $(this);
 		if (IE && this.removeEventListener) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
@@ -114,6 +132,7 @@ $(document).ready(function() {
 	
 	var $page = $('.inner,.outer').filter(':visible');
 	redraw_node_map($page.attr('id'),0,1);
+	load_notes();
 	size_buttons($page);
 	use_math_plug_in();
 	
@@ -161,6 +180,9 @@ $(document).ready(function() {
 			$('#status').css('left',parseInt(current_div.css('margin-left'),10)+current_div.outerWidth()*0.5-$('#status').outerWidth()*0.5);
 		}
 		if ($(document).width() > $(window).width()) $('body').css('overflow-x','auto');
+	})
+	.on('beforeunload',function(event) {
+		save_notes();
 	});
 	
 	
@@ -372,8 +394,8 @@ $(document).ready(function() {
 	}
 	$('body').on('hide','.inner,.outer',function(event) {
 		// Reset effects from clean_transition()
-		$('.inner,.outer').css('top','');
-		$(this).css({'padding-right':'','margin-right':'','width':''});
+		$('.inner,.outer').css('top','').filter(':visible').prepend($('.inner,.outer').children('#map'));
+		$(this).css({'padding-right':'','margin-right':'','width':''}).children('.map').remove();
 	});
 	
 	flashToHTML5();
@@ -423,29 +445,35 @@ function clean_transition(new_obj,old_obj) {
 	/*if ($('[contenteditable]').is(':visible')) {
 		$('.left,.right,#bold,#italic,#underline,#ul,#ol,#img,#link').hide();
 	}*/
+	new_obj.prepend(old_obj.children('#map').attr('class','map').attr('id','').clone(true));
+	new_obj.children('.map').attr('class','').attr('id','map');
+	old_obj.children('.map').find('*').attr('id','');
 	var new_top = new_obj.offset().top;
 	var old_top = old_obj.offset().top;
 	if (new_top > old_top) new_obj.css('top', (old_top - new_top) + 'px');
 	if (old_top > new_top) old_obj.css('top', (new_top - old_top) + 'px');
 	
-	$('body').css('overflow-y','hidden');
-	var top_margin = new_obj.css('margin-top');
-	top_margin = parseInt(top_margin.substr(0,top_margin.length-2),10);
-	var _window = $(window);
-	if (new_obj.height()-_window.height() > -top_margin || !new_obj.parent().is('body')) {
-		$('body').css('overflow-y','auto');
-		if ((_window.width() < 900)) {
-			var x = 900 - _window.width();
-			if (x < scrollbar_width) old_obj.css({'padding-right':24-x,'width':852});
-			else old_obj.css({'padding-right':24-scrollbar_width,'width':852-x+scrollbar_width});
-			if (old_obj.height()-_window.height() > -top_margin) old_obj.css({'padding-right':'','width':''});
+	if (new_obj.parent().is('body')) {
+		$('body').css('overflow-y','hidden');
+		var top_margin = new_obj.css('margin-top');
+		top_margin = parseInt(top_margin.substr(0,top_margin.length-2),10);
+		var _window = $(window);
+		//console.log(_window.height(),$(document).height(),new_obj.height(),old_obj.height());
+		if (new_obj.height()-_window.height() > -top_margin) {
+			$('body').css('overflow-y','auto');
+			if ((_window.width() < 900)) {
+				var x = 900 - _window.width();
+				if (x < scrollbar_width) old_obj.css({'padding-right':24-x,'width':852});
+				else old_obj.css({'padding-right':24-scrollbar_width,'width':852-x+scrollbar_width});
+				if (old_obj.height()-_window.height() > -top_margin) old_obj.css({'padding-right':'','width':''});
+			}
 		}
-	}
-	else {
-		if ((old_obj.height()-_window.height() > -top_margin) && (_window.width() < 900 + scrollbar_width)) {
-			var x = 900 + scrollbar_width - _window.width();
-			if (x < scrollbar_width) old_obj.css({'padding-right':24+x,'margin-right':scrollbar_width-x,'width':'auto'});
-			else old_obj.css({'padding-right':24+scrollbar_width,'width':'auto'});
+		else {
+			if ((old_obj.height()-_window.height() > -top_margin) && (_window.width() < 900 + scrollbar_width)) {
+				var x = 900 + scrollbar_width - _window.width();
+				if (x < scrollbar_width) old_obj.css({'padding-right':24+x,'margin-right':scrollbar_width-x,'width':'auto'});
+				else old_obj.css({'padding-right':24+scrollbar_width,'width':'auto'});
+			}
 		}
 	}
 	if ($('[contenteditable]').is(':visible')) {
@@ -649,7 +677,7 @@ function redraw_node_map(id,color,initial) {
 	forum.css('top',75-Math.max(forum.height(),19));
 	var map = $('#map');
 	map.scrollTop(0);
-	map.scrollTop($('.row').last().offset().top);
+	map.scrollTop(map.children('.row').last().offset().top);
 	var rows = map.scrollTop()/12;
 	$('#map_helper').empty();
 	if (rows > 0) for (var i = 0; i < rows; ++i) $('#map_helper').append('*');
@@ -666,6 +694,12 @@ function concept_zoom_out(dif,adj) {
 	if (status_timer) clearTimeout(status_timer);
 	var id = $('.inner').filter(':visible').attr('id');
 	var old_obj = $('#' + id);
+	if (old_obj.css('opacity') != 1 && !old_obj.parent().is('body')) {
+		/*$('body').one('hide','.inner,.outer',function(event) {	
+			concept_zoom_out(dif,adj);
+		});*/
+		return false;
+	}
 	$(window).scrollTop(old_obj.offset().top - 80);
 	var target = id;
 	for (i=0; i<dif; ++i) target = get_parent_tag(target);
@@ -708,6 +742,12 @@ function concept_zoom_in(id) {
 		if ($('#status').is(':visible')) $('#status').fadeOut();
 		if (status_timer) clearTimeout(status_timer);
 		var old_obj = $('.' + id).parent('.outer');
+		if (old_obj.css('opacity') != 1 && !old_obj.parent().is('body')) {
+			/*$('body').one('hide','.inner,.outer',function(event) {	
+				concept_zoom_in(id);
+			});*/
+			return false;
+		}
 		$(window).scrollTop(old_obj.offset().top - 80);
 		
 		$('.' + letter + number).fadeIn();
@@ -739,15 +779,16 @@ function size_preview_buttons() {
 }
 
 function size_linear_buttons(obj) {
+	var displace = 0;
 	$('.left,.right').height(obj.height());
-	var _width = parseInt(obj.css('margin-left'),10)+12;
+	var _width = parseInt(obj.css('margin-left'),10)+displace;
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (sidebar_width) _width -= sidebar_width;
 	$('.left,.right').width(_width);
-	var pos = obj.outerWidth()+obj.offset().left-12;
+	var pos = obj.outerWidth()+obj.offset().left-displace;
 	$('.right').css('left',pos);
-	$('.left').css('background-position',_width/2-6);
-	$('.right').css('background-position',pos+_width/2-6);
+	$('.left').css('background-position',(_width - displace)/2);
+	$('.right').css('background-position',pos + (_width - displace)/2);
 	if (!obj.attr('id')) return false;
 	var l = obj.attr('id').charAt(0);
 	var n = parseInt(obj.attr('id').substr(1),10);
@@ -1226,6 +1267,11 @@ $(document).ready(function(event) {
 			hilite();
 			return false;	
 		}
+		// F7
+		if (event.which == 118) {
+			alert('Word Count: ' + CountWords());
+			return false;
+		}
 		// F8
 		if (event.which == 119) {
 			unhilite();	
@@ -1336,37 +1382,40 @@ function grab_page(id) {
 	});
 }
 
-function cache_note() {
+function cache_note($page) {
+	if (!$page) $page = $('.inner,.outer').filter(':visible');
+	$page.find('*').removeAttr('style');
 	var multiple = false;
-	var $node = $('.note');
+	var $node = $page.find('.note');
 	if ($node.index() == -1) return false;
 	if ($($node[0].parentNode.nextSibling).is('.note')) multiple = true;
-	var start = $('.inner,.outer').filter(':visible').html().search('<span class="note">');
+	var start = $page.html().search('<span class="note">');
 	var length = $node.eq(0).replaceWith(function() { return this.innerHTML; }).html().length;
 	var array = [start,length]
 	if (multiple) for (var i=0; i<2; ++i) $.merge(array,cache_note());
 	return array;
 }
 
-function cache_specific_note(index) {
+function cache_specific_note(index, $page) {
 	var notes = [];
-	var result = cache_note();
+	var result = cache_note($page);
 	while (result) {
 		notes.push(result);
-		result = cache_note();
+		result = cache_note($page);
 	}
 	result = notes.splice(index,1)[0];
-	for (var j = notes.length - 1; j >= 0; --j) make_note_from_cache(notes[j]);
+	for (var j = notes.length - 1; j >= 0; --j) make_note_from_cache(notes[j],$page);
 	return result;
 }
 
 //// non-uniqueness of text values has the potential to make indexOf inaccurate. requires more testing. "else return false;" covers many test cases that would appear from actual UI highlighting.
-function make_note_from_cache(cache) {
+function make_note_from_cache(cache,$page) {
 	var start = Number(cache[0]);
 	var length = Number(cache[1]);
-	var $page = $('.inner,.outer').filter(':visible');
+	if (!$page) $page = $('.inner,.outer').filter(':visible');
+	$page.find('*').removeAttr('style');
 	var html = $page.html();
-	$('.note').each(function() {
+	$page.find('.note').each(function() {
 		var spot = html.indexOf(this.outerHTML);
 		var len = this.outerHTML.length;
 		if (spot == -1) return false;
@@ -1385,6 +1434,29 @@ function make_note_from_cache(cache) {
 	});
 	if (length != 0) $page.html(html.substr(0,start) + '<span class="note">' + html.substr(start,length) + '</span>' + html.substr(start+length));
 	if (cache.length > 2) make_note_from_cache(cache.slice(2));
+}
+
+function save_notes() {
+	var notes = {};
+	$('.inner,.outer').has('.note').each(function() {
+		var $this = $(this);
+		var key = $this.attr('class').split(' ').pop();
+		if ($this.find('.note').index() != -1) {
+			notes[key] = [];
+			while ($this.find('.note').index() != -1) {
+				notes[key].push(cache_note($this));	
+			}
+		}
+	});
+	window.localStorage.setItem('notes',JSON.stringify(notes));
+}
+
+function load_notes() {
+	var notes = JSON.parse(window.localStorage.getItem('notes'));
+	for (var i in notes) {
+		var $page = $('.' + i);
+		while (notes[i].length) make_note_from_cache(notes[i].shift(), $page);
+	}
 }
 
 window.onhashchange = hashChange;
@@ -1474,4 +1546,29 @@ function share() {
 	$page = $('.inner,.outer').filter(':visible');
 	$page.append('<a href="https://twitter.com/share" class="twitter-share-button" data-lang="en" data-count="none">Tweet</a>');
 	if (typeof(twttr) !== 'undefined') twttr.widgets.load();
+}
+
+function CountWords(node) {
+	var total = 0;
+	if (typeof(node) === 'undefined' || node === true) {
+		var selected_text = document.getSelection().toString();
+		if (selected_text) node = document.createTextNode(selected_text);
+		else {
+			var new_node = $('.inner,.outer').filter(':visible');
+			if (!node) total -= CountWords(new_node.find('h3'));
+			node = new_node;
+		}
+	}
+	if (node instanceof jQuery) node = node[0];
+	if (node.nodeType == 3) {
+		var words = node.textContent.match(/\S+/g);
+		if (words) total = words.length;
+	}
+	else {
+		if (node.nodeType == 1 && $(node).is('.in,.out,form')) return 0;
+		for (var i in node.childNodes) {
+			total += CountWords(node.childNodes[i]);
+		}
+	}
+	return total;
 }
