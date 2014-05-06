@@ -127,6 +127,7 @@ function toggle_graph(flicker) {
 		if (status_timer) clearTimeout(status_timer);
 		if (typeof(undo_tangent) === 'function') undo_tangent();
 		go_to(null,return_page_id);
+		$(window).resize();
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
