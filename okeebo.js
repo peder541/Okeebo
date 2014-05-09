@@ -1437,22 +1437,29 @@ function make_note_from_cache(cache,$page) {
 }
 
 function save_notes() {
-	var notes = {};
+	var notes = ($('.note').index() == -1) ? false : {};
 	$('.inner,.outer').has('.note').each(function() {
 		var $this = $(this);
 		var key = $this.attr('class').split(' ').pop();
 		if ($this.find('.note').index() != -1) {
 			notes[key] = [];
-			while ($this.find('.note').index() != -1) {
+			$this.find('.note').each(function() {
+			//while ($this.find('.note').index() != -1) {
 				notes[key].push(cache_note($this));	
-			}
+			});
 		}
 	});
-	window.localStorage.setItem('notes',JSON.stringify(notes));
+	var note_file = window.localStorage.getItem('notes');
+	if (note_file) note_file = JSON.parse(note_file);
+	else note_file = {};
+	if (notes) note_file[window.location.pathname] = notes;
+	else delete note_file[window.location.pathname];
+	window.localStorage.setItem('notes',JSON.stringify(note_file));
 }
 
 function load_notes() {
-	var notes = JSON.parse(window.localStorage.getItem('notes'));
+	var note_file = JSON.parse(window.localStorage.getItem('notes'));
+	var notes = note_file[window.location.pathname];
 	for (var i in notes) {
 		var $page = $('.' + i);
 		while (notes[i].length) make_note_from_cache(notes[i].shift(), $page);
