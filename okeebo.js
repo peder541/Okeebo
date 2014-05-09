@@ -1459,8 +1459,9 @@ function save_notes() {
 }
 
 function load_notes() {
-	var note_file = JSON.parse(window.localStorage.getItem('notes'));
+	var note_file = window.localStorage.getItem('notes');
 	if (note_file) {
+		note_file = JSON.parse(note_file);
 		var notes = note_file[window.location.pathname];
 		for (var i in notes) {
 			var $page = $('.' + i);
