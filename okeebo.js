@@ -1451,6 +1451,7 @@ function save_notes() {
 	});
 	var note_file = window.localStorage.getItem('notes');
 	if (note_file) note_file = JSON.parse(note_file);
+	else if (!notes) return false;
 	else note_file = {};
 	if (notes) note_file[window.location.pathname] = notes;
 	else delete note_file[window.location.pathname];
@@ -1459,10 +1460,12 @@ function save_notes() {
 
 function load_notes() {
 	var note_file = JSON.parse(window.localStorage.getItem('notes'));
-	var notes = note_file[window.location.pathname];
-	for (var i in notes) {
-		var $page = $('.' + i);
-		while (notes[i].length) make_note_from_cache(notes[i].shift(), $page);
+	if (note_file) {
+		var notes = note_file[window.location.pathname];
+		for (var i in notes) {
+			var $page = $('.' + i);
+			while (notes[i].length) make_note_from_cache(notes[i].shift(), $page);
+		}
 	}
 }
 
