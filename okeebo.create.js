@@ -1172,12 +1172,18 @@ $(document).ready(function(event) {
 		}		
 	});
 	$('#img').on('click',function(event) {
-		//make_iframe();
-		$('#file').click();
-	}).before('<input type="file" name="file" id="file" style="display:none;" />');
+		make_iframe();
+//		$('#file').click();
+	});	
+/*
+	$('#img').before('<input type="file" name="file" id="file" style="display:none;" />');
 	$('#file').on('change',function(event) {
-		upload_image_from_blob($('#file')[0].files[0],insertAfter);
+		upload_image_from_blob($('#file')[0].files[0],function(response) {
+			insertAfter(response);
+			image_wrap();
+		});
 	});
+/**/
 	$('#link').on('click',function(event) {
 		var url = prompt('To what URL should this link go?');
 		if (url) {
