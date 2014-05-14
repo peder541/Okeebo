@@ -1389,10 +1389,11 @@ function cache_note($page) {
 	var $node = $page.find('.note');
 	if ($node.index() == -1) return false;
 	if ($($node[0].parentNode.nextSibling).is('.note')) multiple = true;
-	var start = $page.html().search('<span class="note">');
+	var start = $node.is('.otherNote') ? -1 : $page.html().search($node[0].outerHTML);			// Condition discriminates on notes not from user
 	var length = $node.eq(0).replaceWith(function() { return this.innerHTML; }).html().length;
-	var array = [start,length]
+	var array = [start,length];
 	if (multiple) for (var i=0; i<2; ++i) $.merge(array,cache_note());
+	if (start == -1) return false;
 	return array;
 }
 
@@ -1418,9 +1419,10 @@ function make_note_from_cache(cache,$page) {
 	$page.find('.note').each(function() {
 		var spot = html.indexOf(this.outerHTML);
 		var len = this.outerHTML.length;
+		var displace = len - this.innerHTML.length;
 		if (spot == -1) return false;
 		if (spot < start + length) {
-			if (spot < start && spot + len < start + 26) start += 26;
+			if (spot < start && spot + len < start + displace) start += displace;
 			else {
 				this.outerHTML = this.innerHTML;
 				html = $page.html();
@@ -1433,12 +1435,13 @@ function make_note_from_cache(cache,$page) {
 		else return false;
 	});
 	if (length != 0) $page.html(html.substr(0,start) + '<span class="note">' + html.substr(start,length) + '</span>' + html.substr(start+length));
-	if (cache.length > 2) make_note_from_cache(cache.slice(2));
+	if (cache.length > 2) make_note_from_cache(cache.slice(2), $page);
 }
 
 function save_notes() {
 	var notes = ($('.note').index() == -1) ? false : {};
-	$('.inner,.outer').has('.note').each(function() {
+	var $body = $('body').clone();
+	$body.find('.inner,.outer').has('.note').each(function() {
 		var $this = $(this);
 		var key = $this.attr('class').split(' ').pop();
 		if ($this.find('.note').index() != -1) {
@@ -1476,6 +1479,9 @@ function hashChange(initial) {
 	$('.note').replaceWith(function() { return this.innerHTML; });
 	if (initial) window.initial = true;
 	go_and_note(location.hash.substr(1));
+	$('.note').addClass('otherNote');	// Distinguish these notes as not from the user
+	load_notes();
+	size_buttons($('.inner,.outer').filter(':visible'));
 }
 
 function go_and_note(data) {
@@ -1529,9 +1535,9 @@ function woop() {
 
 function twitterLink(index) {
 	var webpage = 'https://twitter.com/intent/tweet';
-	var hash = cache_specific_note(index);
-	var page = $('.inner,.outer').filter(':visible').attr('id');
-	var url = location.href + '#' + page + '.' + hash;
+	var $page = $('.inner,.outer').filter(':visible').clone();
+	var hash = cache_specific_note(index, $page);
+	var url = location.href + '#' + $page.attr('id') + '.' + hash;
 	var data = {
 		screen_name: 'Ben_Pedersen',
 		url: url,
