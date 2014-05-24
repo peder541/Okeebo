@@ -63,13 +63,20 @@ function resize_windows(){
 	}
 	
 	$('#nw,#n,#ne,#e,#se,#s,#sw,#w').remove();
-	var max_img_width = main.width();//w1 - scrollbar_width - 2 * parseInt(main.css('padding-left'),10) - sidebar_width;
+	var max_img_width = main.width();
+	var max_img_height = window.innerHeight;
 	$('img,video,object,table').width(function(index) {
 		var $this = $(this);
 		if (IE && this.removeEventListener) this.removeEventListener('DOMAttrModified',dom_attr_mod,false);
 		_mod = ($this.parents('p').prev('.in').html()) ? 50 : 0;
 		var new_width = Math.min(max_img_width - _mod,$this.attr('width'))
-		if ($this.attr('height')) $this.height(new_width/$this.attr('width') * $this.attr('height'));
+		if ($this.attr('height')) {
+			$this.height(new_width/$this.attr('width') * $this.attr('height'));
+			if ($this.height() > max_img_height) {
+				new_width = max_img_height/$this.height() * new_width;
+				$this.height(max_img_height);
+			}
+		}
 		return new_width;
 	});
 	if (IE) $('img').each(function(index) {
