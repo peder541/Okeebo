@@ -10,7 +10,7 @@ var collab_timer = 0;
 var line = 0;
 var _delete = new Array();
 var writing_buttons = '.writing';
-var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode';
+var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode,.guided';
 var localsave = false;
 var caps = false;
 var collab = {};
@@ -692,6 +692,7 @@ $(document).ready(function(event) {
 						var src = this.src;
 						var callback = function(response) {
 							$('img[src="' + src + '"]')[0].outerHTML = response;
+							$(window).resize();
 						};
 						upload_image_from_blob(blob,callback);
 					});
@@ -699,6 +700,7 @@ $(document).ready(function(event) {
 						var url = this.src;
 						$.get('https://www.okeebo.com/img/upload.php?url=' + percentEncode(url), function(data) {
 							$('img[src="' + url + '"]')[0].outerHTML = data;
+							$(window).resize();
 						});
 					});
 				}, 10);
@@ -2476,6 +2478,7 @@ function iframe_to_image(iframe) {
 	if (img.index() != -1) iframe.replaceWith(img);
 	parent.$('title').html('Okeebo');
 	image_wrap();
+	$(window).resize();
 }
 function image_wrap() {
 	var _img = $('img,video').filter(function() { return !$(this).parents('[contenteditable="true"]').html(); });
