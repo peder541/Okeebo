@@ -52,7 +52,7 @@ function resize_windows(){
 	$('#home').css('left',0.22*(map_left-left_margin)+left_margin);*/
 	if (main.offset()) {
 		var map_top_dif = main.offset().top - 67 - $('#map').offset().top;
-		if (map_top_dif != 0) {
+		if (Math.round(map_top_dif) != 0) {
 			main.prepend($('#map').css({
 				'position': 'relative',
 				'top': 0,
@@ -285,6 +285,9 @@ $(document).ready(function() {
 	$(document).keyup(function(event) {	
 		//	Linear Move.  37 is Left.  39 is Right.
 		if (event.which==37 || event.which==39) {
+			// Might want a better detection method. For now, refer to okeebo.tour.js for what that string value should be.
+			if ($('#guided_tour').is(':visible') && $('#guided_tour > p').html() != 'You can also use the right and left arrow keys.') return false;
+
 			if ($('.edit').is(':focus') || $(event.target).is('[contenteditable]')) return false;
 			if (event.ctrlKey || event.altKey || event.shiftKey) {		// Which key should it be?
 				var next_node = $('#meta-map div').index($('.meta-node'))-(38-event.which);
@@ -354,6 +357,7 @@ $(document).ready(function() {
 	
 	/// Other Events
 	$('.exit').on('click',function() {
+		if ($(this).css('pointer-events') == 'none') return false;
 		var old_workspace = $('#meta-map div').index($('.meta-node'));
 		var old_id = workspace.splice(old_workspace,1);
 		var new_id = workspace[old_workspace];
@@ -550,25 +554,8 @@ function linear_move(direction, redraw) {
 		if (workspace.length) workspace[$('#meta-map div').index($('#meta-map .meta-node'))] = letter+number;
 		if ($('#info').is(':visible')) $('#map .node').mouseleave();
 		
-		/*if (redraw) */redraw_node_map(letter+number);		
-		/*else {
-			clear_selected_text();
-			var t = $('#' + String.fromCharCode(id.charCodeAt(0)-1) + number).parents('.outer');
-			var b;
-			if (t.html()) {
-				b = t.children('.in + p').first().attr('id');
-				b = b.substr(1,b.length-1);
-				b = number - b + 1;
-			}
-			else b = number;
-			var old_node = $('.node').filter(function() { 
-				return ( $(this).css('background-color') == 'rgb(85, 85, 85)' || $(this).css('background-color') == '#555' ); 
-			});
-			old_node.css({'background-color':'#FFF','border-color':'#555','cursor':'pointer'});
-			var row = old_node.attr('id').charCodeAt(2);
-			$('#m_' + String.fromCharCode(row) + b).css({'background-color':'#555','border-color':'#2A2A2A','cursor':'default'});
-			update_last_node_line($('#' + letter + number),row+1);
-		}*/
+		redraw_node_map(letter+number);		
+		
 		size_buttons($('#' + letter + number));
 		use_math_plug_in();
 		if ($('[contenteditable]').is(':visible')) resize_writing_items()
@@ -1446,6 +1433,7 @@ function make_note_from_cache(cache,$page) {
 }
 
 function save_notes() {
+	if (!window.localStorage || !window.localStorage.getItem) return false;
 	var notes = ($('.note').index() == -1) ? false : {};
 	var $body = $('body').clone();
 	$body.find('.inner,.outer').has('.note').each(function() {
@@ -1469,6 +1457,7 @@ function save_notes() {
 }
 
 function load_notes() {
+	if (!window.localStorage || !window.localStorage.getItem) return false;
 	var note_file = window.localStorage.getItem('notes');
 	if (note_file) {
 		note_file = JSON.parse(note_file);
