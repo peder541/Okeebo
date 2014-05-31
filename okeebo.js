@@ -285,9 +285,10 @@ $(document).ready(function() {
 	$(document).keyup(function(event) {	
 		//	Linear Move.  37 is Left.  39 is Right.
 		if (event.which==37 || event.which==39) {
-			// Might want a better detection method. For now, refer to okeebo.tour.js for what that string value should be.
-			if ($('#guided_tour').is(':visible') && $('#guided_tour > p').html() != 'You can also use the right and left arrow keys.') return false;
-
+			if ($('#guided_tour').is(':visible')) {
+				// Might want a better detection method. For now, refer to okeebo.tour.js for what the string values should be.
+				if (['You can also use the right and left arrow keys.','Otherwise we\'re done!'].indexOf($('#guided_tour > p').html()) != -1) return false;
+			}
 			if ($('.edit').is(':focus') || $(event.target).is('[contenteditable]')) return false;
 			if (event.ctrlKey || event.altKey || event.shiftKey) {		// Which key should it be?
 				var next_node = $('#meta-map div').index($('.meta-node'))-(38-event.which);
