@@ -272,6 +272,7 @@ $(document).ready(function() {
 	
 	/// Enable Swipe Gesture
 	$('body').on('swipe',function(event) {
+		if ($('#guided_tour').is(':visible') && !$('#guided_tour').is(event.direction=='right' ? '.canLeft' : '.canRight')) return false;
 		if ($('#large_map').html() || $('#large_meta').html()) return false;
 		// One Finger Swipe for Linear Move
 		if (event.touches.length == 0) {							// The swipe gesture registers a single finger as 0
@@ -285,10 +286,7 @@ $(document).ready(function() {
 	$(document).keyup(function(event) {	
 		//	Linear Move.  37 is Left.  39 is Right.
 		if (event.which==37 || event.which==39) {
-			if ($('#guided_tour').is(':visible')) {
-				// Might want a better detection method. For now, refer to okeebo.tour.js for what the string values should be.
-				if (['You can also use the right and left arrow keys.','Otherwise we\'re done!'].indexOf($('#guided_tour > p').html()) != -1) return false;
-			}
+			if ($('#guided_tour').is(':visible') && !$('#guided_tour').is(event.which==37 ? '.canLeft' : '.canRight')) return false;
 			if ($('.edit').is(':focus') || $(event.target).is('[contenteditable]')) return false;
 			if (event.ctrlKey || event.altKey || event.shiftKey) {		// Which key should it be?
 				var next_node = $('#meta-map div').index($('.meta-node'))-(38-event.which);
