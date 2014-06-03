@@ -3218,16 +3218,39 @@ function partner_insert(sender_range,sender_text,keyup) {
 	sel.removeAllRanges();
 	sel.addRange(receiver_range);
 	/**//**/
+	
 	// Idea 2. Inserts a text node at the sender's range.
 	var startElement = $(sender_range.startContainer).closest('p,li,h3');
 	var endElement = $(sender_range.endContainer).closest('p,li,h3');
 	if (startElement.is(endElement) || startElement.length == 0) {
 		sender_range.deleteContents();
-		sender_range.insertNode(document.createTextNode(sender_text));
-		sender_range.startContainer.parentNode.normalize();
+		var $div = $('<div>').html(sender_text);
+		function insertChildNodes(element) {
+			var length = element.childNodes.length - 1;
+			for (var i = length; i >= 0; --i) {
+				var node = element.childNodes[i];
+				if (node.tagName && node.tagName.toLowerCase() == 'p') {
+					if (i != length) {
+						var enter_range = sender_range.cloneRange();
+						enter_range.collapse(true);
+						partner_enter(enter_range);
+					}
+					insertChildNodes(node);
+				}
+				else sender_range.insertNode(node);
+			}
+			sender_range.startContainer.parentNode.normalize();
+		}
+		insertChildNodes($div[0]);
 	}
 	// Handles when text is inserted into a multi-element selection.
 	else {
+		var $div = $('<div>').html(sender_text);
+		if ($div.has('p').length != 0) {
+			sender_range.deleteContents();
+			partner_insert(sender_range,sender_text,keyup);
+			return false;
+		}
 		var sel = document.getSelection();
 		// Calculates what the new caret position will be.
 		if (sel.rangeCount) {
@@ -3527,7 +3550,7 @@ function partner_enter(sender_range,keyup) {
 	else {
 		sender_range.deleteContents();
 		var element = $(sender_range.startContainer).closest('p,li');
-		var tagName = element[0].tagName;
+		var tagName = element[0] ? element[0].tagName : 'p';
 		if (element.is('li') && element.html() == '<br>') {
 			element.parent().after('<p><br></p>');
 			element.remove();
@@ -4377,6 +4400,7 @@ function collab_send(msg) {
 }
 
 function collab_dispatch(val) {	
+	val.msg = val.msg.replace(/\s/g,' ');
 	var order = 0;
 	if (collab[val.spkr]) order = collab[val.spkr][0] + 1;
 	else collab[val.spkr] = [order, {}];
