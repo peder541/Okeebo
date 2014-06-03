@@ -93,15 +93,25 @@ $(document).ready(function(event) {
 				if (typeof(insert_page) === 'function') {
 					$this.html('Connect').attr('class','connect');
 					break;
-				}
-			case 'make_tangent':
-				if (typeof(undo_tangent) === 'function') undo_tangent();
+				}	
 			case 'connect':
 			//	$this.html('Delete').attr('class','remove');
 			//	break;
 			//case 'remove':
 				if (mobile) $this.html('Info').attr('class','info');
 				else $this.html('Collapse').attr('class','collapse');
+				break;
+				
+			// Special modes for making tangents
+			case 'make_tangent':
+				if (mobile) $this.html('Info').attr('class','info_tangent');
+				else $this.html('Collapse').attr('class','collapse_tangent');
+				break;
+			case 'info_tangent':
+				$this.html('Collapse').attr('class','collapse_tangent');
+				break;
+			case 'collapse_tangent':
+				$this.html('Tangent').attr('class','make_tangent');
 				break;
 		}
 	});
@@ -264,7 +274,7 @@ function draw_graph() {
 			delete_page();
 			if (continuous) toggle_graph(1);
 		}
-		else if (mode == 'collapse') handle_circle_click($this,0,$('path'));
+		else if (mode == 'collapse' || mode == 'collapse_tangent') handle_circle_click($this,0,$('path'));
 	});
 	
 	var d2 = new Date();
