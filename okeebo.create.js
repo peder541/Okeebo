@@ -3245,12 +3245,6 @@ function partner_insert(sender_range,sender_text,keyup) {
 	}
 	// Handles when text is inserted into a multi-element selection.
 	else {
-		var $div = $('<div>').html(sender_text);
-		if ($div.has('p').length != 0) {
-			sender_range.deleteContents();
-			partner_insert(sender_range,sender_text,keyup);
-			return false;
-		}
 		var sel = document.getSelection();
 		// Calculates what the new caret position will be.
 		if (sel.rangeCount) {
@@ -3327,39 +3321,54 @@ function partner_insert(sender_range,sender_text,keyup) {
 		// Apply Changes
 		sender_range.deleteContents();
 		startElement.append(sender_text);
-		var $page = $('.inner,.outer').filter(':visible');
-		var elements = $page.find('p,li');
-		for (var start = elements.index(startElement), i = start + 1, end = elements.index(endElement); i <= end; ++i) {
-			//console.log(elements.eq(i).html(),i);
-			startElement.append(elements.eq(i).detach().html());
-		}
-		sender_range.startContainer.parentNode.normalize();
-		if (sel.rangeCount) {
-			// Apply Caret Position
-			if (typeof(startMiniDOM) === 'undefined') {
-				if (displace >= 0) range.setStart(range.startContainer, range.startOffset + displace + sender_text.length);
+		var $div = $('<div>').html(sender_text);
+		if ($div.has('p').length != 0) {
+			var nodes = startElement[0].childNodes;	
+			var $prev = startElement;		
+			for (var i=0; i < nodes.length; ++i) {
+				var $next = $(nodes[i]);
+				if ($next.is('p')) {
+					$prev.after($next);
+					$prev = $next;
+					--i;
+				}
 			}
-			else {
-				var node = startElement[0];
-				for (var i in startMiniDOM) {
-					node = node.childNodes[startMiniDOM[i]];
-					if (typeof(node) === 'undefined') break;
+		}
+		else {
+			var $page = $('.inner,.outer').filter(':visible');
+			var elements = $page.find('p,li');
+			for (var start = elements.index(startElement), i = start + 1, end = elements.index(endElement); i <= end; ++i) {
+				//console.log(elements.eq(i).html(),i);
+				startElement.append(elements.eq(i).detach().html());
+			}
+			sender_range.startContainer.parentNode.normalize();
+			if (sel.rangeCount) {
+				// Apply Caret Position
+				if (typeof(startMiniDOM) === 'undefined') {
+					if (displace >= 0) range.setStart(range.startContainer, range.startOffset + displace + sender_text.length);
 				}
-				if (typeof(node) !== 'undefined' && displace >= 0) {
-					range.setStart(node, startOffset);
-					sel.removeAllRanges();
-					sel.addRange(range);
-				}
-				
-				node = startElement[0];
-				for (var i in endMiniDOM) {
-					node = node.childNodes[endMiniDOM[i]];
-					if (typeof(node) === 'undefined') break;
-				}
-				if (typeof(node) !== 'undefined' && endCompare >= 0) {
-					range.setEnd(node, endOffset);
-					sel.removeAllRanges();
-					sel.addRange(range);
+				else {
+					var node = startElement[0];
+					for (var i in startMiniDOM) {
+						node = node.childNodes[startMiniDOM[i]];
+						if (typeof(node) === 'undefined') break;
+					}
+					if (typeof(node) !== 'undefined' && displace >= 0) {
+						range.setStart(node, startOffset);
+						sel.removeAllRanges();
+						sel.addRange(range);
+					}
+					
+					node = startElement[0];
+					for (var i in endMiniDOM) {
+						node = node.childNodes[endMiniDOM[i]];
+						if (typeof(node) === 'undefined') break;
+					}
+					if (typeof(node) !== 'undefined' && endCompare >= 0) {
+						range.setEnd(node, endOffset);
+						sel.removeAllRanges();
+						sel.addRange(range);
+					}
 				}
 			}
 		}
