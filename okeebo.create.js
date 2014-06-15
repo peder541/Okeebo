@@ -42,7 +42,7 @@ function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (!sidebar_width) sidebar_width = 0;
-	var base_width = Math.min(900,$(window).width()-sidebar_width)-buffer;
+	var base_width = $('.inner,.outer').filter(':visible').outerWidth();//Math.min(900,$(window).width()-sidebar_width)-buffer;
 	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
 	$(writing_buttons).css('left',base_width-26);
 	//modify_arrange_buttons();
@@ -84,13 +84,13 @@ $(document).ready(function(event) {
 	if (typeof(_fadeIn) === 'undefined') {
 		_fadeIn = $.fn.fadeIn;
 		$.fn.fadeIn = function(){
-			_fadeIn.apply(this,arguments).trigger("fadeIn");
+			return _fadeIn.apply(this,arguments).trigger("fadeIn");
 		};
 	}
 	if (typeof(_show) === 'undefined') {
 		_show = $.fn.show;
 		$.fn.show = function(){
-			_show.apply(this,arguments).trigger("show");
+			return _show.apply(this,arguments).trigger("show");
 		};
 	}
 	
@@ -304,17 +304,17 @@ $(document).ready(function(event) {
 	.on('keyup',function(event) {
 		if (event.which == 20) caps = !caps;
 	})
-	.on('focus','span[contenteditable="true"]:nth-of-type(2)',function(event) {
-		if (['Response (400 Word Max)','Summary',''].indexOf(this.textContent) != -1 && $(this).find('img').index() == -1) {
-			if (!$(this).attr('data-content')) $(this).attr('data-content',this.textContent);
-			this.innerHTML = '<br>';
-			if ($(this).height() > 30) this.innerHTML = '';
-			size_buttons($('.outer:visible'));
-		}
-	}).on('blur','span[contenteditable="true"]:nth-of-type(2)',function(event) {
-		if (this.textContent == '' && $(this).find('img').index() == -1) {
-			this.innerHTML = $(this).attr('data-content') || '';
-			size_buttons($('.outer:visible'));
+	.on('focus','[contenteditable="true"]', function(event) {
+		var $this = $(this);
+		var node = false;
+		if ($this.html() == '<p>Content</p>' && $this.is('div')) node = $this.children('p')[0];
+		else if (($this.html() == ($this.index() ? 'Summary' : 'Title') && $this.is('span')) || ($this.html() == 'Title') && $this.is('h3')) node = this;
+		if (node) {
+			var sel = document.getSelection();
+			var range = document.createRange();
+			range.selectNodeContents(node);
+			sel.removeAllRanges();
+			sel.addRange(range);
 		}
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
@@ -751,12 +751,14 @@ $(document).ready(function(event) {
 	.on('copy',function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
 	})
-	.on('mouseup','[contenteditable="true"]',function(event) {
+	.on('mouseup',/*'[contenteditable="true"]',*/function(event) {
 		if (window.self !== window.top || typeof(nick) !== 'undefined') {
 			//if ($(this).is('div[contenteditable]')) {
+			setTimeout(function() {
 				var sender_range = JSON.stringify(getSenderRange());
 				var msg = '["cursor",' + sender_range + ']';
 				collab_send(msg);
+			}, 10);
 			//}
 		}
 	})
@@ -816,7 +818,7 @@ $(document).ready(function(event) {
 				clone.attr('width',act_img.attr('width'));
 				clone.attr('height',act_img.attr('height'));
 				clone.css('position','absolute');
-				clone.css('opacity',0.3);
+				clone.css('opacity',0.5);
 				clone.css('left',act_img.offset().left);
 				clone.css('top',act_img.offset().top);
 				clone.css('outline','1px rgba(0,0,0,0.9) dashed');
@@ -2255,6 +2257,7 @@ function create_sidebar() {
 	$('#menu').attr('title','Close Sidebar');
 	
 	$('body').css('overflow-y','auto');
+	
 	resize_windows();
 	resize_writing_items();
 	$('.left').css('left',sidebar_width);
@@ -3710,11 +3713,11 @@ function ghost_type() {
 }
 
 function getSenderRange(range) {
-	if (!range) {
-		var sel = document.getSelection();	
-		if (sel.rangeCount < 1) return false;
-		var range = sel.getRangeAt(0);
-	}
+	var sel = document.getSelection();
+	var ctrlA_adj = 0;
+	if (sel.rangeCount < 1) return false;
+	else if (sel.rangeCount > 1) ctrlA_adj = 1;
+	if (!range) range = sel.getRangeAt(0);
 	range.startContainer.parentNode.normalize();
 	var senderRange = {};
 	var $page = $('.inner,.outer').filter(':visible');
@@ -3762,6 +3765,8 @@ function getSenderRange(range) {
 		while (node && node.nodeType != 3 && spot > 0) node = range.startContainer.childNodes[--spot];
 		senderRange.special = (node && node.textContent.length) || true;
 	}
+	
+	if (senderRange.end && ctrlA_adj) senderRange.end += 1;
 	
 	return senderRange;
 }
@@ -4567,4 +4572,36 @@ function resize_cursor() {
 
 function percentEncode(string) {
 	return string.replace(/\W/g, function(match) { return '%' + match.charCodeAt(0).toString(16).toUpperCase(); })	
+}
+
+function rotateImg(degrees) {
+	var $img = $('.active-img,[_moz_resizing="true"]');
+	if ($img.is('[_moz_resizing="true"]')) {
+		$img.parent().hide();
+		document.execCommand('enableObjectResizing', false, 'false');
+		$img.removeAttr('_moz_resizing').parent().show();
+	}
+	$img.css({'margin':'','transform':''});
+	var top0 = $img.offset().top;
+	var left0 = $img.offset().left;
+	$img.click().css('transform','rotate(' + degrees + 'deg)');
+	var top1 = $img.offset().top;
+	var left1 = $img.offset().left;
+	var dif_y = top0 - top1;
+	var dif_x = left0 - left1;
+	$img.css('margin',dif_y + 'px auto');
+	
+	var radians = -degrees/180*Math.PI;
+	var trig = [Math.cos(radians), Math.sin(radians)];
+	//JSON.parse($img.css('transform').replace('matrix(','[').replace(')',']'));
+	var x0 = left0 + $img.width()*0.5;
+	var y0 = top0 + $img.height()*0.5;
+	
+	$('.resize_handle').css('transform',$img.css('transform')).each(function() {
+		var $this = $(this);
+		var x = parseInt($this.css('left'),10) + 3;
+		var y = parseInt($this.css('top'),10) + 3;
+		$this.css('left', x0 + (x-x0)*trig[0] + (y-y0)*trig[1] - 3);
+		$this.css('top', y0 - (x-x0)*trig[1] + (y-y0)*trig[0] + dif_y - 3);
+	});
 }
