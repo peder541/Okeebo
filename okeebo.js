@@ -22,6 +22,7 @@ function resize_windows(){
 		
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (sidebar_width) {
+		sidebar_width += $('#sidebar').offset().left;
 		left_margin += sidebar_width/2;
 		if (left_margin < sidebar_width) left_margin = sidebar_width;
 	}
