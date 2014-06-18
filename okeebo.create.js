@@ -42,6 +42,7 @@ function resize_writing_items(buffer) {
 	if (typeof(buffer) === 'undefined') buffer = 0;
 	var sidebar_width = $('#sidebar').outerWidth();
 	if (!sidebar_width) sidebar_width = 0;
+	else sidebar_width += $('#sidebar').offset().left
 	var base_width = $('.inner,.outer').filter(':visible').outerWidth();//Math.min(900,$(window).width()-sidebar_width)-buffer;
 	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
 	$(writing_buttons).css('left',base_width-26);
@@ -310,11 +311,13 @@ $(document).ready(function(event) {
 		if ($this.html() == '<p>Content</p>' && $this.is('div')) node = $this.children('p')[0];
 		else if (($this.html() == ($this.index() ? 'Summary' : 'Title') && $this.is('span')) || ($this.html() == 'Title') && $this.is('h3')) node = this;
 		if (node) {
-			var sel = document.getSelection();
-			var range = document.createRange();
-			range.selectNodeContents(node);
-			sel.removeAllRanges();
-			sel.addRange(range);
+			setTimeout(function() {
+				var sel = document.getSelection();
+				var range = document.createRange();
+				range.selectNodeContents(node);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}, 10);
 		}
 	})
 	.on('keydown','[contenteditable="true"]',function(event) {
@@ -2426,7 +2429,7 @@ function insertAfter(html) {
 	}
 	else {
 		if (!current_div.hasClass('outer')) {
-			if (!element) {
+			if (!element || closest_p.index() == -1) {
 				current_div.find('div[contenteditable="true"]').prepend(html);
 			}
 			else {
