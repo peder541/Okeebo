@@ -428,12 +428,6 @@ function draw_lines() {
 	
 	var circle = d3.selectAll('circle');
 	
-	if (return_page_id == 'Z1') {
-		var active = circle.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == '`1') return true; });
-		var color = active.style('fill').replace(/\s/g,'').toLowerCase();
-		active.style('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]).style('stroke',darkColor[3]);
-	}
-	
 	var pos = {};
 	
 	circle.each(function(d,i) {
@@ -445,9 +439,9 @@ function draw_lines() {
 	circle.each(function(d,i) {
 		for (var j=0; j < d.length; ++j) {
 			var id = d[j];
-			if (id == return_page_id) {
+			if (id == return_page_id || (return_page_id == 'Z1' && id == '`1')) {
 				var color = d3.select(this).style('fill').replace(/\s/g,'').toLowerCase();
-				$(this).css('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]).css('stroke',darkColor[3]);
+				$(this).css('fill',(darkColor.indexOf(color) != -1) ? darkColor[3] : liteColor[3]).attr('data-stroke','active');
 			}
 			var parent = d3_get_parent_tag(id);
 			if (parent) {
@@ -494,7 +488,7 @@ function draw_lines() {
 		circle
 			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == edge) return true; })
 			.style('stroke-width',2)
-			.style('stroke',edge == return_page_id ? darkColor[3] : '');
+			.style('stroke','');
 		circle
 			.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
 			.style('stroke-width',4)
@@ -536,7 +530,7 @@ function draw_lines() {
 		circle
 			.filter(function(data,index) { for (k=0; k < data.length; ++k) if (data[k] == edge || data[k] == parent) return true; })
 			.style('stroke-width','')
-			.style('stroke',k == return_page_id ? darkColor[3] : '');
+			.style('stroke','');
 		while (parent) {
 			path
 				.filter(function(data,index) { if (data == parent) return true; })
@@ -547,7 +541,7 @@ function draw_lines() {
 			circle
 				.filter(function(data,index) { for (var k=0; k < data.length; ++k) if (data[k] == parent) return true; })
 				.style('stroke-width','')
-				.style('stroke',parent == return_page_id ? darkColor[3] : '');
+				.style('stroke','');
 		}
 		
 		edge = null;
