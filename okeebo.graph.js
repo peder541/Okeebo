@@ -73,7 +73,7 @@ $(document).ready(function(event) {
 			}
 		}
 	})
-	.on('mousedown',':not(path)',function(event) {
+	.on('mousedown',function(event) {
 		if ($('svg').is(':visible') && !$(event.target).is('path')) {
 			$('path,circle').attr('class','');
 		}
@@ -141,7 +141,7 @@ function toggle_graph(flicker) {
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
-		$('.inner,.outer,#menu,#map,.writing,.left,.right,#map_helper,#home,#function').hide();
+		$('.inner,.outer,#menu,#map,.writing,.left,.right,#map_helper,#home,#function').filter(':visible').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white').css('overflow','hidden');
 		$('html').css('overflow','hidden');
@@ -308,7 +308,7 @@ function handle_circle_click($this,no_timer,$path) {
 		});
 		path = path.add(_path);
 	}
-	if (path.index() == -1) return false;
+	if (path.length == 0) return false;
 	var compare = d3.selectAll(path).data();
 	var circles = d3.selectAll('circle').filter(function(d,i) {
 		// Handles proper collapsing of sub-branches
@@ -330,7 +330,7 @@ function handle_circle_click($this,no_timer,$path) {
 					}*/
 					else {
 						var _path = $path.filter('[d$="' + $this.attr('cx') + ' ' + $this.attr('cy') + '"]');
-						if (_path.index() != -1) $this.css('fill',darkColor[0]);//.show();
+						if (_path.length > 0) $this.css('fill',darkColor[0]);//.show();
 					}
 				}
 				else $this.css('fill',liteColor[0]);//.hide();
