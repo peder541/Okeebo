@@ -765,7 +765,7 @@ function concept_zoom_in(id) {
 }
 
 function size_preview_buttons() {
-	if ($('.preview_window').html()) for (var i=0; i<=$('.preview_window').index($('.preview_window').last()); ++i) {
+	if ($('.preview_window').html()) for (var i=0; i<$('.preview_window').length; ++i) {
 		var preview_buttons_height = $('.preview_window p').eq(i).height() / 1;
 		$('.preview_main').eq(i).css({'height':preview_buttons_height});
 		//$('.preview_split').eq(i).css({'height':preview_buttons_height,'margin-top':preview_buttons_height+5});
@@ -807,7 +807,7 @@ function size_buttons(obj) {
 }
 
 function count_children(obj) {
-	return obj.children('.in + p').index(obj.children('.in + p').last()) + 1;
+	return obj.children('.in + p').length;
 }
 
 function get_parent_tag(id) {
@@ -928,10 +928,10 @@ function modify_large_map(create,meta) {
 	
 	if (!meta) {
 		var longest_row = 0;
-		var nodes = new Array($('#map .row').index($('#map .row').not('.empty').last())+1);
+		var nodes = new Array($('#map .row').not('.empty').length);
 		for (var i=0; i < nodes.length; ++i) {
 			if ($('#map .row').eq(i).width() > $('#map .row').eq(longest_row).width()) longest_row = i;
-			nodes[i] = $('#map > .row').eq(i).children('.node').index($('#map > .row').eq(i).children('.node').last()) + 1;
+			nodes[i] = $('#map > .row').eq(i).children('.node').length;
 		}
 		var max_nodes = nodes[longest_row];
 		var multiplier = Math.min(((0.9*$(map).width()/max_nodes)-2)*0.125,((0.6*$(map).height()/nodes.length)-2)*0.125);
@@ -956,7 +956,7 @@ function modify_large_map(create,meta) {
 		else $(map + ' .row').css({'padding-right':0});
 	}
 	else {
-		var nodes = $('#meta-map div').index($('#meta-map div').last()) + 1;
+		var nodes = $('#meta-map div').length;
 		var multiplier = Math.min(((0.9*$(map).width()/nodes)-2)*0.125,((0.5*$(map).height())-2)*0.125);
 		if (!portrait) multiplier=Math.min(((0.9*$('#lm_ok').offset().left/nodes)-2)*0.125,((0.5*$(map).height())-2)*0.125);
 		if (create) {
