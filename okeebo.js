@@ -30,7 +30,7 @@ function resize_windows(){
 	if (left_margin < 0) left_margin = 0;
 	
 	var forum = $('#forum');
-	if (forum.index() < 0) {
+	if (forum.length == 0) {
 		$('body').append('<p id="forum"></p>');
 		forum = $('#forum');
 	}
@@ -1381,7 +1381,7 @@ function cache_note($page) {
 	$page.find('*').removeAttr('style');
 	var multiple = false;
 	var $node = $page.find('.note');
-	if ($node.index() == -1) return false;
+	if ($node.length == 0) return false;
 	if ($($node[0].parentNode.nextSibling).is('.note')) multiple = true;
 	var start = $node.is('.otherNote') ? -1 : $page.html().search($node[0].outerHTML);			// Condition discriminates on notes not from user
 	var length = $node.eq(0).replaceWith(function() { return this.innerHTML; }).html().length;
@@ -1434,7 +1434,7 @@ function make_note_from_cache(cache,$page) {
 
 function save_notes() {
 	if (!window.localStorage || !window.localStorage.getItem) return false;
-	var notes = ($('.note').index() == -1) ? false : {};
+	var notes = ($('.note').length == 0) ? false : {};
 	var $body = $('body').clone();
 	$body.find('.inner,.outer').has('.note').each(function() {
 		var $this = $(this);
