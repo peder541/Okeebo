@@ -553,21 +553,19 @@ $(document).ready(function(event) {
 	})
 	.on('cut paste','[contenteditable="true"]',function(event) {
 		var title_paste;
+		var $this = $(this);
 		if (event.type == 'cut') _clip = document.getSelection().toString();	// Necessary for fix to 'paste into span' glitch in Firefox.
-		if ($(this).is('h3')) {
-			var index = $('h3').index($(this));
-			setTimeout("$('h3').eq(" + index + ").keyup();",10);
+		if ($this.is('h3')) {
+			setTimeout(function() { $this.keyup(); },10);
 			if (event.type == 'paste') title_paste = 1;
 		}
-		else if ($(this).is('p[id] > span')) {
-			if ($(this).is('p[id] > span:first-child')) {
-				var index = $('p[id] > span').index($(this));
-				setTimeout("$('p[id] > span').eq(" + index + ").keyup();",10);
+		else if ($this.is('p[id] > span')) {
+			if ($this.is('p[id] > span:first-child')) {
+				setTimeout(function() { $this.keyup(); },10);
 				if (event.type == 'paste') title_paste = 1;
 			}
 			else {
-				var index = $('.inner,.outer').index($('.inner,.outer').filter(':visible'));
-				setTimeout("size_buttons($('.inner,.outer').eq(" + index + "));",10);
+				setTimeout(function() { size_buttons($('.inner,.outer').filter(':visible')); },10);
 				if (event.type == 'paste') {
 					event.preventDefault();
 					var clipboardData = '';
@@ -749,7 +747,7 @@ $(document).ready(function(event) {
 		resize_windows();
 		size_buttons($('.inner,.outer').filter(':visible'));
 		resize_writing_items();
-		//if (event.type == 'paste') setTimeout("$('p,a,b,i,u,sup,sub').removeAttr('style');",0);
+		//if (event.type == 'paste') setTimeout(function() { $('p,a,b,i,u,sup,sub').removeAttr('style'); },0);
 	})
 	.on('copy',function(event) {
 		_clip = document.getSelection().toString();		// Necessary for fix to 'paste into span' glitch in Firefox.
@@ -4073,7 +4071,7 @@ function collab_updates() {
 			},
 			error:function() {
 				console.log('Timeout. Reconnecting in 5 seconds.');
-				collab_timer = setTimeout('collab_updates()',5000);
+				collab_timer = setTimeout(collab_updates,5000);
 			}
 	});
 }
