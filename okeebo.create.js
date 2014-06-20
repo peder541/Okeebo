@@ -2385,7 +2385,7 @@ function insertCol(place) {
 function insertRow(place) {
 	var td = $(document.getSelection().anchorNode.parentNode);
 	var row = td.parent('tr');
-	var num = row.children('td').index(row.children('td').last()) + 1;
+	var num = row.children('td').length;
 	var html = '<tr>';
 	for (var i=0; i<num; ++i) html += '<td><br></td>';
 	html += '</tr>';
