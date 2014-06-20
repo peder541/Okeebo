@@ -1352,7 +1352,7 @@ function load_next(id) {
 }
 function grab_page(id) {
 	var $id = $('.' + id);
-	if ($id.has('h3').index() != -1) return false;
+	if ($id.has('h3').length > 0) return false;
 	var url = 'https://www.okeebo.com' + window.location.pathname + '?show=' + id;
 	$.get(url,function(data) {
 		var d = $('<html />').html(data);
@@ -1439,10 +1439,10 @@ function save_notes() {
 	$body.find('.inner,.outer').has('.note').each(function() {
 		var $this = $(this);
 		var key = $this.attr('class').split(' ').pop();
-		if ($this.find('.note').index() != -1) {
+		if ($this.find('.note').length > 0) {
 			notes[key] = [];
 			$this.find('.note').each(function() {
-			//while ($this.find('.note').index() != -1) {
+			//while ($this.find('.note').length > 0) {
 				notes[key].push(cache_note($this));	
 			});
 		}
@@ -1510,7 +1510,7 @@ function go_and_note(data) {
 			while (workspace.length > 0) workspace.pop();
 		}
 		new_id = new_id.replace(errorChars,'');
-		if ($('.' + new_id).index() != -1) go_to($('.inner,.outer').filter(':visible').attr('id'),new_id);
+		if ($('.' + new_id).length > 0) go_to($('.inner,.outer').filter(':visible').attr('id'),new_id);
 	}
 	if (data.length > 0) {
 		for (var i in data) make_note_from_cache(data[i].split(','));
