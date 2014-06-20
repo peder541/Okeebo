@@ -134,7 +134,7 @@ $(document).ready(function() {
 	
 	$('body').append('<div id="badIE"><!--[if lt IE 8]><script type="text/javascript">badIE = true;</script><![endif]--></div>');
 	$('#badIE').remove();
-	if (badIE) setTimeout("size_buttons($('.inner,.outer').eq(" + $('.inner,.outer').index($('.inner,.outer').filter(':visible')) + "));",100);
+	if (badIE) setTimeout(function() { size_buttons($('.inner,.outer').filter(':visible')); },100);
 	$('body').append('<div id="IE"><!--[if IE]><script type="text/javascript">IE = true;</script><![endif]--></div>');
 	$('#IE').remove();
 	
@@ -153,14 +153,14 @@ $(document).ready(function() {
 		}
 	};
 	window.onmspointerup = function(event) {
-		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE) mobile_timer = setTimeout('mobile = 0;',400);
+		if (event.pointerType != event.MSPOINTER_TYPE_MOUSE) mobile_timer = setTimeout(function() { mobile = 0; },400);
 	};
 	$(window).on('touchstart',function(event) {
 		if (mobile_timer) clearTimeout(mobile_timer);
 		mobile = 1;
 	})
 	.on('touchend',function(event) {
-		mobile_timer = setTimeout('mobile = 0;',400);
+		mobile_timer = setTimeout(function() { mobile = 0; },400);
 	})
 	.on('scroll',function(event) {
 		var map = null;
@@ -222,7 +222,7 @@ $(document).ready(function() {
 				else if (target) $('#info').html($('.' + target + ' > h3').html());
 			}
 			$('#info').css({'top':7,'left':'auto','padding-right':10,'right':0});
-			info_timer = setTimeout("$('#info').show()",500);
+			info_timer = setTimeout(function() { $('#info').show() },500);
 			var scrollTop = $(window).scrollTop();
 			var pos = $(this).offset();
 			var $info = $('#info');
@@ -234,7 +234,7 @@ $(document).ready(function() {
 		}
 		else {
 			$('.node').mouseleave();						// Clear Tooltip
-			setTimeout("$('.node').mouseleave()",250);		// Keep it clear
+			setTimeout(function() { $('.node').mouseleave(); },250);		// Keep it clear
 			
 			if (l1>l0) return concept_zoom_in($('.outer').filter(':visible').children('.in + p').eq(n1-1).attr('id'));
 			else if (l1<l0) return concept_zoom_out(l0-l1,n1);	
@@ -259,7 +259,7 @@ $(document).ready(function() {
 		$('#info').html($('.' + workspace[$('#meta-map div').index($(this))] + ' h3').html());
 		$('#info').css({'right':'auto','left':10});
 		$('#info').css('top',7);
-		info_timer = setTimeout("$('#info').show()",500);
+		info_timer = setTimeout(function() { $('#info').show(); },500);
 	})
 	.on('click','._node',function(event) {
 		if (mobile) return true;
@@ -489,7 +489,7 @@ function clean_transition(new_obj,old_obj) {
 	}
 	if ($('[contenteditable]').is(':visible')) {
 		resize_writing_items(Math.min(scrollbar_width,x)-scrollbar_width);
-		setTimeout("resize_writing_items()",0);
+		setTimeout(resize_writing_items,0);
 	}
 }
 
@@ -567,7 +567,7 @@ function linear_move(direction, redraw) {
 	var current_div = $('.inner,.outer').filter(':visible');
 	$('#status').css('left',parseInt(current_div.css('margin-left'),10)+current_div.outerWidth()*0.5-$('#status').outerWidth()*0.5);
 	$('#status').fadeIn();
-	status_timer = setTimeout("$('#status').fadeOut();",1400);
+	status_timer = setTimeout(function() { $('#status').fadeOut(); },1400);
 	
 	var status_top = $(window).scrollTop()+$(window).height()*0.9-$('#status').outerHeight();
 	if (Math.abs(status_top-$('#status').offset().top) > 1) $('#status').css({'bottom':'auto','top':status_top});
@@ -604,7 +604,7 @@ function redraw_node_map(id,color,initial) {
 		// check readyState
 		// if (this.readyState == 0) $(this).children('object').unwrap();
 	});
-	setTimeout("pauseVideo();",0);
+	setTimeout(pauseVideo,0);
 	$('#map').empty();
 	if (id == 'Z3') return false;
 	if (id.charCodeAt(0) < 90) return false;
@@ -719,7 +719,7 @@ function concept_zoom_out(dif,adj) {
 	
 	target_obj.attr('id',target);
 	size_buttons(target_obj);
-	if (badIE) setTimeout("size_buttons($('.inner,.outer').eq(" + $('.inner,.outer').index(target_obj) + "));",100);
+	if (badIE) setTimeout(function() { size_buttons(target_obj); },100);
 	use_math_plug_in();
 	
 	if (workspace.length) workspace[$('#meta-map div').index($('#meta-map .meta-node'))] = target;
@@ -1112,7 +1112,7 @@ function updateVideo(video_id) {
 				vid.replaceWith(data);
 				var new_vid = jQuery('#'+id).parent('video');
 				new_vid[0].play();
-				if (paused) setTimeout('jQuery("video").eq(' + jQuery('video').index(new_vid) + ')[0].pause()',10);
+				if (paused) setTimeout(function() { new_vid[0].pause(); },10);
 			}
 			else vid.replaceWith(data);
 		});
