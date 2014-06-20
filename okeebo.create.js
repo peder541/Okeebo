@@ -323,7 +323,7 @@ $(document).ready(function(event) {
 	.on('keydown','[contenteditable="true"]',function(event) {
 		if (event.which == 8 || event.which == 46) {
 			// Deletes Selected Image in Chrome
-			if ($('.active-img').not('table').index() != -1) {
+			if ($('.active-img').not('table').length > 0) {
 				var $el = $('.active-img');
 				$el.closest('[contenteditable="true"]').focus();
 				var br = document.createElement('br');
@@ -576,7 +576,7 @@ $(document).ready(function(event) {
 					if (clipboardData == '') clipboardData = event.originalEvent.clipboardData.getData('text/plain').replace(/\n/g, '<br />');
 					var dummyDIV = $('<div id="dummy" />');
 					dummyDIV.html(clipboardData);
-					while (dummyDIV.find('*').not('br,img').index() != -1) {
+					while (dummyDIV.find('*').not('br,img').length > 0) {
 						dummyDIV.find('*').each(function(index) {
 							var $this = $(this);
 							if ($this.is('p')) {
@@ -665,7 +665,7 @@ $(document).ready(function(event) {
 				clipboardData = clipboardData.replace('<!--StartFragment-->','').replace('<!--EndFragment-->','');
 				var dummyDIV = $('<div id="dummy" contenteditable="true"></div>');
 				dummyDIV.html(clipboardData);
-				if (cross_browser_paste && dummyDIV.find('br').index() != -1) {
+				if (cross_browser_paste && dummyDIV.find('br').length > 0) {
 					dummyDIV.wrap('<div>');
 					improve_formatting(dummyDIV.parent());
 				}
@@ -1119,7 +1119,7 @@ $(document).ready(function(event) {
 		var sel = document.getSelection();
 		/// make something in span that looks like a list
 		/// currently using the kbd tag as a crutch. want to transition to just text
-		if ($(sel.anchorNode).parents('p[id]').index() != -1) {
+		if ($(sel.anchorNode).parents('p[id]').length > 0) {
 			var start = 'anchorNode';
 			var finish = 'focusNode';
 			if ($(sel[start]).index() > $(sel[finish]).index()) {
@@ -1137,7 +1137,7 @@ $(document).ready(function(event) {
 					var $node = $(node);
 					if (!$node.is('br,kbd,p[id] > span,div')) {
 						var type = ((event.target.id == 'ul') ? '-' : ((event.target.id == 'ol' ? ++count : String.fromCharCode(++count + 96)) + '.')) + ' ';
-						if ($node.prev('kbd').index() == -1 || $node.prev('kbd').attr('type') != type) list = 0;
+						if ($node.prev('kbd').length == 0 || $node.prev('kbd').attr('type') != type) list = 0;
 						$node.prev('kbd').remove();
 						if (i == 0) $node.before('<kbd class="li" type="' + type + '"></kbd>');
 					}
@@ -1358,7 +1358,7 @@ function toggle_edit() {
 			var $this = $(this);
 			if (document.getSelection) {
 				var $focus = $(document.getSelection().anchorNode).closest('[contenteditable="true"]');
-				if ($(':focus').index() != -1 && !$this.is(':focus') && !$focus.is(':focus') && $focus.index() != -1) {
+				if ($(':focus').length > 0 && !$this.is(':focus') && !$focus.is(':focus') && $focus.length > 0) {
 					$(':focus').blur();
 					$focus.focus();
 				}
@@ -1631,7 +1631,7 @@ function update_all_affected_links(first_id) {
 			if (skip) continue;
 			list.push(obj);
 			arrange_links(obj.children(),letter,first_number);
-			if (obj.children('p[id*="' + letter + '"]').index() != -1) {
+			if (obj.children('p[id*="' + letter + '"]').length > 0) {
 				first_number += count_children(obj);
 				var allow_linear_checked = obj.children('form.linear').children('input').prop('checked');
 				if ((typeof(allow_linear_checked) !== 'undefined') && !allow_linear_checked) {
@@ -2429,7 +2429,7 @@ function insertAfter(html) {
 	}
 	else {
 		if (!current_div.hasClass('outer')) {
-			if (!element || closest_p.index() == -1) {
+			if (!element || closest_p.length == 0) {
 				current_div.find('div[contenteditable="true"]').prepend(html);
 			}
 			else {
@@ -2481,7 +2481,7 @@ function iframe_trigger() {
 function iframe_to_image(iframe) {
 	if (!iframe) iframe = parent.$('iframe');
 	var img = iframe.contents().find('img');
-	if (img.index() != -1) iframe.replaceWith(img);
+	if (img.length > 0) iframe.replaceWith(img);
 	parent.$('title').html('Okeebo');
 	image_wrap();
 	$(window).resize();
@@ -2614,7 +2614,7 @@ function CodeToDisplay(index,callback) {
 		return;	
 	}
 	container.children('br').remove();
-	if (container.children('script').index() == -1) {
+	if (container.children('script').length == 0) {
 		var html = $('<div/>').html(container.html()).text();
 		var formattedHTML = html.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
 		container.html(formattedHTML).addClass('center').attr('contenteditable','false');
@@ -2656,7 +2656,7 @@ function MathMLtoTeX(index,change) {
 		container.each(function(i) { MathMLtoTeX(i); });
 		return;	
 	}
-	if (container.children('script').index() == -1) {
+	if (container.children('script').length == 0) {
 		container.children('button').remove();
 		var math = container.children('math');
 		if (math.length == 0) container.html($('<div/>').html(container.html()).text().replace(/\s(?=\s*<)/g,''));
@@ -3184,13 +3184,13 @@ function partner_add_intro_text(id) {
 function partner_format_text(el,sender_range) {
 	// Method 1. 10% done and have to esentially rebuild execCommand
 	/*var $parent = $(sender_range.startContainer.parentNode).closest(el);
-	if ($parent.index() != -1) {
+	if ($parent.length > 0) {
 		$parent.replaceWith(function() { return this.innerHTML; });
 		console.log(el);
 	}
 	else sender_range.surroundContents(document.createElement(el));
 	var $p = $parent.closest('p')
-	if ($p.index() != -1) $p[0].normalize();*/
+	if ($p.length > 0) $p[0].normalize();*/
 	
 	// Method 2 using execCommand and swapping cursor focus. Issue with undo history.
 	var sel = document.getSelection();
@@ -3435,7 +3435,7 @@ function partner_backspace(sender_range,keyup) {
 					if ($last.is('br')) $last.remove();
 					$last = $prev.children('*').last();
 					if ($last.is('br')) $last.remove();
-					if ($prev.index() != -1) {
+					if ($prev.length > 0) {
 						$prev.append($el.detach().html());
 						$prev[0].normalize();
 					}
@@ -3516,7 +3516,7 @@ function partner_delete(sender_range,keyup,old_text) {
 					if ($last.is('br')) $last.remove();
 					$last = $next.children('*').last();
 					if ($last.is('br')) $last.remove();
-					if ($next.index() != -1) {
+					if ($next.length > 0) {
 						$next.prepend($el.detach().html());
 						$next[0].normalize();
 					}
@@ -3583,7 +3583,7 @@ function partner_enter(sender_range,keyup) {
 		}
 		if (p.innerHTML == '') p.innerHTML = '<br>';
 		var $parent = $(p).parents('p,li');
-		if ($parent.index() != -1) {
+		if ($parent.length > 0) {
 			$parent.after(p);
 			if ($parent.html() == '') $parent.html('<br>');	
 		}
@@ -3727,7 +3727,7 @@ function getSenderRange(range) {
 	var pageID = $page.attr('id');
 	var miniDOM = [];
 	var node = range.startContainer;
-	while (node && !$(node).is('[contenteditable="true"]') && $(node).closest('[contenteditable="true"]').index() != -1) {
+	while (node && !$(node).is('[contenteditable="true"]') && $(node).closest('[contenteditable="true"]').length > 0) {
 		miniDOM.push($(node.parentNode.childNodes).index(node));
 		node = node.parentNode;
 	}
