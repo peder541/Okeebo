@@ -159,7 +159,7 @@ function toggle_graph(flicker) {
 		if (!flicker) $('#status').html('Press Esc to quit viewing graph.')
 			.css({'left':w*0.5-$('#status').outerWidth()*0.5,'top':h*0.5-$('#status').outerHeight()*0.5,'bottom':'auto'})
 			.fadeIn();
-		status_timer = setTimeout("$('#status').fadeOut();",2400);
+		status_timer = setTimeout(function() { $('#status').fadeOut(); },2400);
 		_hover = null, edge = null;
 	}
 }
@@ -235,7 +235,7 @@ function draw_graph() {
 			$('#info').html($('.' + $this_id).children('h3').html());
 			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20,'min-width':75});
 			if (mobile) $('#info').show();
-			else info_timer = setTimeout("$('#info').fadeIn(200);$('#new_page').fadeOut(200);",500);
+			else info_timer = setTimeout(function() { $('#info').fadeIn(200); $('#new_page').fadeOut(200); },500);
 		}
 	}).on('mouseout',function(event) {
 		if (info_timer) clearTimeout(info_timer);
@@ -351,14 +351,14 @@ function handle_circle_click($this,no_timer,$path) {
 		$this.css('fill',darkColor[0]);
 	}
 	if (graph_timer) clearTimeout(graph_timer);
-	graph_timer = setTimeout("update_graph(); draw_lines();",0);
+	graph_timer = setTimeout(function() { update_graph(); draw_lines(); },0);
 	if (!no_timer) {
 		var d2 = new Date();
 		console.log('Click Response', d2.valueOf() - d1.valueOf());
 	}
 }
 
-function update_graph() {
+function update_graph(use_original_xScale) {
 	
 	var d1 = new Date();
 	
@@ -401,12 +401,12 @@ function update_graph() {
 							.range([s + padding, w - padding]);
 			
 			// new xScale to account for hiding nodes
-			if (!xScale_visible[cy])
+			if (!xScale_visible[cy] && !use_original_xScale)
 				xScale_visible[cy] = d3.scale.linear()
 							.domain([-0.5, same_row_visible[cy].index(same_row_visible[cy].last())+0.5])
 							.range([s + padding, w - padding]);
 							
-			if (same_row[cy].length == same_row_visible[cy].length || $this.css('display') == 'none')
+			if (use_original_xScale || same_row[cy].length == same_row_visible[cy].length || $this.css('display') == 'none')
 				return xScale[cy](parseInt(d[0].substr(1),10));
 			else
 				return (xScale[cy](parseInt(d[0].substr(1),10)) + xScale_visible[cy](same_row_visible[cy].index($this)))/2;
