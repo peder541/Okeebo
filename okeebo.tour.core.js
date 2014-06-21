@@ -4,6 +4,8 @@
  * 
  */
  
+var continuedTour = false;
+ 
 function guided_tour(instant) {
 	$('#search').hide();
 	var $page = $('.inner,.outer').filter(':visible');
@@ -44,22 +46,57 @@ function nextClick(callback, nextText) {
 	$('.next').off('click').show().html(nextText).on('click',callback);
 }
 
+function setStylings($dim, $noClick, $target, targetCSS) {
+	var dimOpacity = '0.3';
+	
+	var $dimSVG = $dim.filter('svg,circle,path');
+	$dim = $dim.not($dimSVG);
+	
+	$dim.css('opacity', dimOpacity);
+	$dimSVG.css({'stroke-opacity': dimOpacity, 'fill-opacity': dimOpacity});
+	$noClick.css('pointer-events', 'none');
+	$target.css(targetCSS);
+	
+	var cancelCSS = {};
+	for (var i in targetCSS) cancelCSS[i] = '';
+	
+	var $other = [];
+	var otherCSS = [];
+	for (var i=4, l=arguments.length; i<l; i+=2) {
+		var $el = arguments[i];
+		var elCSS = arguments[i+1];
+		$el.css(elCSS);
+		$other.push($el);
+		for (var j in elCSS) elCSS[j] = '';
+		otherCSS.push(elCSS);
+	}
+	
+	function cancel() {
+		$dim.css('opacity','');
+		$dimSVG.css({'stroke-opacity': '', 'fill-opacity': ''});
+		$noClick.css('pointer-events', '');
+		$target.css(cancelCSS);
+		for (var i=0, l=$other.length; i<l; ++i) $other[i].css(otherCSS[i]);
+	}
+	
+	return cancel;
+}
+
 function end_tour() {
 	var distance = -$('#guided_tour').outerHeight();
 	$('#guided_tour').animate({'top': distance, 'bottom': distance}, 800, function() {
 		$(this).remove();
 	});
-	window.localStorage.removeItem('tour');
+	window.localStorage.removeItem('continueTour');
 	$('.inner,.outer').removeAttr('data-tour');
 }
 
 $(document).ready(function() {
-	if (window.localStorage.getItem('tour') == 'true') {
+	if (window.localStorage.getItem('continueTour') == 'true') {
+		continuedTour = true;
+		window.localStorage.removeItem('continueTour');
 		guided_tour(1);
 		step_one();
-		if ($('#function').html() == 'Edit') {
-			window.localStorage.removeItem('tour');
-		}
 	}
 	else guided_tour();
 	
@@ -78,6 +115,8 @@ $(document).ready(function() {
 			$('#guided_tour').css({'top':newTop,'left':newLeft,'border-radius':15,'bottom':newTop});
 		}
 	});
+	
+	$background = $('.Z1').prevAll().add('.left,.right,.writing');
 });
 
 // Lite shim for "pointer-events: none;" on IE
