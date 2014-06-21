@@ -53,6 +53,7 @@ function setStylings($dim, $noClick, $target, targetCSS) {
 	$dim = $dim.not($dimSVG);
 	
 	$dim.css('opacity', dimOpacity);
+	if (!$('svg').is(':visible')) $dim.filter('.writing').not($target).addClass('writingDim');
 	$dimSVG.css({'stroke-opacity': dimOpacity, 'fill-opacity': dimOpacity});
 	$noClick.css('pointer-events', 'none');
 	$target.css(targetCSS);
@@ -73,6 +74,7 @@ function setStylings($dim, $noClick, $target, targetCSS) {
 	
 	function cancel() {
 		$dim.css('opacity','');
+		$('.writing').removeClass('writingDim');
 		$dimSVG.css({'stroke-opacity': '', 'fill-opacity': ''});
 		$noClick.css('pointer-events', '');
 		$target.css(cancelCSS);
@@ -92,6 +94,8 @@ function end_tour() {
 }
 
 $(document).ready(function() {
+	$background = $('.Z1').prevAll().add('.left,.right,.writing');
+	
 	if (window.localStorage.getItem('continueTour') == 'true') {
 		continuedTour = true;
 		window.localStorage.removeItem('continueTour');
@@ -115,8 +119,6 @@ $(document).ready(function() {
 			$('#guided_tour').css({'top':newTop,'left':newLeft,'border-radius':15,'bottom':newTop});
 		}
 	});
-	
-	$background = $('.Z1').prevAll().add('.left,.right,.writing');
 });
 
 // Lite shim for "pointer-events: none;" on IE
