@@ -5,12 +5,14 @@
  */
  
 function step_one() {
-	$('#guided_tour > p').html((window.localStorage.getItem('tour') == 'true' ? 'Now we' : 'This tour') + ' will cover the writing software.');
+	$('#guided_tour > p').html((continuedTour ? 'Now we' : 'This tour') + ' will cover the writing software.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-//	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none'/*,'opacity':'0.3'*/});
+	var $children = $page.children();
+	
+	var $noClick = $children.add($background);
+	
+	var cancel = setStylings($(), $noClick, $(), {});
 	
 	prevClick(function() {
 		cancel();
@@ -18,27 +20,33 @@ function step_one() {
 	});
 	nextClick(function() {
 		cancel();
-		if (window.localStorage.getItem('tour') == 'true') {
+		if (continuedTour) {
 			step_three();
 		}
 		else step_two();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-	}
+	if ($('#sidebar').is(':visible')) delete_sidebar();
 }
 
 function step_two() {
-	$('#guided_tour > p').html('Click &nbsp;<span>Read</span>&nbsp; if you want a tour on navigation.');
+	$('#guided_tour > p').html('If you want a tour on navigation, click &nbsp;<span>Read</span>');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#function');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow':'0px 0px 3px 0px #555','border-radius':'6px','background-color':'rgba(31, 120, 180, 1)','padding':'4px','left':'76px','top':'5px'});
+	var $children = $page.children();
+	var $target = $('#function');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0px 0px 3px 0px #555','border-radius':'6px','background-color':'rgba(31, 120, 180, 1)','padding':'4px','left':'76px','top':'5px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',continueTour);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -48,16 +56,11 @@ function step_two() {
 		cancel();
 		step_three();
 	});
-	function cancel() {
-		$('#function').off('click');
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','border-radius':'','background-color':'','padding':'','left':'','top':''});
+	
+	function continueTour() {
+		window.localStorage.setItem('continueTour','true');	
 	}
-	$('#function').off('click').one('click',function(event) {
-		window.localStorage.setItem('tour','true');
-	});
+	$('#function').on('click',continueTour);
 	$('#guided_tour > p > span').css({'font-variant':$target.css('font-variant'),'font-family':$target.css('font-family')});
 	scrollToTopOf($target,1);
 }
@@ -68,31 +71,34 @@ function step_three() {
 	$('#guided_tour > p').html('Click this to insert a new section.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#new_page');
-	$children = $children.not($target);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'});
+	var $children = $page.children();
+	var $target = $('#new_page');
+
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel()
-		if (window.localStorage.getItem('tour') == 'true') step_one();
+		if (continuedTour) step_one();
 		else step_two();
 	});
 	nextClick();
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':'','border-radius':''}).off('click', next_step);
-	}
+	
 	function next_step() {
 		cancel();
 		step_four();
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 	setTimeout(function() { scrollToTopOf($target,1); }, 10);
 }
 
@@ -101,14 +107,22 @@ function step_four() {
 	$('#guided_tour > p').html('This is the section you just inserted.');	
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#a4');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none'}).not($target.prev('.in')).css({'opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'})
-		.prev('.in').css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
-	$target.children().css('pointer-events','none').filter('div').css('box-shadow','0 0 10px 0 rgb(252,252,252)');
+	var $children = $page.children();
+	var $target = $('#a4');
+	var $in = $target.prev('.in');
+	var $targetChildren = $target.children();
+	var $targetDivs = $targetChildren.filter('div');
+	
+	var $noClick = $children.add($background).not($target);
+	var $dim = $noClick.not($in);
+	$noClick = $noClick.add($targetChildren);
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'};
+	var inCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	var targetDivsCSS = {'box-shadow':'0 0 10px 0 rgb(252,252,252)'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $in, inCSS, $targetDivs, targetDivsCSS);
 	
 	prevClick(function() {
 		cancel()
@@ -119,14 +133,6 @@ function step_four() {
 		cancel();
 		step_five();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'background-color':'','box-shadow':'','border-radius':''})
-			.prev('.in').css({'box-shadow':''});
-		$target.children().css('pointer-events','').css('box-shadow','');
-	}
 }
 
 function step_five() {
@@ -134,14 +140,21 @@ function step_five() {
 	$('#guided_tour > p').html('Type here to edit the section\'s title.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#a4');
-	$target = $target.children('span').eq(0);
-	$children = $children.not($target.parent()).add($target.siblings());
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'});
+	var $children = $page.children();
+	var $target = $('#a4').children('span').eq(0);
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.siblings());
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		cancelCSS();
+		lose_focus();	
+	}
 	
 	prevClick(function() {
 		cancel()
@@ -151,13 +164,6 @@ function step_five() {
 		cancel();
 		step_six();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':''});
-		lose_focus();
-	}
 }
 
 function step_six() {
@@ -165,14 +171,21 @@ function step_six() {
 	$('#guided_tour > p').html('Type here to edit the section summary.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#a4');
-	$target = $target.children('span').eq(1);
-	$children = $children.not($target.parent()).add($target.siblings());
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'});
+	var $children = $page.children();
+	var $target = $('#a4').children('span').eq(1);
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.siblings());
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		cancelCSS();
+		lose_focus();	
+	}
 	
 	prevClick(function() {
 		cancel()
@@ -182,13 +195,6 @@ function step_six() {
 		cancel();
 		step_seven();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':''});
-		lose_focus();
-	}
 }
 
 function step_seven() {
@@ -196,12 +202,21 @@ function step_seven() {
 	$('#guided_tour > p').html('Let\'s look at the section in more detail.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $target = $children.filter('.in').last();
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -210,13 +225,7 @@ function step_seven() {
 	nextClick(function() {
 		$target[0].click();
 	});
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':''}).next('p[id]').css({'background-color':'','box-shadow':''});
-	}
+	
 	function next_step() {
 		$page.one('hide', function(event) {
 			cancel();
@@ -231,13 +240,24 @@ function step_eight(instant) {
 	$('#guided_tour > p').html('You can also edit the section\'s title here.');
 	
 	var $page = $('.inner,.outer');
-	var $dim = $('.Z1').prevAll().add('.left,.right,.writing');
 	var $children = $page.children();
 	var $target = $children.filter('h3');
 	$children = $children.not($target);
 	
-	$dim.css({'opacity':'0.3'}).add($children).css({'pointer-events':'none'});
-	$('.writing').not($target).addClass('writingDim');
+	var $dim = $background;
+	var $noClick = $dim.add($children);
+	
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS);
+	
+	function cancel() {
+		cancelCSS();
+		$children.css({'opacity':''});
+		$page.css({'background-color':''});
+		lose_focus();
+	}
+	
 	$children.animate({'opacity':'0.3'}, {
 		duration: instant ? 0 : 400,
 		progress: function() {
@@ -247,8 +267,7 @@ function step_eight(instant) {
 			$page.css({'background-color':'rgba(252,252,252,0.3)'});
 		}
 	});
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'});
-	
+		
 	prevClick(function() {
 		cancel()
 		step_seven();
@@ -257,13 +276,6 @@ function step_eight(instant) {
 		cancel();
 		step_nine();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$dim.add($children).css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':''});
-		lose_focus();
-	}
 }
 
 function step_nine() {
@@ -271,12 +283,21 @@ function step_nine() {
 	$('#guided_tour > p').html('Type here to edit the section\'s content.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $target = $children.filter('div[contenteditable]');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'});
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		cancelCSS();
+		lose_focus();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -286,13 +307,6 @@ function step_nine() {
 		cancel();
 		step_ten();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':''});
-		lose_focus();
-	}
 }
 
 function step_ten() {
@@ -300,32 +314,35 @@ function step_ten() {
 	$('#guided_tour > p').html('Click this to insert an image.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#img');
-	$children = $children.not($target);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$page.children('div[contenteditable]').css('outline','0');
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'});
+	var $children = $page.children();
+	var $target = $('#img');
+	var $divEdit = $page.children('div[contenteditable]');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'};
+	var divEditCSS = {'outline':'0'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $divEdit, divEditCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel()
 		step_nine();
 	});
 	nextClick();
-	function cancel() {
-		$page.css({'background-color':''});
-		$page.children('div[contenteditable]').css('outline','');
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':'','border-radius':''}).off('click', next_step);
-	}
+	
 	function next_step() {
 		cancel();
 		step_eleven();
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 }
 
 function step_eleven() {
@@ -333,15 +350,23 @@ function step_eleven() {
 	$('#guided_tour > p').html('Now you can find an image and upload it.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $div = $children.filter('div[contenteditable]');
-	var $target = $div.children('iframe');
-	$children = $children.not($target.parent()).add($target.parent().children().not($target));
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$div.attr('contenteditable','false');
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'});
+	var $children = $page.children();
+	var $divEdit = $children.filter('div[contenteditable]');
+	var $target = $divEdit.children('iframe');
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.parent().children().not($target));
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	$divEdit.attr('contenteditable','false');
+	
+	function cancel() {
+		cancelCSS();
+		$divEdit.attr('contenteditable','true');	
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -352,13 +377,6 @@ function step_eleven() {
 		cancel();
 		step_twelve();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$div.attr('contenteditable','true');
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':''});
-	}
 }
 
 function step_twelve() {
@@ -366,32 +384,33 @@ function step_twelve() {
 	$('#guided_tour > p').html('Click this to insert a video.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#vid');
-	$children = $children.not($target);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$page.children('div[contenteditable]').css('outline','0');
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'});
+	var $children = $page.children();
+	var $target = $('#vid');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow': '0 0 20px 10px rgb(252, 252, 252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel()
 		step_eleven();
 	});
 	nextClick();
-	function cancel() {
-		$page.css({'background-color':''});
-		$page.children('div[contenteditable]').css('outline','');
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':'','border-radius':''}).off('click', next_step);
-	}
+	
 	function next_step() {
 		cancel();
 		step_thirteen();
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 }
 
 function step_thirteen() {
@@ -399,13 +418,23 @@ function step_thirteen() {
 	$('#guided_tour > p').html('Let\'s go back to the section summary.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $target = $children.filter('.out');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$page.children('div[contenteditable]').css('outline','0');
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	var $divEdit = $children.filter('div[contenteditable]');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	var divEditCSS = {'outline':'0'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $divEdit, divEditCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -415,47 +444,43 @@ function step_thirteen() {
 	nextClick(function() {
 		$target[0].click();
 	});
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$page.children('div[contenteditable]').css('outline','');
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':''}).next('p[id]').css({'background-color':'','box-shadow':''});
-	}
+	
 	function next_step() {
 		$page.one('hide', function(event) {
 			cancel();
 			transition();
 		});
-		var $page2 = $('.outer');
-		var $target2 = $('#a4');
-		var $children2 =  $page2.children().not($target2);
-		$page2.css('background-color','rgba(252,252,252,0.3)');
-		$children2.css('poiner-events','none').not($target2.prev('.in')).css('opacity','0.3');
-		$target2.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'})
-			.prev('.in').css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+		var $outer = $('.outer');
+		var $summary = $('#a4');
+		var $in = $summary.prev('.in');
+		
+		var $noClick = $outer.children().not($summary);
+		var $dim = $noClick.not($in);
+		
+		var outerCSS = {'background-color':'rgba(252,252,252,0.3)'};
+		var summaryCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'};
+		var inCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+		
+		setStylings($dim, $noClick, $summary, summaryCSS, $outer, outerCSS, $in, inCSS);
+		
 		function transition() {
-			var $summary = $target2;
-			var $in = $summary.prev('.in');
 			var $handle = $summary.children('.handle');
-			var $dim = $summary.children().not($handle).add($in);
-			var $gray = $('.Z1').prevAll().add('.left,.right,.writing');
-			$gray.css('poiner-events','none').not($target2.prev('.in')).css('opacity','0.3');
-			$('.writing').addClass('writingDim');
+			var $animated = $summary.children().not($handle).add($in);
+			var $noClick = $background;
+			var $dim = $noClick;
+			
+			setStylings($dim, $noClick, $(), {});
 			
 			scrollToTopOf($handle, $handle.offset().top < $(window).scrollTop() + window.innerHeight, function() {
 				$handle.css({'box-shadow': '0px 0px 8px 5px rgb(252, 252, 252)'});
-				$dim.animate({'opacity':'0.3'}, {
+				$animated.animate({'opacity':'0.3'}, {
 					progress: function() {
 						var calculated_opacity = ($dim.css('opacity') - 0.3) / 0.7;
 						$summary.css('background-color','rgba(252,252,252,' + calculated_opacity + ')')
 							.add($in).css('box-shadow','0 0 10px 2px rgba(252,252,252,' + calculated_opacity + ')');
-						//$handle.css({'box-shadow': '0px 0px 8px 5px rgba(252, 252, 252, ' + (1 - calculated_opacity) + ')' });
 					},
 					complete: function() {
 						$summary.css('background-color','').add($in).css('box-shadow','');
-						//$handle.css({'box-shadow': '0px 0px 8px 5px rgb(252, 252, 252)'});
 						step_fourteen();
 					}
 				});
@@ -471,14 +496,22 @@ function step_fourteen($target) {
 	$('#guided_tour > p').html('Grab this to move the section.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $target = $target || $children.filter('#a4');
 	$target = $target.children('.handle');
-	$children = $children.not($target.parent()).add($target.siblings());
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow': '0px 0px 8px 5px rgb(252, 252, 252)'});
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.siblings());
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow': '0px 0px 8px 5px rgb(252, 252, 252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('mousedown',moveSummary);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel()
@@ -501,41 +534,36 @@ function step_fourteen($target) {
 		cancel();
 		step_fifteen($target.parent());
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':''});
-	}
-	$target.one('mousedown', function(event) {
+	
+	function moveSummary(event) {
 		cancel();
+		
 		var $this = $(event.target);
 		var $target = $this.parent();
+		var $in = $target.prev('.in');
+		
 		var $page = $('.Z1');
 		var $children = $page.children();
-		var $groupA = $children.filter('.in');
-		var $groupB = $groupA.next('p[id]');
-		$children = $children.not($groupA).not($groupB).add($('.Z1').prevAll()).add('.left,.right,.writing');
-		$page.css({'background-color':'rgba(252,252,252,0.3)'});
-		$children.css({'pointer-events':'none','opacity':'0.3'});
-		$('.writing').not($target).addClass('writingDim');
-		$groupB.css({'background-color':'rgba(252,252,252,0.3)','border-radius':'0 4px 4px 0'})
-			.add($groupA).css({'box-shadow':'0 0 10px 2px rgba(252,252,252,0.3)'});
-		$groupA.not($target.prev('.in')).add($groupB.not($target).children()).css('opacity','0.3');
-		$target.css({'background-color':'rgb(252,252,252)'}).add($target.prev('.in')).css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+		var $groupA = $children.filter('.in').not($in);
+		var $groupB = $groupA.next('p[id]').not($target);
 		
-		function cancel2() {
-			$page.css({'background-color':''});
-			$children.add($groupA).add($groupB.children()).css({'opacity':'','pointer-events':''});
-			$('.writing').removeClass('writingDim');
-			$groupB.css({'background-color':'','border-radius':''})
-				.add($groupA).css({'box-shadow':''});
-		}
+		var $noClick = $children.add($background).not($groupB).not($target);
+		var $dim = $noClick.add($groupB.children()).not($in);
+		
+		var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+		var groupBCSS = {'background-color':'rgba(252,252,252,0.3)','border-radius':'0 4px 4px 0','box-shadow':'0 0 10px 2px rgba(252,252,252,0.3)'};
+		var groupACSS = {'box-shadow':'0 0 10px 2px rgba(252,252,252,0.3)'};
+		var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+		var inCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'}
+		
+		var cancel2 = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $groupA, groupACSS, $groupB, groupBCSS, $in, inCSS);
+		
 		$(document).one('mouseup mouseout drop', function(event) {
 			cancel2();
 			step_fourteen($target);
 		});
-	});
+	}
+	$target.one('mousedown',moveSummary);
 }
 
 function step_fifteen($target) {
@@ -543,44 +571,55 @@ function step_fifteen($target) {
 	$('#guided_tour > p').html('Click this to delete the section.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $target = $target || $children.filter('#a4');
 	$target = $target.children('.delete');
-	$children = $children.not($target.parent()).add($target.siblings());
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'box-shadow': '0 0 8px 5px rgb(252, 252, 252)', 'background-color': 'rgb(252, 252, 252)', 'border-radius': '4px'});
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.siblings());
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow': '0 0 8px 5px rgb(252, 252, 252)', 'background-color': 'rgb(252, 252, 252)', 'border-radius': '4px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel()
 		step_fourteen($target.parent());
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click', next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','background-color':'','border-radius':''});
-	}
+	
 	function next_step() {
 		cancel();
 		step_sixteen();
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 }
 
 function step_sixteen() {
-	$('#guided_tour > p').html('Click this to open the sidebar menu.');
+	$('#guided_tour > p').html('Click this to open the sidebar.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#menu');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').addClass('writingDim');
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	var $children = $page.children();
+	var $target = $('#menu');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();	
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -588,13 +627,7 @@ function step_sixteen() {
 		step_fifteen();
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'box-shadow':'','border-radius':''});
-	}
+	
 	function next_step() {
 		cancel();
 		step_seventeen();
@@ -604,15 +637,18 @@ function step_sixteen() {
 }
 
 function step_seventeen() {
-	$('#guided_tour > p').html('The sidebar is a menu of additional actions.');
+	$('#guided_tour > p').html('The sidebar has a menu of additional actions.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
-	var $target = $children.filter('#sidebar');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$target.css({'pointer-events':'none'});
+	var $children = $page.children();
+	var $target = $('#sidebar');
+	
+	var $dim = $children.add($background);
+	var $noClick = $dim.add($target);
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	
+	var cancel = setStylings($dim, $noClick, $(), {}, $page, pageCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -624,52 +660,47 @@ function step_seventeen() {
 		cancel();
 		step_eighteen();
 	});
-	function cancel() {
-		$('#function').off('click');
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$target.css({'pointer-events':''});
-	}
 }
 
 function step_eighteen() {
 	$('#guided_tour > p').html('Click this to see a visualization of the demo.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right,.writing');
+	var $children = $page.children();
 	var $sidebar = $('#sidebar');
 	var $target = $('#view_graph');
 	$children = $children.add($sidebar.children());
 	
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).not($sidebar).css({'pointer-events':'none','opacity':'0.3'});
-	$('.writing').not($target).addClass('writingDim');
-	$sidebar.css('background-color','rgba(85, 85, 85, 0.3)');
-	$target.css({'background-color':'rgb(85, 85, 85)','box-shadow':'0 0 10px 2px rgb(51, 51, 51)'});
+	var $dim = $children.add($background).not($sidebar).add($sidebar.children()).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var sidebarCSS = {'background-color':'rgba(85, 85, 85, 0.3)'};
+	var targetCSS = {'background-color':'rgb(85, 85, 85)','box-shadow':'0 0 10px 2px rgb(51, 51, 51)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $sidebar, sidebarCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();	
+	}
 	
 	prevClick(function() {
 		cancel();
 		step_seventeen();
 	});
 	nextClick();
-	function cancel() {
-		$('#function').off('click');
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$('.writing').removeClass('writingDim');
-		$sidebar.css('background-color','');
-		$target.css({'background-color':'','box-shadow':''});
-	}
+	
 	function next_step() {
 		$(window).resize();
 		cancel();
 		step_nineteen();
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 }
 
 function step_nineteen() {
+	requireGraph();
 	$('#guided_tour > p').html('This is the visualization.');
 	
 	var $noClick = $('svg,buttons').filter(':visible').not('#guided_tour').css('pointer-events','none');
@@ -688,16 +719,19 @@ function step_nineteen() {
 }
 
 function step_twenty(green) {
+	requireGraph(1);
 	$('#guided_tour > p').html(green ? 'It\'s green because that\'s where we were.' : 'This circle represents the demo\'s first screen.');
 	
 	var $circle = $('circle');
 	var $target = $circle.eq(0);
-	var $dim = $circle.add('path').not($target);
 	var $buttons = $('#graphMode,#new_page,#graphExit');
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css({'stroke-width':'3'});
-	$dim.add($buttons).add($target).css('pointer-events','none');
+	
+	var $noClick = $circle.add('path').add($buttons);
+	var $dim = $noClick.not($target);
+	
+	var targetCSS = {'stroke-width':'3'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -709,25 +743,21 @@ function step_twenty(green) {
 		if (green) step_twentyone();
 		else step_twenty(1);
 	});
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'stroke-width':''});
-		$dim.add($buttons).add($target).css('pointer-events','');
-	}
 }
 
 function step_twentyone() {
+	requireGraph(1);
 	$('#guided_tour > p').html('These circles represent the sections.');
 	
 	var $circle = $('circle');
 	var $target = $('[cy="' + $circle.eq(1).attr('cy') + '"]');
-	var $dim = $circle.add('path').not($target);
 	var $buttons = $('#graphMode,#new_page,#graphExit');
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css({'stroke-width':'3'});
-	$dim.add($buttons).add($target).css('pointer-events','none');
+	
+	var $noClick = $circle.add('path').add($buttons);
+	var $dim = $noClick.not($target);
+	var targetCSS = {'stroke-width':'3'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -737,25 +767,22 @@ function step_twentyone() {
 		cancel();
 		step_twentytwo();
 	});
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'stroke-width':''});
-		$dim.add($buttons).add($target).css('pointer-events','');
-	}
 }
 
 function step_twentytwo() {
+	requireGraph(1);
 	$('#guided_tour > p').html('These circles represent the subsections.');
 	
 	var $circle = $('circle');
 	var $target = $('[cy="' + $circle.last().attr('cy') + '"]');
-	var $dim = $circle.add('path').not($target);
 	var $buttons = $('#graphMode,#new_page,#graphExit');
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css({'stroke-width':'3'});
-	$dim.add($buttons).add($target).css('pointer-events','none');
+	
+	var $noClick = $circle.add('path').add($buttons);
+	var $dim = $noClick.not($target);
+	
+	var targetCSS = {'stroke-width':'3'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -765,24 +792,21 @@ function step_twentytwo() {
 		cancel();
 		step_twentythree();
 	});
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'stroke-width':''});
-		$dim.add($buttons).add($target).css('pointer-events','');
-	}
 }
 
 function step_twentythree() {
+	requireGraph(1);
 	$('#guided_tour > p').html('The visualization is currently in Collapse mode.');
 	
 	var $target = $('#graphMode');
-	var $dim = $('circle,path');
-	var $buttons = $('#graphMode,#new_page,#graphExit').not($target);
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css({'box-shadow':'0 0 10px 2px #1F78B4'});
-	$dim.add($buttons).add($target).css('pointer-events','none');
+	var $buttons = $('#graphMode,#new_page,#graphExit');
+	
+	var $noClick = $('circle,path').add($buttons);
+	var $dim = $noClick.not($target);
+	
+	var targetCSS = {'box-shadow':'0 0 10px 2px #1F78B4'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -792,37 +816,29 @@ function step_twentythree() {
 		cancel();
 		step_twentyfour();
 	});
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'box-shadow':''});
-		$dim.add($buttons).add($target).css('pointer-events','');
-	}
 }
 
 function step_twentyfour(unhide) {
-	$('#guided_tour > p').html(unhide ? 'Click it again to uncollapse them.' : 'Click this circle to hide its branches.');
+	requireGraph(1);
+	$('#guided_tour > p').html(unhide ? 'Click it again to uncollapse them.' : 'Click this circle to collapse its branches.');
 	
 	var $circle = $('circle');
 	var $target = $circle.eq(1);
-	/*
-	var $path = $('path').filter('[d$="' + $target.attr('cx') + ' ' + $target.attr('cy') + '"]');
-	$path.each(function() {
-		var $this = $(this);
-		var data = $this.attr('d').split(' ');
-		var cx = data[1];
-		var cy = data[2];
-		$target = $target.add($circle.filter('[cx="' + cx + '"][cy="' + cy + '"]'));
-	});
-	$target = $target.add($path);
-	*/
-	
-	var $dim = $('circle,path').not($target);
 	var $buttons = $('#graphMode,#new_page,#graphExit');
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css('stroke-width','3');
-	$dim.add($buttons).css('pointer-events','none');
+	
+	var $noClick = $circle.add('path').add($buttons).not($target);
+	var $dim = $noClick;
+
+	var targetCSS = {'stroke-width':'3'};
+	
+	var cancelCSS = setStylings($noClick, $dim, $target, targetCSS);
+	$('body').append('<style id="tempPathStyling">path { stroke-opacity: 0.3; }</style>');
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+		$('#tempPathStyling').remove();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -833,45 +849,43 @@ function step_twentyfour(unhide) {
 		else step_twentythree();
 	});
 	nextClick();
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'stroke-width':''});
-		$('#tempPathStyling').remove();
-		$dim.add($buttons).css('pointer-events','');
-	}
+	
 	function next_step() {
 		cancel();
-		$('body').append('<style id="tempPathStyling">path { stroke-opacity: 0.3; }</style>');
 		if (unhide) step_twentyfive();
 		else step_twentyfour(1);
 	}
-	$target.on('click', next_step);
+	$target.on('click',next_step);
 }
 
 function step_twentyfive() {
+	requireGraph(1);
 	$('#guided_tour > p').html('Click this to change modes.');
 	
 	var $target = $('#graphMode');
-	var $dim = $('circle,path');
-	var $buttons = $('#graphMode,#new_page,#graphExit').not($target);
-	$dim.css({'stroke-opacity':'0.3','fill-opacity':'0.3'});
-	$buttons.css('opacity','0.3');
-	$target.css({'box-shadow':'0 0 10px 2px #1F78B4'});
-	$dim.add($buttons).css('pointer-events','none');
+	var $buttons = $('#graphMode,#new_page,#graphExit');
+	
+	var $noClick = $('circle,path').add($buttons).not($target);
+	var $dim = $noClick;
+	
+	var targetCSS = {'box-shadow':'0 0 10px 2px #1F78B4'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS);
+	$('body').append('<style id="tempPathStyling">path { stroke-opacity: 0.3; }</style>');
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+		$('#tempPathStyling').remove();
+	}	
 	
 	prevClick(function() {
 		cancel();
-		//$('circle').eq(1).click();
+		$('circle').eq(1).click();
 		step_twentyfour(1);
 	});
 	nextClick();
-	function cancel() {
-		$dim.css({'stroke-opacity':'','fill-opacity':''});
-		$buttons.css('opacity','');
-		$target.css({'box-shadow':''});
-		$dim.add($buttons).css('pointer-events','');
-	}
+	
 	function next_step() {
 		cancel();
 		step_twentysix();	
@@ -879,7 +893,58 @@ function step_twentyfive() {
 	$target.on('click', next_step);
 }
 
-function step_twentysix() {
+function step_twentysix(info) {
+	requireGraph(1);
+	var instruction;
+	info = info || 0;
+	switch(info) {
+		case 0:
+			instruction = 'The visualization is now in Select mode.';
+			break;
+		case 1:
+			instruction = 'Selecting a circle has three effects.';
+			break;
+		case 2:
+			instruction = '1. It\'s where we\'ll go after the visualization.';
+			break;
+		case 3:
+			instruction = '2. We can add new sections to it.';
+			break;
+		case 4:
+			instruction = '3. We can connect circles to the selected one.';
+			break;	
+	}
+	$('#guided_tour > p').html(instruction);
+	
+	var $target = $('#graphMode');
+	var $buttons = $('#graphMode,#new_page,#graphExit');
+	
+	var $noClick = $('circle,path').add($buttons);
+	var $dim = $noClick.not($target);
+	
+	var targetCSS = {'box-shadow':'0 0 10px 2px #2BFFAA'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS);
+	
+	prevClick(function() {
+		cancel();
+		if (!info) {
+			$target.attr('class','collapse').html('Collapse');
+			step_twentyfive();
+		}
+		else {
+			step_twentysix(info-1);	
+		}
+	});
+	nextClick(function() {
+		cancel();
+		if (info < 4) step_twentysix(info+1);
+		else step_twentyseven();
+	});
+}
+
+function step_twentyseven() {
+	requireGraph(1);
 	
 }
 
@@ -892,4 +957,11 @@ function lose_focus() {
 		sel.removeAllRanges();
 		sel.addRange(range);
 	}
+}
+
+function requireGraph(instant) {
+	if (!$('svg').is(':visible')) {
+		toggle_graph(instant);
+		$(window).resize();
+	}	
 }
