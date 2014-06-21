@@ -9,12 +9,18 @@ function step_one(subsection) {
 	$('#guided_tour > p').html('This is a ' + (subsection ? 'sub' : '') + 'section summary.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $children.filter('.in + p[id]').eq(subsection ? 1 : 0);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none'}).not($target.prev('.in')).css({'opacity':'0.3'});
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'})
-		.prev('.in').css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	var $in = $target.prev('.in');
+	
+	var $noClick = $children.not($target).add($background);
+	var $dim = $noClick.not($in);
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'};
+	var inCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $in, inCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -25,12 +31,7 @@ function step_one(subsection) {
 		cancel();
 		step_two(subsection);
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'outline-offset':'','outline':'','background-color':'','box-shadow':'','border-radius':''})
-			.prev('.in').css({'box-shadow':''});
-	}
+	
 	scrollToTopOf($(subsection ? '.c2' : '.a1'));
 }
 
@@ -39,23 +40,28 @@ function step_two(subsection) {
 	$('#guided_tour > p').html('Click this to see the ' + (subsection ? 'sub' : '') + 'section in more detail.');
 	
 	var $page = $('.inner,.outer').filter(':visible');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $children.filter('.in').eq(subsection ? 1 : 0);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	
+	var $dim = $children.not($target).add($background);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
 		step_one(subsection);
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':''}).next('p[id]').css({'background-color':'','box-shadow':''});
-	}
+	
 	function next_step() {
 		cancel();
 		step_three(subsection);
@@ -69,9 +75,14 @@ function step_three(subsection) {
 	
 	var $page = $(subsection ? '.d2' : '.b1');
 	var $summary = $(subsection ? '.b1' : '.Z1');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right').add($summary.children().not(subsection ? '.c2' : '.a1'));
-	$children.css({'pointer-events':'none'}).not($page.children()).css({'opacity':'0.3'});
-	$summary.css({'background-color':'rgba(252,252,252,0.3)'});
+	var $children = $page.children();
+	
+	var $noClick = $children.add($background).add($summary.children().not(subsection ? '.c2' : '.a1'));
+	var $dim = $noClick.not($page.children());
+	
+	var summaryCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	
+	var cancel = setStylings($dim, $noClick, $(), {}, $summary, summaryCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -82,10 +93,6 @@ function step_three(subsection) {
 		if (subsection) step_four();
 		else step_one(1);
 	});
-	function cancel() {
-		$children.css({'opacity':'','pointer-events':''});
-		$summary.css({'background-color':''});
-	}
 }
 
 function step_four() {
@@ -93,23 +100,28 @@ function step_four() {
 	$('#guided_tour > p').html('Click this to see the subsection summary.');
 	
 	var $page = $('.d2');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $children.filter('.out');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();	
+	}
 	
 	prevClick(function() {
 		cancel();
 		step_three(1);
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':''}).next('p[id]').css({'background-color':'','box-shadow':''});	
-	}
+	
 	function next_step() {
 		cancel();
 		step_five();
@@ -121,12 +133,18 @@ function step_five() {
 	$('#guided_tour > p').html('Now you see the subsection summary.');
 	
 	var $page = $('.b1,.d2');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $children.filter('.in + p[id]').eq(1);
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none'}).not($target.prev('.in')).css({'opacity':'0.3'});
-	$target.css({'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'})
-		.prev('.in').css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	var $in = $target.prev('.in');
+	
+	var $noClick = $children.add($background).not($target);
+	var $dim = $noClick.not($in);
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgb(252,252,252)','box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'0 4px 4px 0'};
+	var inCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $in, inCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -136,12 +154,7 @@ function step_five() {
 		cancel();
 		step_six();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'outline-offset':'','outline':'','background-color':'','box-shadow':'','border-radius':''})
-			.prev('.in').css({'box-shadow':''});
-	}
+	
 	setTimeout(function() {
 		scrollToTopOf($('.c2'));
 	}, 500);
@@ -156,12 +169,22 @@ function step_six(previous) {
 	$('#guided_tour > p').html(previous ? 'Click the left margin for the previous section.' : 'Click the right margin to see the next section.');
 	
 	var $page = $(previous ? '.b2' : '.b1');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	var $target = $children.filter(previous ? '.left' : '.right');
+	var $children = $page.children();
+	var $target = $(previous ? '.left' : '.right');
+	
+	var $noClick = $children.add($background).not($target);
+	var $dim = $noClick;
+	
 	var color = previous ? '166, 206, 227' : '178, 223, 138';
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'background-color':'rgba(' + color + ', 0.5)','box-shadow':'0px 0px 10px 2px rgba(' + color + ', 0.75)'});
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'rgba(' + color + ', 0.5)','box-shadow':'0px 0px 10px 2px rgba(' + color + ', 0.75)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -169,12 +192,7 @@ function step_six(previous) {
 		else step_five();
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'background-color':'','box-shadow':''});
-	}
+	
 	function next_step() {
 		cancel();
 		if (previous) step_seven();
@@ -192,9 +210,20 @@ function step_six_seven(previous) {
 	$('#guided_tour').addClass(previous ? 'canLeft' : 'canRight');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
+	var $children = $page.children();
+	
+	var $dim = $children.add($background);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $(), {}, $page, pageCSS);
+	
+	function cancel() {
+		$('.inner').off('hide', next_step);
+		$('#guided_tour').removeClass(previous ? 'canLeft' : 'canRight');
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -202,12 +231,7 @@ function step_six_seven(previous) {
 		else step_five();
 	});
 	nextClick('Go ahead and ' + instruction.toLowerCase() + '!');
-	function cancel() {
-		$('.inner').off('hide', next_step);
-		$('#guided_tour').removeClass(previous ? 'canLeft' : 'canRight');
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-	}
+	
 	function next_step() {
 		cancel();
 		if (previous) step_eight();
@@ -225,9 +249,19 @@ function step_seven() {
 	$('#guided_tour').addClass('canLeft canRight');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
+	var $children = $page.children();
+	
+	var $dim = $children.add($background);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $(), {}, $page, pageCSS);
+	
+	function cancel() {
+		$('#guided_tour').removeClass('canLeft canRight');
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -238,11 +272,6 @@ function step_seven() {
 		cancel();
 		step_eight();
 	});
-	function cancel() {
-		$('#guided_tour').removeClass('canLeft canRight');
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-	}
 }
 
 function step_eight(more) {
@@ -250,11 +279,16 @@ function step_eight(more) {
 	$(window).scrollTop(0);
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	var $target = $children.filter('#map');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'50px / 30px','background-color':'#bbb'});
+	var $children = $page.children();
+	var $target = $('#map');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius':'50px / 30px','background-color':'#bbb'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -266,11 +300,6 @@ function step_eight(more) {
 		if (more) step_nine();
 		else step_eight(1);
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','border-radius':'','background-color':''});
-	}
 }
 
 function step_nine() {
@@ -278,12 +307,23 @@ function step_nine() {
 	go_to($('.inner,.outer').filter(':visible').attr('id'), 'd6');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $('.tangent');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'background-color':'#fcfcfc','box-shadow':'0 0 10px 2px #fcfcfc'})
-		.parent().css({'opacity':'','color':'#8f8f8f','pointer-events':''});
+	var $parent = $target.parent();
+	
+	var $dim = $children.add($background).not($parent);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'#fcfcfc','box-shadow':'0 0 10px 2px #fcfcfc'};
+	var parentCSS = {'opacity':'','color':'#8f8f8f','pointer-events':''};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS, $parent, parentCSS);
+	
+	function cancel() {
+		$target.off('click', next_step);
+		cancelCSS();	
+	}
 		
 	prevClick(function() {
 		cancel();
@@ -291,14 +331,7 @@ function step_nine() {
 		step_eight(1);
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click', next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','background-color':'','pointer-events':''})
-			.parent().css({'color':''});
-		$('#guided_tour').css('position','');
-	}
+	
 	function next_step() {
 		setTimeout(function() {
 			cancel();
@@ -307,7 +340,6 @@ function step_nine() {
 	}
 	
 	$(window).scrollTop($target.offset().top - window.innerHeight*0.5);
-	$('#guided_tour').css('position','fixed');
 	$target.on('click', next_step);
 }
 
@@ -320,11 +352,16 @@ function step_ten() {
 	}
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
+	var $children = $page.children();
 	var $target = $('.preview_window');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'opacity':'0.3'}).add($target.children()).css({'pointer-events':'none'});
-	$target.css({/*'box-shadow':'0px 0px 4px 0px #555, 0px 0px 10px 2px #FCFCFC',*/'background-color':'#fcfcfc'});
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim.add($target.children());
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'background-color':'#fcfcfc'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -335,13 +372,7 @@ function step_ten() {
 		cancel();
 		step_eleven();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':''}).add($target.children()).css({'pointer-events':''});
-		$target.css({'box-shadow':'','background-color':''});
-		$('#guided_tour').css('position','');
-	}
-	$('#guided_tour').css('position','fixed');
+	
 	no_pointer_events();
 }
 
@@ -355,33 +386,35 @@ function step_eleven() {
 	
 	var $page = $('.inner,.outer');
 	var $target = $('.preview_main');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right').add($target.parent().children().not($target));
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target.parent()).css({'opacity':'0.3','pointer-events':'none'});
-	$target.css({'box-shadow':'0px 0px 10px 2px #FCFCFC'});
+	var $children = $page.children();
+	
+	var $dim = $children.add($background).not($target.parent()).add($target.parent().children()).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0px 0px 10px 2px #FCFCFC'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+		$('.preview_exit').click();
+		$(window).scrollTop(0);
+	}
 	
 	prevClick(function() {
 		cancel();
 		step_ten();
 	});
 	nextClick();
-	function cancel() {
-		$target.children('.preview_main').off('click', next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','pointer-event':''});
-		$('.preview_exit').click();
-		$(window).scrollTop(0);
-		$('#guided_tour').css('position','');
-	}
+	
 	function next_step() {
 		setTimeout(function() {
 			cancel();
 			step_twelve();
 		}, 0);
 	}
-	
-	$('#guided_tour').css('position','fixed');
 	$target.on('click', next_step);	
 }
 
@@ -390,8 +423,12 @@ function step_twelve() {
 	$('#meta-map > div').eq(1).click();
 	
 	var $page = $('.d2');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	$children.css({'pointer-events':'none'}).not($page.children()).css({'opacity':'0.3'});
+	var $children = $page.children();
+	
+	var $dim = $background;
+	var $noClick = $dim.add($children);
+	
+	var cancel = setStylings($dim, $noClick, $(), {});
 	
 	prevClick(function() {
 		cancel();
@@ -402,9 +439,7 @@ function step_twelve() {
 		cancel();
 		step_thirteen();
 	});
-	function cancel() {
-		$children.css({'opacity':'','pointer-events':''});
-	}
+	
 	no_pointer_events();
 }
 
@@ -412,11 +447,16 @@ function step_thirteen() {
 	$('#guided_tour > p').html('You can interact with this to switch threads.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	var $target = $children.filter('#meta-map');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius': $target.outerWidth()*0.5 + 'px / ' + $target.outerHeight()*0.5 + 'px','background-color':'#bbb'});
+	var $children = $page.children();
+	var $target = $('#meta-map');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)','border-radius': $target.outerWidth()*0.5 + 'px / ' + $target.outerHeight()*0.5 + 'px','background-color':'#bbb'};
+	
+	var cancel = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
 	
 	prevClick(function() {
 		cancel();
@@ -426,34 +466,34 @@ function step_thirteen() {
 		cancel();
 		step_fourteen();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','border-radius':'','background-color':''});
-	}
 }
 
 function step_fourteen() {
 	$('#guided_tour > p').html('Click this to close a thread.');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	var $target = $children.filter('.exit');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0 0 10px 2px rgb(252,252,252)'});
+	var $children = $page.children();
+	var $target = $('.exit');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0 0 10px 2px rgb(252,252,252)'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',next_step);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
 		step_thirteen();
 	});
 	nextClick();
-	function cancel() {
-		$target.off('click',next_step);
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','border-radius':''});
-	}
+	
 	function next_step() {
 		cancel();
 		step_fifteen();	
@@ -462,14 +502,24 @@ function step_fourteen() {
 }
 
 function step_fifteen() {
-	$('#guided_tour > p').html('Click &nbsp;<span>Edit</span>&nbsp; if you want to continue the tour.');
+	$('#guided_tour > p').html('If you want to continue the tour, click &nbsp;<span>Edit</span>');
 	
 	var $page = $('.inner,.outer');
-	var $children = $page.children().add($('.Z1').prevAll()).add('.left,.right');
-	var $target = $children.filter('#function');
-	$page.css({'background-color':'rgba(252,252,252,0.3)'});
-	$children.not($target).css({'pointer-events':'none','opacity':'0.3'});
-	$target.css({'box-shadow':'0px 0px 3px 0px #555','border-radius':'6px','background-color':'rgba(31, 120, 180, 1)','padding':'4px','left':'76px','top':'5px'});
+	var $children = $page.children();
+	var $target = $('#function');
+	
+	var $dim = $children.add($background).not($target);
+	var $noClick = $dim;
+	
+	var pageCSS = {'background-color':'rgba(252,252,252,0.3)'};
+	var targetCSS = {'box-shadow':'0px 0px 3px 0px #555','border-radius':'6px','background-color':'rgba(31, 120, 180, 1)','padding':'4px','left':'76px','top':'5px'};
+	
+	var cancelCSS = setStylings($dim, $noClick, $target, targetCSS, $page, pageCSS);
+	
+	function cancel() {
+		$target.off('click',continueTour);
+		cancelCSS();
+	}
 	
 	prevClick(function() {
 		cancel();
@@ -482,15 +532,12 @@ function step_fifteen() {
 		cancel();
 		step_sixteen();
 	});
-	function cancel() {
-		$page.css({'background-color':''});
-		$children.css({'opacity':'','pointer-events':''});
-		$target.css({'box-shadow':'','border-radius':'','background-color':'','padding':'','left':'','top':''});
+	
+	function continueTour() {
+		window.localStorage.setItem('continueTour','true');
 	}
-	$('#function').off('click').one('click',function(event) {
-		window.localStorage.setItem('tour','true');
-	});
-	$('#guided_tour > p > span').css({'font-variant':$target.css('font-variant'),'font-family':$target.css('font-family')});
+	$target.on('click',continueTour);
+	$('#guided_tour > p > span').children('span').css({'font-variant':$target.css('font-variant'),'font-family':$target.css('font-family')});
 }
 
 function step_sixteen() {
