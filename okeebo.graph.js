@@ -129,7 +129,8 @@ function toggle_graph(flicker) {
 		$('body').css('background-color','');
 		$('html').css('overflow','');
 		$('#menu,#map,.writing,.left,.right,#map_helper,#home,#function').show();
-		$('#new_page').removeClass('graph');
+		if (workspace.length > 1) $('.exit,#meta-map').show();
+		$('#new_page,.writing-toolbar').removeClass('graph');
 		$('#graphMode,#graphExit').hide();
 		$('#info').hide().css({'color':'','text-shadow':'','font-size':'','margin-right':'','min-width':''});
 		if (info_timer) clearTimeout(info_timer);
@@ -141,11 +142,11 @@ function toggle_graph(flicker) {
 	}
 	else {
 		return_page_id = $('.inner,.outer').filter(':visible').attr('id');
-		$('.inner,.outer,#menu,#map,.writing,.left,.right,#map_helper,#home,#function').filter(':visible').hide();
+		$('.inner,.outer,#menu,#map,.writing,.left,.right,#map_helper,#home,#function,.exit,#meta-map').filter(':visible').hide();
 		if ($('#sidebar').is(':visible')) delete_sidebar();
 		$('body').css('background-color','white').css('overflow','hidden');
 		$('html').css('overflow','hidden');
-		$('#new_page').addClass('graph').show();
+		$('#new_page,.writing-toolbar').addClass('graph').show();
 		$('#graphMode,#graphExit').show();
 		
 		var sidebar = $('#sidebar');
@@ -234,16 +235,22 @@ function draw_graph() {
 			if (info_timer) clearTimeout(info_timer);
 			$('#info').html($('.' + $this_id).children('h3').html());
 			$('#info').css({'right':'auto','left':20,'top':7,'color':'#555','text-shadow':'0 1px 1px #AAA','font-size':'2em','margin-right':20,'min-width':75});
-			if (mobile) $('#info').show();
-			else info_timer = setTimeout(function() { $('#info').fadeIn(200); $('#new_page').fadeOut(200); },500);
+			//if (mobile) {
+				$('#info').show();
+				$('#new_page').hide();
+			//}
+			//else info_timer = setTimeout(function() { $('#info').fadeIn(200); $('#new_page').fadeOut(200); },500);
 		}
 	}).on('mouseout',function(event) {
 		if (info_timer) clearTimeout(info_timer);
-		if (mobile) $('#info').hide();
-		else {
+		//if (mobile) {
+			$('#info').hide();
+			$('#new_page').show();
+		//}
+		/*else {
 			$('#info').fadeOut(200);
 			$('#new_page').fadeIn(200);
-		}
+		}*/
 		_hover = null;
 	}).on('click',function(event) {
 		var $this = $(this);
@@ -257,6 +264,7 @@ function draw_graph() {
 			return;
 		}
 		else if (mode == 'connect') {
+			if (return_page_id == 'Z3') return false;
 			var page_id = d3.select(_hover[0]).data()[0][0];
 			if (page_id == '`1') page_id = 'Z1';
 			var summary_id = String.fromCharCode(page_id.charCodeAt(0)-1) + page_id.substr(1);
@@ -643,4 +651,72 @@ function show_tangent() {
 		$('path').insertBefore($('circle').eq(0));
 					
 	});
+}
+
+function labelPaths() {
+	$('g#pathLabels').remove();
+	var reversed = reversePath($('path'), 1);
+	var pathLabels = d3.select('svg').append("g").attr('id','pathLabels').style('pointer-events','none');;
+	d3.selectAll('path').each(function(d,i) {
+		if ($(this).filter(function() { return $(this).css('display') == 'none'; }).length) {
+			return false;
+		}
+		var text = pathLabels.append('text').attr("dy",-3).style("fill","#555");
+		var label = $('.' + d).children('h3').html();
+		var href = 'myPath' + i;
+		var offset = Math.ceil(d3.select('circle').attr('r')) + 1;
+		var pathLength = this.getTotalLength();
+		d3.select(this).attr('id',href);
+		var textPath = text.append("textPath").attr("xlink:href", '#' + href).attr('spacing','auto').text(label);
+		var textLength = textPath[0][0].getComputedTextLength();
+		// Could this ever be an infinite loop?
+		while (textLength > (pathLength - offset*2) * 0.8) {
+			label = label.slice(0, Math.floor((pathLength - offset*2) * 0.75 / textLength * label.length));
+			textPath.text(label);
+			textLength = textPath[0][0].getComputedTextLength();
+		}
+		if (textLength + offset*2 > pathLength) {
+			textPath.attr('lengthAdjust','spacingAndGlyphs').attr('textLength', pathLength - offset*2);
+			textPath.attr('startOffset',offset);
+		}
+		else if (reversed[i]) {
+			textPath.attr("startOffset",pathLength - offset).attr('text-anchor','end');
+		}
+		else {
+			textPath.attr("startOffset",offset);
+		}
+	});
+}
+function reversePath($path, detect) {
+	if ($path.length == 1) {
+		var pathData = $path.attr('d');
+		var c = pathData.split(' ');
+		var newPathData = [
+			c[0],
+			c[11],
+			c[12],
+			c[3],
+			c[9],
+			c[10],
+			c[6],
+			c[7],
+			c[8],
+			c[4],
+			c[5],
+			c[1],
+			c[2]
+		].join(' ');
+		if (!detect || parseFloat(c[1]) > parseFloat(c[11])) {
+			$path.attr('d',newPathData);
+			return [true];
+		}
+	}
+	else if ($path.length > 1) {
+		var array = [];
+		$path.each(function() {
+			array.push(reversePath($(this), detect)[0]);
+		});
+		return array;
+	}
+	return [false];
 }
