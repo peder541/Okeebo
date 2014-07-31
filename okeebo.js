@@ -41,13 +41,14 @@ function resize_windows(){
 	else {
 		left_margin = parseInt(main.css('margin-left'),10) || left_margin;
 	}
-	$('.exit,.splitscreen,#meta-map,#forum,#home,#catalog,#function').css('margin-left',left_margin);
+	$('.splitscreen,#meta-map,#forum,#home,#catalog,#function,#menu').css('margin-left',left_margin);
 	forum.width($('#map').offset().left - forum.offset().left);
 	forum.css('top',75-Math.max(forum.height(),19));
 			
 	$('#map,#map_helper').css('left',Math.max((Math.min(w1-scrollbar_width,(main.outerWidth()||900)+left_margin)),sidebar_width+Math.min(main.outerWidth(),228))-mapWidth);
 	var map_left = $('#map').offset().left;
-	$('#search').css('left',map_left+72);
+	$('.exit').css('left',map_left+88);
+	//$('#search').css('left',map_left+72);
 	/*$('#search').css('left',0.88*(map_left-left_margin)+left_margin);
 	$('#notes').css('left',0.55*(map_left-left_margin)+left_margin);
 	$('#home').css('left',0.22*(map_left-left_margin)+left_margin);*/
@@ -257,7 +258,7 @@ $(document).ready(function() {
 	.on('mouseenter','div',function(event) {
 		if (mobile) return true;
 		$('#info').html($('.' + workspace[$('#meta-map div').index($(this))] + ' h3').html());
-		$('#info').css({'right':'auto','left':10});
+		$('#info').css({'right': 'auto', 'left': $('#sidebar').width() + 10});
 		$('#info').css('top',7);
 		info_timer = setTimeout(function() { $('#info').show(); },500);
 	})
@@ -356,6 +357,10 @@ $(document).ready(function() {
 	
 	
 	/// Other Events
+	$('#menu').on('click',function(event) {
+		if ($('#sidebar').outerWidth()) delete_sidebar();
+		else create_sidebar();
+	});
 	$('.exit').on('click',function() {
 		if ($(this).css('pointer-events') == 'none') return false;
 		var old_workspace = $('#meta-map div').index($('.meta-node'));
@@ -392,10 +397,10 @@ $(document).ready(function() {
 			$('form.linear').show();
 		}
 	});
-	$('#search').on('click',function(event) {
+	/*$('#search').on('click',function(event) {
 		var word = prompt('Search this book:');
 		if (word) createIndex(word);
-	});
+	});*/
 	
 	if (typeof(_hide) === 'undefined') {
 		_hide = $.fn.hide;
@@ -1121,7 +1126,15 @@ function updateVideo(video_id) {
 // if src links are expired *.currentSrc will return undefined
 
 
-function createIndex(word,times,and) {	
+function createIndex(word,times,and) {
+	if (!word) {
+		var index = workspace.indexOf('Z3');
+		if (index != -1) {
+			switch_tab(index);
+			$('.exit').click();
+		}
+		return false;
+	}
 	// Handle word as an array
 	if (typeof(word) === 'object') {
 		var info = [];
@@ -1432,6 +1445,21 @@ function make_note_from_cache(cache,$page) {
 	if (cache.length > 2) make_note_from_cache(cache.slice(2), $page);
 }
 
+function noteToRange(index) {
+	var node = $('.note')[index].childNodes[0];
+	var range = document.createRange();
+	$(node).unwrap();
+	range.selectNode(node);
+	return range;
+}
+function noteToSelection(index) {
+	var sel = document.getSelection();
+	sel.removeAllRanges();
+	var range = noteToRange(index);
+	sel.addRange(range);
+	return range;
+}
+
 function save_notes() {
 	if (!window.localStorage || !window.localStorage.getItem) return false;
 	var notes = ($('.note').length == 0) ? false : {};
@@ -1584,4 +1612,54 @@ function CountWords(node) {
 		}
 	}
 	return total;
+}
+
+function create_sidebar() {
+	$('.inner,.outer').first().before('<div id="sidebar"></div>');
+	$('#sidebar')
+		.append('<p id="search"><input /></p>')
+		.append('<p id="view_graph">View Graph of All Pages</p>')
+		.append('<hr />')
+		.append('<p id="close">Close Sidebar')
+	;
+	
+	var current_page = $('.inner,.outer').filter(':visible');
+	if (typeof(d3) === 'undefined' || typeof(Modernizr) === 'undefined' || !Modernizr.svg) disable_sidebar_option($('#view_graph'));
+	
+	$('#search').on('click', function(event) {
+		$('#sidebar input').focus();
+	});
+	$('#sidebar input').on('keydown input', function(event) {
+		var $this = $(this);
+		setTimeout(function() { 
+			createIndex($this.val()); 
+		}, 0);
+	});
+	$('#view_graph').on('click',function(event) {
+		if ($(this).hasClass('disabled')) return false;
+		$('#graphMode').html(mobile ? 'Info' : 'Collapse').attr('class',mobile ? 'info' : 'collapse');
+		toggle_graph();
+	});
+	$('#close').on('click',function(event) {
+		delete_sidebar();
+	});
+	
+	var sidebar_width = $('#sidebar').width();
+	
+	$('#menu').attr('title','Close Sidebar');
+	
+	$('body').css('overflow-y','auto');
+	
+	resize_windows();
+	$('.left').css('left',sidebar_width);
+	size_buttons($('.inner,.outer').filter(':visible'));
+}
+function delete_sidebar() {
+	$('#sidebar').remove();
+	var inner_outer = $('.inner,.outer');
+	$('#menu').attr('title','Show Sidebar');
+	inner_outer.css('width','');
+	resize_windows();
+	$('.left').css('left',0);
+	size_buttons(inner_outer.filter(':visible'));
 }
