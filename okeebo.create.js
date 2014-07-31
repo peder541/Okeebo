@@ -10,7 +10,6 @@ var collab_timer = 0;
 var line = 0;
 var _delete = new Array();
 var writing_buttons = '.writing';
-var exclude_buttons = '.in,.out,.tangent,.preview_main,.preview_exit,.insert,.OkeeboMathTeX,.OkeeboMathML,.OkeeboMathDisplay,.sideboxToggle,#graphMode,.guided';
 var localsave = false;
 var caps = false;
 var collab = {};
@@ -44,8 +43,9 @@ function resize_writing_items(buffer) {
 	if (!sidebar_width) sidebar_width = 0;
 	else sidebar_width += $('#sidebar').offset().left
 	var base_width = $('.inner,.outer').filter(':visible').outerWidth();//Math.min(900,$(window).width()-sidebar_width)-buffer;
-	$('button').not(exclude_buttons).css('margin-left',$('.outer').css('margin-left'));
-	$(writing_buttons).css('left',base_width-26);
+//	$(writing_buttons).css('margin-left',$('.outer').css('margin-left'));
+//	$(writing_buttons).css('left',base_width-26);
+	$('.writing-toolbar').css('left',parseFloat($('.outer').css('margin-left'))+base_width-26);
 	//modify_arrange_buttons();
 	$('.delete').css('margin-left',base_width-89-64);
 	$('.OkeeboMath').each(function(index) { resizeMathLangButtons(index) });
@@ -1048,9 +1048,13 @@ $(document).ready(function(event) {
 			
 		}
 		if ($(window).scrollTop() < 80) {
+			/*
 			$(writing_buttons).css({'position':'absolute','top':''});
+			*/
+			$('.writing-toolbar').css({'position':'absolute','top':''});
 		}
 		else {
+			/*
 			$(writing_buttons).css('position','fixed');
 			$('#bold').css('top',5);
 			$('#italic').css('top',28);
@@ -1066,14 +1070,12 @@ $(document).ready(function(event) {
 			$('#table').css('top',278);
 			$('#equation').css('top',301);
 			$('#new_page').css('top',324);
+			*/
+			$('.writing-toolbar').css({'position':'fixed','top':-5});
 		}
 	});
 	
 	/// Button Events
-	$('#menu').on('click',function(event) {
-		if ($('#sidebar').outerWidth()) delete_sidebar();
-		else create_sidebar();
-	});
 	$('.writing').on('mousedown',function(event) {
 		if (document.getSelection) $(document.getSelection().anchorNode).closest('[contenteditable="true"]').addClass('focus');
 		else if (document.selection.type == 'Text') $(document.selection.createRange().parentElement()).closest('[contenteditable="true"]').addClass('focus');
@@ -2110,9 +2112,9 @@ function enable_sidebar_option(sidebar_option) {
 function create_sidebar() {
 	$('.inner,.outer').first().before('<div id="sidebar"></div>');
 	$('#sidebar')
-		.append('<p id="drag">' + (_drag ? 'Stop Dragging Summaries' : 'Start Dragging Summaries') + '</p>')
-		.append('<p id="view_graph">View Graph of All Pages</p>')
 		.append('<p id="add_intro_text">Add Introductory Text</p>')
+		//.append('<p id="drag">' + (_drag ? 'Stop Dragging Summaries' : 'Start Dragging Summaries') + '</p>')
+		.append('<p id="view_graph">View Graph of All Pages</p>')
 		.append('<p id="insert_new_page">Insert New Page</p>')
 		//.append('<p id="insert_existing_page">Insert Existing Page</p>')
 		.append('<p id="delete_page">Delete Current Page</p>')
@@ -2120,6 +2122,11 @@ function create_sidebar() {
 		.append('<hr />')
 		.append('<p id="publish">Save and Publish</p>')
 		.append('<p id="save">Save without Publishing</p>')
+		/*
+		<p id="publish">Publish</p>
+		<p id="save">Save to Cloud</p>
+		<p id="local_save">Local autosave is: on/off</p>
+		*/
 		.append('<hr />')
 		//.append('<p id="home">Return to Homepage</p>')
 		.append('<p id="close">Close Sidebar</p>')
